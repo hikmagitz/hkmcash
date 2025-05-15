@@ -7,6 +7,7 @@ import PremiumPage from './pages/PremiumPage';
 import AuthPage from './pages/AuthPage';
 import { TransactionProvider } from './context/TransactionContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 const AppContent = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -73,7 +74,9 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
     </AuthProvider>
   );
 }

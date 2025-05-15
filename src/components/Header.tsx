@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Moon, Sun, LogOut } from 'lucide-react';
+import { Plus, Moon, Sun, LogOut, Languages } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useIntl } from 'react-intl';
 import TransactionModal from './TransactionModal';
 import Button from './UI/Button';
 
@@ -8,8 +10,9 @@ const Header: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const { signOut } = useAuth();
+  const { language, setLanguage } = useLanguage();
+  const intl = useIntl();
   
-  // Initialize theme based on user preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -20,7 +23,6 @@ const Header: React.FC = () => {
     }
   }, []);
   
-  // Toggle theme
   const toggleTheme = () => {
     if (darkMode) {
       document.documentElement.classList.remove('dark');
@@ -30,6 +32,10 @@ const Header: React.FC = () => {
       localStorage.setItem('theme', 'dark');
     }
     setDarkMode(!darkMode);
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'ar' : 'en');
   };
 
   const handleLogout = async () => {
@@ -47,10 +53,20 @@ const Header: React.FC = () => {
           <div className="bg-teal-600 text-white p-2 rounded-md mr-3">
             <span className="font-bold text-xl">$</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-800 dark:text-white">FinanceTracker</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+            {intl.formatMessage({ id: 'app.title' })}
+          </h1>
         </div>
         
         <div className="flex items-center space-x-4">
+          <button 
+            onClick={toggleLanguage}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            aria-label={intl.formatMessage({ id: 'common.language' })}
+          >
+            <Languages className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          </button>
+          
           <button 
             onClick={toggleTheme}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -68,7 +84,7 @@ const Header: React.FC = () => {
             onClick={() => setIsModalOpen(true)}
           >
             <Plus size={18} />
-            Add Transaction
+            {intl.formatMessage({ id: 'action.addTransaction' })}
           </Button>
 
           <Button 
@@ -76,7 +92,7 @@ const Header: React.FC = () => {
             onClick={handleLogout}
           >
             <LogOut size={18} />
-            Logout
+            {intl.formatMessage({ id: 'action.logout' })}
           </Button>
         </div>
       </div>
