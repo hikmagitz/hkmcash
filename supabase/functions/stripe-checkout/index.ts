@@ -59,6 +59,14 @@ Deno.serve(async (req) => {
       return corsResponse({ error }, 400);
     }
 
+    // Verify that the price exists before proceeding
+    try {
+      await stripe.prices.retrieve(price_id);
+    } catch (error) {
+      console.error(`Invalid price ID: ${price_id}`, error);
+      return corsResponse({ error: 'Invalid price ID' }, 400);
+    }
+
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
     const {
@@ -145,6 +153,29 @@ Deno.serve(async (req) => {
       console.log(`Successfully set up new customer ${customerId} with subscription record`);
     } else {
       customerId = customer.customer_id;
+
+      // Verify the customer exists in Stripe
+      try {
+        await stripe.customers.retrieve(customerId);
+      } catch (error) {
+        console.error(`Customer ${customerId} not found in Stripe`, error);
+        
+        // Create a new customer since the old one doesn't exist
+        const newCustomer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            userId: user.id,
+          },
+        });
+
+        customerId = newCustomer.id;
+
+        // Update the customer ID in the database
+        await supabase
+          .from('stripe_customers')
+          .update({ customer_id: customerId })
+          .eq('user_id', user.id);
+      }
 
       if (mode === 'subscription') {
         // Verify subscription exists for existing customer
