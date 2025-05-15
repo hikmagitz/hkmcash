@@ -37,6 +37,9 @@ export default {
   'transaction.noTransactions': 'No transactions found',
   
   // Settings
+  'settings.general': 'General Settings',
+  'settings.currency': 'Preferred Currency',
+  'settings.currency.description': 'Choose your preferred currency for displaying amounts',
   'settings.categories': 'Categories',
   'settings.addCategory': 'Add Category',
   'settings.categoryName': 'Category Name',
@@ -46,6 +49,8 @@ export default {
   'settings.importData': 'Import Data',
   'settings.clearData': 'Clear All Data',
   'settings.clearDataConfirm': 'Are you sure you want to clear all data? This action cannot be undone!',
+  'settings.enterpriseName': 'Enterprise Name',
+  'settings.enterpriseName.description': 'This name will appear on your PDF receipts and Excel exports',
   
   // Auth
   'auth.signIn': 'Sign In',

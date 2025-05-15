@@ -37,6 +37,9 @@ export default {
   'transaction.noTransactions': 'لا توجد معاملات',
   
   // Settings
+  'settings.general': 'الإعدادات العامة',
+  'settings.currency': 'العملة المفضلة',
+  'settings.currency.description': 'اختر العملة المفضلة لعرض المبالغ',
   'settings.categories': 'الفئات',
   'settings.addCategory': 'إضافة فئة',
   'settings.categoryName': 'اسم الفئة',
@@ -46,6 +49,8 @@ export default {
   'settings.importData': 'استيراد البيانات',
   'settings.clearData': 'مسح جميع البيانات',
   'settings.clearDataConfirm': 'هل أنت متأكد من أنك تريد مسح جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء!',
+  'settings.enterpriseName': 'اسم المؤسسة',
+  'settings.enterpriseName.description': 'سيظهر هذا الاسم على إيصالات PDF وملفات Excel',
   
   // Auth
   'auth.signIn': 'تسجيل الدخول',
