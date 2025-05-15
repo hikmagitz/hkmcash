@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
@@ -17,6 +18,8 @@ const supabase = createClient(
 const SettingsPage: React.FC = () => {
   const { categories, addCategory, deleteCategory, transactions } = useTransactions();
   const { isPremium, user } = useAuth();
+  const intl = useIntl();
+  
   const [newCategory, setNewCategory] = useState({
     name: '',
     type: 'expense',
@@ -64,20 +67,17 @@ const SettingsPage: React.FC = () => {
       return;
     }
 
-    // Prepare transaction data for Excel
     const transactionData = transactions.map(t => ({
-      Date: new Date(t.date).toLocaleDateString(),
-      Type: (t.type || '').charAt(0).toUpperCase() + (t.type || '').slice(1),
+      Date: new Date(t.date).toLocaleDateString(intl.locale),
+      Type: intl.formatMessage({ id: `transaction.${t.type}` }),
       Category: t.category,
       Description: t.description,
       Amount: t.amount,
     }));
 
-    // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(transactionData);
 
-    // Add column widths
     const colWidths = [
       { wch: 12 }, // Date
       { wch: 10 }, // Type
@@ -87,18 +87,14 @@ const SettingsPage: React.FC = () => {
     ];
     ws['!cols'] = colWidths;
 
-    // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-
-    // Generate Excel file
     XLSX.writeFile(wb, `finance_tracker_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleClearData = async () => {
-    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone!')) {
+    if (window.confirm(intl.formatMessage({ id: 'settings.clearDataConfirm' }))) {
       try {
         if (user) {
-          // Delete all transactions from Supabase
           const { error } = await supabase
             .from('transactions')
             .delete()
@@ -109,14 +105,11 @@ const SettingsPage: React.FC = () => {
           }
         }
         
-        // Reset categories to defaults
         localStorage.setItem('categories', JSON.stringify(getDefaultCategories()));
-        
-        // Reload the page to reflect changes
         window.location.reload();
       } catch (error) {
         console.error('Error clearing data:', error);
-        alert('Failed to clear data. Please try again.');
+        alert(intl.formatMessage({ id: 'common.error' }));
       }
     }
   };
@@ -136,21 +129,25 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        {intl.formatMessage({ id: 'nav.settings' })}
+      </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-            Categories
+            {intl.formatMessage({ id: 'settings.categories' })}
           </h2>
           
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-300">Add New Category</h3>
+            <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'settings.addCategory' })}
+            </h3>
             <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-grow">
                 <input
                   type="text"
-                  placeholder="Category name"
+                  placeholder={intl.formatMessage({ id: 'settings.categoryName' })}
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                   className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
@@ -163,8 +160,12 @@ const SettingsPage: React.FC = () => {
                   onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
                   className="px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
+                  <option value="expense">
+                    {intl.formatMessage({ id: 'transaction.expense' })}
+                  </option>
+                  <option value="income">
+                    {intl.formatMessage({ id: 'transaction.income' })}
+                  </option>
                 </select>
                 
                 <div className="relative">
@@ -198,7 +199,7 @@ const SettingsPage: React.FC = () => {
                   onClick={handleAddCategory}
                 >
                   <Plus size={18} />
-                  Add
+                  {intl.formatMessage({ id: 'action.add' })}
                 </Button>
               </div>
             </div>
@@ -206,7 +207,9 @@ const SettingsPage: React.FC = () => {
           
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Income Categories</h3>
+              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">
+                {intl.formatMessage({ id: 'transaction.income' })}
+              </h3>
               <div className="space-y-2">
                 {categories
                   .filter((category) => category.type === 'income')
@@ -235,7 +238,9 @@ const SettingsPage: React.FC = () => {
             </div>
             
             <div>
-              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Expense Categories</h3>
+              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">
+                {intl.formatMessage({ id: 'transaction.expense' })}
+              </h3>
               <div className="space-y-2">
                 {categories
                   .filter((category) => category.type === 'expense')
@@ -267,11 +272,11 @@ const SettingsPage: React.FC = () => {
         
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-            Data Management
+            {intl.formatMessage({ id: 'settings.dataManagement' })}
           </h2>
           
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Export your data for backup or import existing data.
+            {intl.formatMessage({ id: 'settings.exportData' })}
           </p>
           
           <div className="space-y-4">
@@ -281,7 +286,7 @@ const SettingsPage: React.FC = () => {
               onClick={handleExportData}
             >
               <Download size={18} />
-              Export JSON
+              {intl.formatMessage({ id: 'settings.exportData' })} (JSON)
             </Button>
 
             <Button 
@@ -292,12 +297,12 @@ const SettingsPage: React.FC = () => {
               {isPremium ? (
                 <>
                   <FileSpreadsheet size={18} />
-                  Export Excel
+                  {intl.formatMessage({ id: 'settings.exportData' })} (Excel)
                 </>
               ) : (
                 <>
                   <Crown size={18} />
-                  Upgrade to Export Excel
+                  {intl.formatMessage({ id: 'premium.upgrade' })}
                 </>
               )}
             </Button>
@@ -308,7 +313,7 @@ const SettingsPage: React.FC = () => {
                 className="w-full"
               >
                 <Upload size={18} />
-                Import Data
+                {intl.formatMessage({ id: 'settings.importData' })}
               </Button>
               <input 
                 type="file" 
@@ -327,7 +332,7 @@ const SettingsPage: React.FC = () => {
                           window.location.reload();
                         }
                       } catch (error) {
-                        alert('Invalid import file format');
+                        alert(intl.formatMessage({ id: 'common.error' }));
                       }
                     };
                     reader.readAsText(file);
@@ -344,7 +349,7 @@ const SettingsPage: React.FC = () => {
               onClick={handleClearData}
             >
               <AlertTriangle size={18} />
-              Clear All Data
+              {intl.formatMessage({ id: 'settings.clearData' })}
             </Button>
           </div>
         </Card>
