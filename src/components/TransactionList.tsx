@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { generateTransactionReceipt } from '../utils/pdfGenerator';
+import { STRIPE_PRODUCTS } from '../stripe-config';
 import Badge from './UI/Badge';
 import Button from './UI/Button';
 import Card from './UI/Card';
@@ -21,6 +22,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<string | null>(null);
   const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const displayTransactions = limit
     ? transactions.slice(0, limit)
@@ -37,10 +39,18 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
     }
   };
 
-  const handleDownloadReceipt = (transaction: Transaction) => {
+  const handleDownloadReceipt = async (transaction: Transaction) => {
     if (!isPremium) {
       if (window.confirm('PDF receipts are a premium feature. Would you like to upgrade to premium?')) {
-        redirectToCheckout('premium_access');
+        setIsLoading(true);
+        try {
+          await redirectToCheckout('premium_access');
+        } catch (error) {
+          console.error('Error redirecting to checkout:', error);
+          alert('Failed to redirect to checkout. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
       }
       return;
     }
@@ -88,7 +98,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       {isPremium && (
                         <Badge type="neutral" className="bg-yellow-100 text-yellow-800">
                           <Crown size={12} className="mr-1" />
-                          Premium
+                          {STRIPE_PRODUCTS.premium_access.name}
                         </Badge>
                       )}
                     </div>
@@ -128,6 +138,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       e.stopPropagation();
                       handleDownloadReceipt(transaction);
                     }}
+                    disabled={isLoading}
                   >
                     {isPremium ? (
                       <>
@@ -137,7 +148,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                     ) : (
                       <>
                         <Crown size={16} />
-                        Premium Receipt
+                        {isLoading ? 'Processing...' : 'Premium Receipt'}
                       </>
                     )}
                   </Button>
@@ -148,7 +159,6 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       handleEdit(transaction.id);
                     }}
                   >
-                
                     <Edit size={16} />
                     Edit
                   </Button>

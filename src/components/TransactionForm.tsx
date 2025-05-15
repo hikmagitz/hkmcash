@@ -3,6 +3,7 @@ import { PlusCircle, X, Crown } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
+import { STRIPE_PRODUCTS } from '../stripe-config';
 import Button from './UI/Button';
 
 interface TransactionFormProps {
@@ -16,6 +17,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 }) => {
   const { addTransaction, categories, hasReachedLimit } = useTransactions();
   const { redirectToCheckout } = useStripe();
+  const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     amount: '',
@@ -92,11 +94,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       } catch (error) {
         if (error instanceof Error && error.message.includes('limit reached')) {
           if (window.confirm('You have reached the transaction limit. Would you like to upgrade to premium for unlimited transactions?')) {
+            setIsLoading(true);
             try {
               await redirectToCheckout('premium_access');
             } catch (checkoutError) {
               console.error('Error redirecting to checkout:', checkoutError);
               alert('Failed to redirect to checkout. Please try again.');
+            } finally {
+              setIsLoading(false);
             }
           }
         }
@@ -105,11 +110,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   };
 
   const handleUpgrade = async () => {
+    setIsLoading(true);
     try {
       await redirectToCheckout('premium_access');
     } catch (error) {
       console.error('Error redirecting to checkout:', error);
       alert('Failed to redirect to checkout. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -123,14 +131,15 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">Transaction Limit Reached</h3>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          You've reached the limit of 50 transactions. Upgrade to premium for unlimited transactions!
+          You've reached the limit of 50 transactions. Upgrade to {STRIPE_PRODUCTS.premium_access.name} for unlimited transactions!
         </p>
         <Button 
           type="primary"
           onClick={handleUpgrade}
+          disabled={isLoading}
         >
           <Crown size={18} />
-          Upgrade to Premium
+          {isLoading ? 'Processing...' : `Upgrade to ${STRIPE_PRODUCTS.premium_access.name}`}
         </Button>
       </div>
     );
@@ -265,9 +274,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         <Button 
           type="primary" 
           className="w-full mt-6"
+          disabled={isLoading}
         >
           <PlusCircle size={18} />
-          Add Transaction
+          {isLoading ? 'Processing...' : 'Add Transaction'}
         </Button>
       </form>
     </div>
