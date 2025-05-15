@@ -66,6 +66,7 @@ export default {
   'premium.features.support': 'دعم ذو أولوية',
   'premium.price': '€2.99/شهرياً',
   'premium.upgrade': 'الترقية الآن',
+  'premium.upgradePrompt': 'هذه ميزة متوفرة للمشتركين فقط. هل تريد الترقية إلى بريميوم؟',
   
   // Common
   'common.loading': 'جاري التحميل...',

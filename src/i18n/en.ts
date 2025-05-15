@@ -65,7 +65,8 @@ export default {
   'premium.features.excel': 'Export to Excel',
   'premium.features.support': 'Priority support',
   'premium.price': '€2.99/month',
-  'premium.upgrade': 'Upgrade Now',
+  'premium.upgrade': 'Upgrade to Premium',
+  'premium.upgradePrompt': 'This is a premium feature. Would you like to upgrade to premium?',
   
   // Common
   'common.loading': 'Loading...',

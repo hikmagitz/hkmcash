@@ -8,6 +8,7 @@ import { useTransactions } from '../context/TransactionContext';
 import { generateId, getDefaultCategories } from '../utils/helpers';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
+import { useStripe } from '../hooks/useStripe';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -18,6 +19,7 @@ const supabase = createClient(
 const SettingsPage: React.FC = () => {
   const { categories, addCategory, deleteCategory, transactions } = useTransactions();
   const { isPremium, user } = useAuth();
+  const { redirectToCheckout } = useStripe();
   const intl = useIntl();
   
   const [newCategory, setNewCategory] = useState({
@@ -44,26 +46,100 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleExportData = () => {
-    const data = {
-      transactions: JSON.parse(localStorage.getItem('transactions') || '[]'),
-      categories: JSON.parse(localStorage.getItem('categories') || '[]'),
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `finance_tracker_export_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleExportData = async () => {
+    if (!isPremium) {
+      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+        await redirectToCheckout('premium_access');
+      }
+      return;
+    }
+
+    try {
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user?.id);
+
+      if (transactionsError) throw transactionsError;
+
+      const data = {
+        transactions,
+        categories,
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `finance_tracker_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert(intl.formatMessage({ id: 'common.error' }));
+    }
+  };
+
+  const handleImportData = async (file: File) => {
+    if (!isPremium) {
+      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+        await redirectToCheckout('premium_access');
+      }
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string);
+          
+          if (data.transactions && Array.isArray(data.transactions)) {
+            // Delete existing transactions
+            const { error: deleteError } = await supabase
+              .from('transactions')
+              .delete()
+              .eq('user_id', user?.id);
+
+            if (deleteError) throw deleteError;
+
+            // Insert new transactions
+            const { error: insertError } = await supabase
+              .from('transactions')
+              .insert(
+                data.transactions.map((t: any) => ({
+                  ...t,
+                  user_id: user?.id
+                }))
+              );
+
+            if (insertError) throw insertError;
+          }
+
+          if (data.categories && Array.isArray(data.categories)) {
+            localStorage.setItem('categories', JSON.stringify(data.categories));
+          }
+
+          window.location.reload();
+        } catch (error) {
+          console.error('Error importing data:', error);
+          alert(intl.formatMessage({ id: 'common.error' }));
+        }
+      };
+      reader.readAsText(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      alert(intl.formatMessage({ id: 'common.error' }));
+    }
   };
 
   const handleExportExcel = () => {
     if (!isPremium) {
-      window.location.href = '/premium';
+      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+        redirectToCheckout('premium_access');
+      }
       return;
     }
 
@@ -285,8 +361,17 @@ const SettingsPage: React.FC = () => {
               className="w-full"
               onClick={handleExportData}
             >
-              <Download size={18} />
-              {intl.formatMessage({ id: 'settings.exportData' })} (JSON)
+              {isPremium ? (
+                <>
+                  <Download size={18} />
+                  {intl.formatMessage({ id: 'settings.exportData' })} (JSON)
+                </>
+              ) : (
+                <>
+                  <Crown size={18} />
+                  {intl.formatMessage({ id: 'premium.upgrade' })}
+                </>
+              )}
             </Button>
 
             <Button 
@@ -311,31 +396,37 @@ const SettingsPage: React.FC = () => {
               <Button 
                 type="secondary" 
                 className="w-full"
+                onClick={() => {
+                  if (!isPremium) {
+                    if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+                      redirectToCheckout('premium_access');
+                    }
+                    return;
+                  }
+                  document.getElementById('file-input')?.click();
+                }}
               >
-                <Upload size={18} />
-                {intl.formatMessage({ id: 'settings.importData' })}
+                {isPremium ? (
+                  <>
+                    <Upload size={18} />
+                    {intl.formatMessage({ id: 'settings.importData' })}
+                  </>
+                ) : (
+                  <>
+                    <Crown size={18} />
+                    {intl.formatMessage({ id: 'premium.upgrade' })}
+                  </>
+                )}
               </Button>
               <input 
+                id="file-input"
                 type="file" 
                 accept=".json" 
                 className="hidden" 
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      try {
-                        const data = JSON.parse(event.target?.result as string);
-                        if (data.transactions && data.categories) {
-                          localStorage.setItem('transactions', JSON.stringify(data.transactions));
-                          localStorage.setItem('categories', JSON.stringify(data.categories));
-                          window.location.reload();
-                        }
-                      } catch (error) {
-                        alert(intl.formatMessage({ id: 'common.error' }));
-                      }
-                    };
-                    reader.readAsText(file);
+                    handleImportData(file);
                   }
                 }}
               />
