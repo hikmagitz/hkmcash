@@ -5,10 +5,10 @@ import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import { useTransactions } from '../context/TransactionContext';
-import { generateId, getDefaultCategories } from '../utils/helpers';
-import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
+import { generateId, getDefaultCategories } from '../utils/helpers';
+import * as XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -46,10 +46,18 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleExportData = () => {
+  const handleUpgrade = async () => {
+    try {
+      await redirectToCheckout('premium_access');
+    } catch (error) {
+      console.error('Error redirecting to checkout:', error);
+    }
+  };
+
+  const handleExportData = async () => {
     if (!isPremium) {
       if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        redirectToCheckout('premium_access');
+        await handleUpgrade();
       }
       return;
     }
@@ -70,10 +78,10 @@ const SettingsPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!isPremium) {
       if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        redirectToCheckout('premium_access');
+        await handleUpgrade();
       }
       return;
     }
@@ -295,7 +303,6 @@ const SettingsPage: React.FC = () => {
               type="primary" 
               className="w-full"
               onClick={handleExportData}
-              disabled={!isPremium}
             >
               {isPremium ? (
                 <>
@@ -314,7 +321,6 @@ const SettingsPage: React.FC = () => {
               type="primary" 
               className="w-full"
               onClick={handleExportExcel}
-              disabled={!isPremium}
             >
               {isPremium ? (
                 <>
@@ -333,7 +339,7 @@ const SettingsPage: React.FC = () => {
               <Button 
                 type="secondary" 
                 className="w-full"
-                disabled={!isPremium}
+                onClick={isPremium ? undefined : handleUpgrade}
               >
                 {isPremium ? (
                   <>
