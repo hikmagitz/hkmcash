@@ -31,11 +31,30 @@ const SuccessPage: React.FC = () => {
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Payment Successful!
+            Welcome to Premium!
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Thank you for upgrading to Premium. Your account has been upgraded successfully.
           </p>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <div className="flex items-center">
+            <span className="text-green-600 mr-2">✓</span>
+            <span className="text-gray-700 dark:text-gray-300">Unlimited transactions</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-green-600 mr-2">✓</span>
+            <span className="text-gray-700 dark:text-gray-300">PDF receipts for transactions</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-green-600 mr-2">✓</span>
+            <span className="text-gray-700 dark:text-gray-300">Export to Excel</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-green-600 mr-2">✓</span>
+            <span className="text-gray-700 dark:text-gray-300">Priority support</span>
+          </div>
         </div>
 
         <p className="text-gray-500 dark:text-gray-400 mb-6">
@@ -54,4 +73,4 @@ const SuccessPage: React.FC = () => {
   );
 };
 
-export default SuccessPage
+export default SuccessPage;
