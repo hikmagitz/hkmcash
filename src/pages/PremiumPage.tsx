@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { Crown } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
-import { Crown } from 'lucide-react';
+import { useStripe } from '../hooks/useStripe';
 
 const PremiumPage: React.FC = () => {
-  const { checkoutSession } = useAuth();
+  const { redirectToCheckout } = useStripe();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,8 +13,7 @@ const PremiumPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const url = await checkoutSession(import.meta.env.VITE_STRIPE_PRICE_ID);
-      window.location.href = url;
+      await redirectToCheckout('premium_access');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start checkout process');
       console.error('Error creating checkout session:', err);
@@ -45,7 +44,7 @@ const PremiumPage: React.FC = () => {
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Advanced analytics</span>
+            <span className="text-gray-700 dark:text-gray-300">PDF receipts for transactions</span>
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
@@ -59,7 +58,7 @@ const PremiumPage: React.FC = () => {
 
         <div className="mb-8">
           <div className="text-4xl font-bold text-gray-800 dark:text-white">
-            $9.99
+            €2.99
             <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
           </div>
         </div>

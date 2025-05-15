@@ -3,6 +3,7 @@ import MainLayout from './layout/MainLayout';
 import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import SettingsPage from './pages/SettingsPage';
+import PremiumPage from './pages/PremiumPage';
 import AuthPage from './pages/AuthPage';
 import { TransactionProvider } from './context/TransactionContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -19,6 +20,8 @@ const AppContent = () => {
         setCurrentPage('transactions');
       } else if (path === '/settings') {
         setCurrentPage('settings');
+      } else if (path === '/premium') {
+        setCurrentPage('premium');
       } else {
         setCurrentPage('dashboard');
       }
@@ -31,7 +34,14 @@ const AppContent = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
@@ -44,6 +54,8 @@ const AppContent = () => {
         return <TransactionsPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'premium':
+        return <PremiumPage />;
       default:
         return <DashboardPage />;
     }
