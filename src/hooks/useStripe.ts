@@ -16,9 +16,9 @@ export function useStripe() {
       throw new Error('User must be authenticated');
     }
 
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (error || !session) {
+    if (sessionError || !session) {
       throw new Error('Failed to get session');
     }
 
@@ -37,25 +37,30 @@ export function useStripe() {
         body: JSON.stringify({
           price_id: product.priceId,
           success_url: `${window.location.origin}/success`,
-          cancel_url: `${window.location.origin}/premium`,
+          cancel_url: `${window.location.origin}/settings`,
           mode: product.mode,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create checkout session');
+        throw new Error(data.error || 'Failed to create checkout session');
       }
 
-      const { session_url } = await response.json();
-      if (!session_url) {
+      if (!data.session_url) {
         throw new Error('No checkout URL returned');
       }
 
-      window.location.href = session_url;
+      window.location.href = data.session_url;
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      throw error;
+      if (error instanceof Error) {
+        console.error('Error creating checkout session:', error.message);
+        throw new Error(`Failed to create checkout session: ${error.message}`);
+      } else {
+        console.error('Unknown error creating checkout session:', error);
+        throw new Error('Failed to create checkout session');
+      }
     }
   }, [user]);
 
