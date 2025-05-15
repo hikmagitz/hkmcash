@@ -2,10 +2,22 @@ import { Transaction, TransactionSummary } from '../types';
 
 // Format currency based on user's locale and preferred currency
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat(navigator.language || 'en-US', {
+  const currency = localStorage.getItem('preferredCurrency') || 'EUR';
+  const locale = navigator.language || 'en-US';
+  
+  // Special handling for currencies with different decimal places
+  const options: Intl.NumberFormatOptions = {
     style: 'currency',
-    currency: localStorage.getItem('preferredCurrency') || 'EUR',
-  }).format(amount);
+    currency,
+  };
+
+  // JPY and KRW don't use decimal places
+  if (currency === 'JPY' || currency === 'KRW') {
+    options.minimumFractionDigits = 0;
+    options.maximumFractionDigits = 0;
+  }
+
+  return new Intl.NumberFormat(locale, options).format(amount);
 };
 
 // Format date based on user's locale
@@ -131,3 +143,16 @@ export const calculateCategoryTotals = (transactions: Transaction[]) => {
     total,
   })).sort((a, b) => b.total - a.total);
 };
+
+export const SUPPORTED_CURRENCIES = [
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+] as const;
