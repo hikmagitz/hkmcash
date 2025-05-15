@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
 
     console.log(`Created checkout session ${session.id} for customer ${customerId}`);
 
-    return corsResponse({ sessionId: session.id, url: session.url });
+    return corsResponse({ session_url: session.url });
   } catch (error: any) {
     console.error(`Checkout error: ${error.message}`);
     return corsResponse({ error: error.message }, 500);
