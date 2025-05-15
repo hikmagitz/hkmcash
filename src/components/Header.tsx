@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Moon, Sun, LogOut, Languages } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Moon, Sun, LogOut, Languages, Crown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useIntl } from 'react-intl';
 import TransactionModal from './TransactionModal';
 import Button from './UI/Button';
+import Badge from './UI/Badge';
 
 const Header: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const { signOut } = useAuth();
+  const { signOut, isPremium } = useAuth();
   const { language, setLanguage } = useLanguage();
   const intl = useIntl();
+  const navigate = useNavigate();
   
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -53,9 +56,17 @@ const Header: React.FC = () => {
           <div className="bg-teal-600 text-white p-2 rounded-md mr-3">
             <span className="font-bold text-xl">$</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-            {intl.formatMessage({ id: 'app.title' })}
-          </h1>
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+              {intl.formatMessage({ id: 'app.title' })}
+            </h1>
+            {isPremium && (
+              <Badge type="neutral" className="ml-2 bg-yellow-100 text-yellow-800">
+                <Crown size={14} className="mr-1" />
+                Premium
+              </Badge>
+            )}
+          </div>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -78,6 +89,17 @@ const Header: React.FC = () => {
               <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             )}
           </button>
+
+          {!isPremium && (
+            <Button 
+              type="secondary"
+              onClick={() => navigate('/premium')}
+              className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+            >
+              <Crown size={18} />
+              {intl.formatMessage({ id: 'premium.upgrade' })}
+            </Button>
+          )}
           
           <Button 
             type="primary" 
