@@ -54,9 +54,11 @@ const Header: React.FC = () => {
     <header className="bg-white dark:bg-gray-800 py-4 px-6 shadow-sm sticky top-0 z-10 transition-colors">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <div className="flex items-center">
-          <div className="bg-teal-600 text-white p-2 rounded-md mr-3">
-            <span className="font-bold text-xl">$</span>
-          </div>
+          <img 
+            src="https://raw.githubusercontent.com/stackblitz/stackblitz-webcontainer-core-api/main/assets/hikma-cash-logo.png" 
+            alt="Hikma Cash Logo"
+            className="h-10 w-10 mr-3"
+          />
           <div className="flex items-center">
             <h1 className="text-xl font-bold text-gray-800 dark:text-white">
               {intl.formatMessage({ id: 'app.title' })}
