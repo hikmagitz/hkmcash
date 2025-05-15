@@ -44,7 +44,8 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
       }
       return;
     }
-    generateTransactionReceipt(transaction);
+    const enterpriseName = localStorage.getItem('enterpriseName') || '';
+    generateTransactionReceipt(transaction, enterpriseName);
   };
 
   const toggleExpand = (id: string) => {
@@ -147,6 +148,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       handleEdit(transaction.id);
                     }}
                   >
+                
                     <Edit size={16} />
                     Edit
                   </Button>

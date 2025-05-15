@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -27,8 +27,16 @@ const SettingsPage: React.FC = () => {
     type: 'expense',
     color: '#6B7280',
   });
-  
+
+  const [enterpriseName, setEnterpriseName] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
+
+  useEffect(() => {
+    const savedEnterpriseName = localStorage.getItem('enterpriseName');
+    if (savedEnterpriseName) {
+      setEnterpriseName(savedEnterpriseName);
+    }
+  }, []);
   
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
@@ -44,6 +52,12 @@ const SettingsPage: React.FC = () => {
         color: '#6B7280',
       });
     }
+  };
+
+  const handleEnterpriseNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEnterpriseName(value);
+    localStorage.setItem('enterpriseName', value);
   };
 
   const handleExportData = async () => {
@@ -65,13 +79,14 @@ const SettingsPage: React.FC = () => {
       const data = {
         transactions,
         categories,
+        enterpriseName,
       };
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `finance_tracker_export_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -122,6 +137,10 @@ const SettingsPage: React.FC = () => {
             localStorage.setItem('categories', JSON.stringify(data.categories));
           }
 
+          if (data.enterpriseName) {
+            localStorage.setItem('enterpriseName', data.enterpriseName);
+          }
+
           window.location.reload();
         } catch (error) {
           console.error('Error importing data:', error);
@@ -152,6 +171,17 @@ const SettingsPage: React.FC = () => {
     }));
 
     const wb = XLSX.utils.book_new();
+    
+    // Add enterprise information
+    if (enterpriseName) {
+      const infoSheet = XLSX.utils.aoa_to_sheet([
+        ['Enterprise Name', enterpriseName],
+        ['Export Date', new Date().toLocaleDateString()],
+        [],
+      ]);
+      XLSX.utils.book_append_sheet(wb, infoSheet, 'Info');
+    }
+
     const ws = XLSX.utils.json_to_sheet(transactionData);
 
     const colWidths = [
@@ -164,7 +194,7 @@ const SettingsPage: React.FC = () => {
     ws['!cols'] = colWidths;
 
     XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-    XLSX.writeFile(wb, `finance_tracker_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleClearData = async () => {
@@ -210,6 +240,33 @@ const SettingsPage: React.FC = () => {
       </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+            Enterprise Settings
+          </h2>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Enterprise Name
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={enterpriseName}
+                onChange={handleEnterpriseNameChange}
+                placeholder="Enter enterprise name"
+                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <div className="flex items-center">
+                <Building2 className="w-5 h-5 text-gray-400" />
+              </div>
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              This name will appear on your PDF receipts and Excel exports
+            </p>
+          </div>
+        </Card>
+
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
             {intl.formatMessage({ id: 'settings.categories' })}

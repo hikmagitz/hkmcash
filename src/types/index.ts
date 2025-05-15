@@ -19,3 +19,7 @@ export interface TransactionSummary {
   totalExpense: number;
   balance: number;
 }
+
+export interface UserSettings {
+  enterpriseName: string;
+}
