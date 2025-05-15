@@ -83,7 +83,6 @@ Deno.serve(async (req) => {
 
     if (getCustomerError) {
       console.error('Failed to fetch customer information from the database', getCustomerError);
-
       return corsResponse({ error: 'Failed to fetch customer information' }, 500);
     }
 
@@ -157,7 +156,6 @@ Deno.serve(async (req) => {
 
         if (getSubscriptionError) {
           console.error('Failed to fetch subscription information from the database', getSubscriptionError);
-
           return corsResponse({ error: 'Failed to fetch subscription information' }, 500);
         }
 
@@ -170,14 +168,13 @@ Deno.serve(async (req) => {
 
           if (createSubscriptionError) {
             console.error('Failed to create subscription record for existing customer', createSubscriptionError);
-
             return corsResponse({ error: 'Failed to create subscription record for existing customer' }, 500);
           }
         }
       }
     }
 
-    // create Checkout Session
+    // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
@@ -190,6 +187,11 @@ Deno.serve(async (req) => {
       mode,
       success_url,
       cancel_url,
+      allow_promotion_codes: true,
+      billing_address_collection: 'required',
+      customer_update: {
+        address: 'auto',
+      },
     });
 
     console.log(`Created checkout session ${session.id} for customer ${customerId}`);
