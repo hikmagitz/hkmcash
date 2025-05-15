@@ -53,3 +53,5 @@ const SuccessPage: React.FC = () => {
     </div>
   );
 };
+
+export default SuccessPage
