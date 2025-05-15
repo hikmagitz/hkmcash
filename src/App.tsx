@@ -1,39 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layout/MainLayout';
 import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import SettingsPage from './pages/SettingsPage';
 import PremiumPage from './pages/PremiumPage';
+import SuccessPage from './pages/SuccessPage';
 import AuthPage from './pages/AuthPage';
 import { TransactionProvider } from './context/TransactionContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 
 const AppContent = () => {
-  const [currentPage, setCurrentPage] = useState('dashboard');
   const { user, loading } = useAuth();
   
-  useEffect(() => {
-    const handleNavigation = () => {
-      const path = window.location.pathname;
-      
-      if (path === '/transactions') {
-        setCurrentPage('transactions');
-      } else if (path === '/settings') {
-        setCurrentPage('settings');
-      } else if (path === '/premium') {
-        setCurrentPage('premium');
-      } else {
-        setCurrentPage('dashboard');
-      }
-    };
-    
-    handleNavigation();
-    
-    window.addEventListener('popstate', handleNavigation);
-    return () => window.removeEventListener('popstate', handleNavigation);
-  }, []);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -49,24 +29,20 @@ const AppContent = () => {
     return <AuthPage />;
   }
   
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'transactions':
-        return <TransactionsPage />;
-      case 'settings':
-        return <SettingsPage />;
-      case 'premium':
-        return <PremiumPage />;
-      default:
-        return <DashboardPage />;
-    }
-  };
-
   return (
     <TransactionProvider>
-      <MainLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-        {renderPage()}
-      </MainLayout>
+      <Router>
+        <Routes>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="transactions" element={<TransactionsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="premium" element={<PremiumPage />} />
+            <Route path="success" element={<SuccessPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
     </TransactionProvider>
   );
 };
