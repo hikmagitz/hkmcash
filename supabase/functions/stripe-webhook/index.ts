@@ -78,9 +78,7 @@ async function handleEvent(event: Stripe.Event) {
 
     if (event.type === 'checkout.session.completed') {
       const { mode } = stripeData as Stripe.Checkout.Session;
-
       isSubscription = mode === 'subscription';
-
       console.info(`Processing ${isSubscription ? 'subscription' : 'one-time payment'} checkout session`);
     }
 
@@ -109,7 +107,7 @@ async function handleEvent(event: Stripe.Event) {
           amount_total,
           currency,
           payment_status,
-          status: 'completed', // assuming we want to mark it as completed since payment is successful
+          status: 'completed',
         });
 
         if (orderError) {
@@ -124,9 +122,20 @@ async function handleEvent(event: Stripe.Event) {
   }
 }
 
-// based on the excellent https://github.com/t3dotgg/stripe-recommendations
 async function syncCustomerFromStripe(customerId: string) {
   try {
+    // Get the customer to find the associated user
+    const customer = await stripe.customers.retrieve(customerId);
+    if (!customer || customer.deleted) {
+      throw new Error('Customer not found or deleted');
+    }
+
+    // Get the user ID from the customer metadata
+    const userId = customer.metadata.userId;
+    if (!userId) {
+      throw new Error('No user ID found in customer metadata');
+    }
+
     // fetch latest subscription data from Stripe
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
@@ -135,7 +144,6 @@ async function syncCustomerFromStripe(customerId: string) {
       expand: ['data.default_payment_method'],
     });
 
-    // TODO verify if needed
     if (subscriptions.data.length === 0) {
       console.info(`No active subscriptions found for customer: ${customerId}`);
       const { error: noSubError } = await supabase.from('stripe_subscriptions').upsert(
@@ -152,38 +160,62 @@ async function syncCustomerFromStripe(customerId: string) {
         console.error('Error updating subscription status:', noSubError);
         throw new Error('Failed to update subscription status in database');
       }
+
+      // Update user's premium status to false
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ is_premium: false })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating user premium status:', updateError);
+        throw new Error('Failed to update user premium status');
+      }
+    } else {
+      // Get the latest subscription
+      const subscription = subscriptions.data[0];
+
+      // store subscription state
+      const { error: subError } = await supabase.from('stripe_subscriptions').upsert(
+        {
+          customer_id: customerId,
+          subscription_id: subscription.id,
+          price_id: subscription.items.data[0].price.id,
+          current_period_start: subscription.current_period_start,
+          current_period_end: subscription.current_period_end,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          ...(subscription.default_payment_method && typeof subscription.default_payment_method !== 'string'
+            ? {
+                payment_method_brand: subscription.default_payment_method.card?.brand ?? null,
+                payment_method_last4: subscription.default_payment_method.card?.last4 ?? null,
+              }
+            : {}),
+          status: subscription.status,
+        },
+        {
+          onConflict: 'customer_id',
+        },
+      );
+
+      if (subError) {
+        console.error('Error syncing subscription:', subError);
+        throw new Error('Failed to sync subscription in database');
+      }
+
+      // Update user's premium status based on subscription status
+      const isPremium = subscription.status === 'active' || subscription.status === 'trialing';
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ is_premium: isPremium })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating user premium status:', updateError);
+        throw new Error('Failed to update user premium status');
+      }
+
+      console.info(`Successfully synced subscription and updated premium status for user: ${userId}`);
     }
-
-    // assumes that a customer can only have a single subscription
-    const subscription = subscriptions.data[0];
-
-    // store subscription state
-    const { error: subError } = await supabase.from('stripe_subscriptions').upsert(
-      {
-        customer_id: customerId,
-        subscription_id: subscription.id,
-        price_id: subscription.items.data[0].price.id,
-        current_period_start: subscription.current_period_start,
-        current_period_end: subscription.current_period_end,
-        cancel_at_period_end: subscription.cancel_at_period_end,
-        ...(subscription.default_payment_method && typeof subscription.default_payment_method !== 'string'
-          ? {
-              payment_method_brand: subscription.default_payment_method.card?.brand ?? null,
-              payment_method_last4: subscription.default_payment_method.card?.last4 ?? null,
-            }
-          : {}),
-        status: subscription.status,
-      },
-      {
-        onConflict: 'customer_id',
-      },
-    );
-
-    if (subError) {
-      console.error('Error syncing subscription:', subError);
-      throw new Error('Failed to sync subscription in database');
-    }
-    console.info(`Successfully synced subscription for customer: ${customerId}`);
   } catch (error) {
     console.error(`Failed to sync subscription for customer ${customerId}:`, error);
     throw error;
