@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useIntl } from 'react-intl';
 import { useTransactions } from '../../context/TransactionContext';
 import { calculateCategoryTotals, formatCurrency } from '../../utils/helpers';
 import Card from '../UI/Card';
@@ -10,6 +11,7 @@ interface CategoryChartProps {
 const CategoryChart: React.FC<CategoryChartProps> = ({ type }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const { transactions, categories } = useTransactions();
+  const intl = useIntl();
 
   const filteredTransactions = transactions.filter(
     (transaction) => transaction.type === type
@@ -20,7 +22,6 @@ const CategoryChart: React.FC<CategoryChartProps> = ({ type }) => {
 
   useEffect(() => {
     if (chartRef.current && categoryTotals.length > 0) {
-      // Simple animation for bar chart
       const bars = chartRef.current.querySelectorAll('.category-bar');
       bars.forEach((bar, index) => {
         setTimeout(() => {
@@ -39,11 +40,13 @@ const CategoryChart: React.FC<CategoryChartProps> = ({ type }) => {
     return (
       <Card className="h-full">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-          {type === 'income' ? 'Income' : 'Expense'} by Category
+          {intl.formatMessage({ 
+            id: type === 'income' ? 'dashboard.incomeByCategory' : 'dashboard.expenseByCategory' 
+          })}
         </h3>
         <div className="flex items-center justify-center h-40">
           <p className="text-gray-500 dark:text-gray-400">
-            No {type} transactions found.
+            {intl.formatMessage({ id: 'transaction.noTransactions' })}
           </p>
         </div>
       </Card>
@@ -53,7 +56,9 @@ const CategoryChart: React.FC<CategoryChartProps> = ({ type }) => {
   return (
     <Card className="h-full">
       <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-        {type === 'income' ? 'Income' : 'Expense'} by Category
+        {intl.formatMessage({ 
+          id: type === 'income' ? 'dashboard.incomeByCategory' : 'dashboard.expenseByCategory' 
+        })}
       </h3>
       <div ref={chartRef} className="space-y-4">
         {categoryTotals.map(({ category, total }) => (

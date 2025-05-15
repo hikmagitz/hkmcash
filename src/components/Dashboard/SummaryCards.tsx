@@ -1,4 +1,5 @@
 import React from 'react';
+import { useIntl } from 'react-intl';
 import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { useTransactions } from '../../context/TransactionContext';
 import { formatCurrency } from '../../utils/helpers';
@@ -6,6 +7,7 @@ import Card from '../UI/Card';
 
 const SummaryCards: React.FC = () => {
   const { summary } = useTransactions();
+  const intl = useIntl();
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -15,7 +17,9 @@ const SummaryCards: React.FC = () => {
             <TrendingUp className="h-6 w-6 text-green-500" />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Income</h3>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {intl.formatMessage({ id: 'dashboard.totalIncome' })}
+            </h3>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
               {formatCurrency(summary.totalIncome)}
             </p>
@@ -29,7 +33,9 @@ const SummaryCards: React.FC = () => {
             <TrendingDown className="h-6 w-6 text-red-500" />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Expenses</h3>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {intl.formatMessage({ id: 'dashboard.totalExpenses' })}
+            </h3>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
               {formatCurrency(summary.totalExpense)}
             </p>
@@ -51,7 +57,9 @@ const SummaryCards: React.FC = () => {
             }`} />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Balance</h3>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {intl.formatMessage({ id: 'dashboard.currentBalance' })}
+            </h3>
             <p className={`text-2xl font-bold ${
               summary.balance >= 0 
                 ? 'text-blue-600 dark:text-blue-400' 

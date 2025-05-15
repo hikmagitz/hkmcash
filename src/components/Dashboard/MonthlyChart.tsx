@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useTransactions } from '../../context/TransactionContext';
 import { formatCurrency } from '../../utils/helpers';
 import Card from '../UI/Card';
@@ -14,6 +15,7 @@ const MonthlyChart: React.FC = () => {
   const { transactions } = useTransactions();
   const [monthlyData, setMonthlyData] = useState<MonthData[]>([]);
   const [maxValue, setMaxValue] = useState(0);
+  const intl = useIntl();
 
   useEffect(() => {
     const calculateMonthlyData = () => {
@@ -23,7 +25,7 @@ const MonthlyChart: React.FC = () => {
       // Initialize last 6 months
       for (let i = 5; i >= 0; i--) {
         const date = new Date(currentYear, new Date().getMonth() - i, 1);
-        const monthStr = date.toLocaleString('default', { month: 'short' });
+        const monthStr = date.toLocaleString(intl.locale, { month: 'short' });
         months[`${monthStr}`] = {
           month: monthStr,
           income: 0,
@@ -34,7 +36,7 @@ const MonthlyChart: React.FC = () => {
       // Fill with transaction data
       transactions.forEach((transaction) => {
         const date = new Date(transaction.date);
-        const monthStr = date.toLocaleString('default', { month: 'short' });
+        const monthStr = date.toLocaleString(intl.locale, { month: 'short' });
         
         if (months[monthStr]) {
           if (transaction.type === 'income') {
@@ -58,7 +60,7 @@ const MonthlyChart: React.FC = () => {
     };
     
     calculateMonthlyData();
-  }, [transactions]);
+  }, [transactions, intl.locale]);
 
   useEffect(() => {
     if (chartRef.current && monthlyData.length > 0) {
@@ -85,7 +87,7 @@ const MonthlyChart: React.FC = () => {
   return (
     <Card className="h-full">
       <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-        Monthly Overview
+        {intl.formatMessage({ id: 'dashboard.monthlyOverview' })}
       </h3>
       <div className="h-64">
         <div className="flex h-full">
@@ -128,11 +130,15 @@ const MonthlyChart: React.FC = () => {
         <div className="flex justify-center mt-6 space-x-6">
           <div className="flex items-center">
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">Income</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {intl.formatMessage({ id: 'transaction.income' })}
+            </span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">Expense</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {intl.formatMessage({ id: 'transaction.expense' })}
+            </span>
           </div>
         </div>
       </div>
