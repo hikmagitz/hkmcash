@@ -4,6 +4,7 @@ import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useStripe } from '../hooks/useStripe';
 import { useAuth } from '../context/AuthContext';
+import { STRIPE_PRODUCTS } from '../stripe-config';
 
 const PremiumPage: React.FC = () => {
   const { redirectToCheckout } = useStripe();
@@ -36,7 +37,7 @@ const PremiumPage: React.FC = () => {
               You're a Premium Member!
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Thank you for your support. You have access to all premium features.
+              {STRIPE_PRODUCTS.premium_access.description}
             </p>
           </div>
 
@@ -55,7 +56,7 @@ const PremiumPage: React.FC = () => {
             </div>
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">Priority support</span>
+              <span className="text-gray-700 dark:text-gray-300">Export to JSON</span>
             </div>
           </div>
         </Card>
@@ -71,10 +72,10 @@ const PremiumPage: React.FC = () => {
             <Crown className="w-8 h-8 text-teal-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Upgrade to Premium
+            {STRIPE_PRODUCTS.premium_access.name}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Get access to advanced features and unlimited transactions
+            {STRIPE_PRODUCTS.premium_access.description}
           </p>
         </div>
 
@@ -93,13 +94,13 @@ const PremiumPage: React.FC = () => {
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Priority support</span>
+            <span className="text-gray-700 dark:text-gray-300">Export to JSON</span>
           </div>
         </div>
 
         <div className="mb-8">
           <div className="text-4xl font-bold text-gray-800 dark:text-white">
-            €2.99
+            €{STRIPE_PRODUCTS.premium_access.price}
             <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
           </div>
         </div>

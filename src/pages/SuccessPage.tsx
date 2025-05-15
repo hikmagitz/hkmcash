@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
+import { STRIPE_PRODUCTS } from '../stripe-config';
 
 const SuccessPage: React.FC = () => {
   const [countdown, setCountdown] = useState(5);
@@ -31,10 +32,10 @@ const SuccessPage: React.FC = () => {
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Welcome to Premium!
+            Welcome to {STRIPE_PRODUCTS.premium_access.name}!
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Thank you for upgrading to Premium. Your account has been upgraded successfully.
+            Thank you for subscribing. Your account has been upgraded successfully.
           </p>
         </div>
 
@@ -53,7 +54,7 @@ const SuccessPage: React.FC = () => {
           </div>
           <div className="flex items-center">
             <span className="text-green-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Priority support</span>
+            <span className="text-gray-700 dark:text-gray-300">Export to JSON</span>
           </div>
         </div>
 
