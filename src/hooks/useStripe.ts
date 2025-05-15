@@ -1,11 +1,27 @@
 import { useCallback } from 'react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { createClient } from '@supabase/supabase-js';
+import { useAuth } from '../context/AuthContext';
 import { STRIPE_PRODUCTS } from '../stripe-config';
 
-export const useStripe = () => {
-  const supabase = useSupabaseClient();
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+export function useStripe() {
+  const { user } = useAuth();
 
   const redirectToCheckout = useCallback(async (productId: keyof typeof STRIPE_PRODUCTS) => {
+    if (!user) {
+      throw new Error('User must be authenticated');
+    }
+
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error || !session) {
+      throw new Error('Failed to get session');
+    }
+
     const product = STRIPE_PRODUCTS[productId];
     if (!product) {
       throw new Error('Invalid product ID');
@@ -15,23 +31,23 @@ export const useStripe = () => {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           price_id: product.priceId,
           success_url: `${window.location.origin}/success`,
           cancel_url: `${window.location.origin}/premium`,
-          mode: product.mode || 'subscription'
-        })
+          mode: product.mode,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create checkout session');
       }
 
       const { session_url } = await response.json();
-
       if (!session_url) {
         throw new Error('No checkout URL returned');
       }
@@ -41,7 +57,9 @@ export const useStripe = () => {
       console.error('Error creating checkout session:', error);
       throw error;
     }
-  }, []);
+  }, [user]);
 
-  return { redirectToCheckout };
-};
+  return {
+    redirectToCheckout,
+  };
+}
