@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIntl } from 'react-intl';
 import { CheckCircle } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -8,6 +9,7 @@ import { STRIPE_PRODUCTS } from '../stripe-config';
 const SuccessPage: React.FC = () => {
   const [countdown, setCountdown] = useState(5);
   const navigate = useNavigate();
+  const intl = useIntl();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,29 +34,37 @@ const SuccessPage: React.FC = () => {
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Welcome to {STRIPE_PRODUCTS.premium_access.name}!
+            {intl.formatMessage({ id: 'premium.success' })}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Thank you for subscribing. Your account has been upgraded successfully.
+            {intl.formatMessage({ id: 'premium.successDescription' })}
           </p>
         </div>
 
         <div className="space-y-4 mb-8">
           <div className="flex items-center">
             <span className="text-green-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Unlimited transactions</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.unlimited' })}
+            </span>
           </div>
           <div className="flex items-center">
             <span className="text-green-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">PDF receipts for transactions</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.pdf' })}
+            </span>
           </div>
           <div className="flex items-center">
             <span className="text-green-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Export to Excel</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.excel' })}
+            </span>
           </div>
           <div className="flex items-center">
             <span className="text-green-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Export to JSON</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.json' })}
+            </span>
           </div>
         </div>
 

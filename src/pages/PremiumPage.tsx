@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Crown, Check } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useStripe } from '../hooks/useStripe';
@@ -11,6 +12,7 @@ const PremiumPage: React.FC = () => {
   const { isPremium } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const intl = useIntl();
 
   const handleUpgrade = async () => {
     setIsLoading(true);
@@ -34,29 +36,37 @@ const PremiumPage: React.FC = () => {
               <Check className="w-8 h-8 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              You're a Premium Member!
+              {intl.formatMessage({ id: 'premium.success' })}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {STRIPE_PRODUCTS.premium_access.description}
+              {intl.formatMessage({ id: 'premium.successDescription' })}
             </p>
           </div>
 
           <div className="space-y-4 mb-8">
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">Unlimited transactions</span>
+              <span className="text-gray-700 dark:text-gray-300">
+                {intl.formatMessage({ id: 'premium.features.unlimited' })}
+              </span>
             </div>
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">PDF receipts for transactions</span>
+              <span className="text-gray-700 dark:text-gray-300">
+                {intl.formatMessage({ id: 'premium.features.pdf' })}
+              </span>
             </div>
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">Export to Excel</span>
+              <span className="text-gray-700 dark:text-gray-300">
+                {intl.formatMessage({ id: 'premium.features.excel' })}
+              </span>
             </div>
             <div className="flex items-center">
               <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">Export to JSON</span>
+              <span className="text-gray-700 dark:text-gray-300">
+                {intl.formatMessage({ id: 'premium.features.json' })}
+              </span>
             </div>
           </div>
         </Card>
@@ -82,19 +92,27 @@ const PremiumPage: React.FC = () => {
         <div className="space-y-4 mb-8">
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Unlimited transactions</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.unlimited' })}
+            </span>
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">PDF receipts for transactions</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.pdf' })}
+            </span>
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Export to Excel</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.excel' })}
+            </span>
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">Export to JSON</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {intl.formatMessage({ id: 'premium.features.json' })}
+            </span>
           </div>
         </div>
 
@@ -118,7 +136,7 @@ const PremiumPage: React.FC = () => {
           disabled={isLoading}
         >
           <Crown className="w-5 h-5 mr-2" />
-          {isLoading ? 'Processing...' : 'Upgrade Now'}
+          {isLoading ? 'Processing...' : intl.formatMessage({ id: 'premium.upgrade' })}
         </Button>
       </Card>
     </div>

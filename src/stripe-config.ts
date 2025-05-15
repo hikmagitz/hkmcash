@@ -1,8 +1,8 @@
 export const STRIPE_PRODUCTS = {
   premium_access: {
-    priceId: 'price_1OvXYnHMYP27YhZKjYvZL9A0',
-    name: 'HKM Cash Premium',
-    description: 'Premium access to a premium tracker app for cash. Excel export, json export, pdf download, unlimited transaction',
+    priceId: 'price_1RP8tuEwKDyxQzaiswwZ4ULj',
+    name: 'HKM Premium',
+    description: 'Get unlimited transactions, PDF receipts, Excel exports, and JSON exports',
     price: '4.99',
     currency: 'EUR',
     mode: 'subscription' as const,
