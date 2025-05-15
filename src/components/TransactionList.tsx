@@ -80,9 +80,17 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                     }`}
                   />
                   <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {transaction.description}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {transaction.description}
+                      </h3>
+                      {isPremium && (
+                        <Badge type="neutral" className="bg-yellow-100 text-yellow-800">
+                          <Crown size={12} className="mr-1" />
+                          Premium
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(transaction.date)}
                     </p>
