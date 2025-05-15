@@ -7,10 +7,16 @@ import { useTransactions } from '../context/TransactionContext';
 import { generateId, getDefaultCategories } from '../utils/helpers';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const SettingsPage: React.FC = () => {
   const { categories, addCategory, deleteCategory, transactions } = useTransactions();
-  const { isPremium } = useAuth();
+  const { isPremium, user } = useAuth();
   const [newCategory, setNewCategory] = useState({
     name: '',
     type: 'expense',
@@ -88,14 +94,30 @@ const SettingsPage: React.FC = () => {
     XLSX.writeFile(wb, `finance_tracker_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (window.confirm('Are you sure you want to clear all data? This action cannot be undone!')) {
-      // Clear transactions
-      localStorage.setItem('transactions', '[]');
-      // Reset categories to defaults
-      localStorage.setItem('categories', JSON.stringify(getDefaultCategories()));
-      // Reload the page to reflect changes
-      window.location.reload();
+      try {
+        if (user) {
+          // Delete all transactions from Supabase
+          const { error } = await supabase
+            .from('transactions')
+            .delete()
+            .eq('user_id', user.id);
+
+          if (error) {
+            throw error;
+          }
+        }
+        
+        // Reset categories to defaults
+        localStorage.setItem('categories', JSON.stringify(getDefaultCategories()));
+        
+        // Reload the page to reflect changes
+        window.location.reload();
+      } catch (error) {
+        console.error('Error clearing data:', error);
+        alert('Failed to clear data. Please try again.');
+      }
     }
   };
 
