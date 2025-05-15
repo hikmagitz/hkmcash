@@ -5,10 +5,9 @@ import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import { useTransactions } from '../context/TransactionContext';
-import { useAuth } from '../context/AuthContext';
-import { useStripe } from '../hooks/useStripe';
 import { generateId, getDefaultCategories } from '../utils/helpers';
 import * as XLSX from 'xlsx';
+import { useAuth } from '../context/AuthContext';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -19,7 +18,6 @@ const supabase = createClient(
 const SettingsPage: React.FC = () => {
   const { categories, addCategory, deleteCategory, transactions } = useTransactions();
   const { isPremium, user } = useAuth();
-  const { redirectToCheckout } = useStripe();
   const intl = useIntl();
   
   const [newCategory, setNewCategory] = useState({
@@ -46,25 +44,10 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleUpgrade = async () => {
-    try {
-      await redirectToCheckout('premium_access');
-    } catch (error) {
-      console.error('Error redirecting to checkout:', error);
-    }
-  };
-
-  const handleExportData = async () => {
-    if (!isPremium) {
-      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        await handleUpgrade();
-      }
-      return;
-    }
-
+  const handleExportData = () => {
     const data = {
-      transactions: transactions,
-      categories: categories,
+      transactions: JSON.parse(localStorage.getItem('transactions') || '[]'),
+      categories: JSON.parse(localStorage.getItem('categories') || '[]'),
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -78,11 +61,9 @@ const SettingsPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = () => {
     if (!isPremium) {
-      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        await handleUpgrade();
-      }
+      window.location.href = '/premium';
       return;
     }
 
@@ -304,17 +285,8 @@ const SettingsPage: React.FC = () => {
               className="w-full"
               onClick={handleExportData}
             >
-              {isPremium ? (
-                <>
-                  <Download size={18} />
-                  {intl.formatMessage({ id: 'settings.exportData' })} (JSON)
-                </>
-              ) : (
-                <>
-                  <Crown size={18} />
-                  {intl.formatMessage({ id: 'premium.upgrade' })}
-                </>
-              )}
+              <Download size={18} />
+              {intl.formatMessage({ id: 'settings.exportData' })} (JSON)
             </Button>
 
             <Button 
@@ -339,46 +311,34 @@ const SettingsPage: React.FC = () => {
               <Button 
                 type="secondary" 
                 className="w-full"
-                onClick={isPremium ? undefined : handleUpgrade}
               >
-                {isPremium ? (
-                  <>
-                    <Upload size={18} />
-                    {intl.formatMessage({ id: 'settings.importData' })}
-                  </>
-                ) : (
-                  <>
-                    <Crown size={18} />
-                    {intl.formatMessage({ id: 'premium.upgrade' })}
-                  </>
-                )}
+                <Upload size={18} />
+                {intl.formatMessage({ id: 'settings.importData' })}
               </Button>
-              {isPremium && (
-                <input 
-                  type="file" 
-                  accept=".json" 
-                  className="hidden" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        try {
-                          const data = JSON.parse(event.target?.result as string);
-                          if (data.transactions && data.categories) {
-                            localStorage.setItem('transactions', JSON.stringify(data.transactions));
-                            localStorage.setItem('categories', JSON.stringify(data.categories));
-                            window.location.reload();
-                          }
-                        } catch (error) {
-                          alert(intl.formatMessage({ id: 'common.error' }));
+              <input 
+                type="file" 
+                accept=".json" 
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      try {
+                        const data = JSON.parse(event.target?.result as string);
+                        if (data.transactions && data.categories) {
+                          localStorage.setItem('transactions', JSON.stringify(data.transactions));
+                          localStorage.setItem('categories', JSON.stringify(data.categories));
+                          window.location.reload();
                         }
-                      };
-                      reader.readAsText(file);
-                    }
-                  }}
-                />
-              )}
+                      } catch (error) {
+                        alert(intl.formatMessage({ id: 'common.error' }));
+                      }
+                    };
+                    reader.readAsText(file);
+                  }
+                }}
+              />
             </label>
 
             <hr className="border-gray-200 dark:border-gray-700" />
