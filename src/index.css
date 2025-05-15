@@ -13,6 +13,23 @@
   
   body {
     @apply text-gray-800 dark:text-gray-200;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improved touch targets for mobile */
+  button, 
+  [role="button"],
+  input,
+  select {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Better mobile form handling */
+  input,
+  select,
+  textarea {
+    @apply text-base;
+    font-size: 16px !important; /* Prevents zoom on iOS */
   }
 
   /* RTL Support */
@@ -52,6 +69,21 @@
   [dir="rtl"] .ml-4 {
     margin-left: 0;
     margin-right: 1rem;
+  }
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 640px) {
+  .container {
+    @apply px-4;
+  }
+  
+  .text-xl {
+    @apply text-lg;
+  }
+  
+  .text-2xl {
+    @apply text-xl;
   }
 }
 
@@ -113,9 +145,10 @@ input:focus, select:focus, textarea:focus {
   @apply outline-none ring-2 ring-teal-500 border-teal-500;
 }
 
-/* Responsive padding */
-@media (max-width: 640px) {
-  .max-w-6xl {
-    @apply px-4;
-  }
+/* Safe area insets for modern mobile browsers */
+.safe-area-inset {
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }

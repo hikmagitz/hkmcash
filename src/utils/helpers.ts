@@ -1,16 +1,16 @@
 import { Transaction, TransactionSummary } from '../types';
 
-// Format currency
+// Format currency based on user's locale and preferred currency
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(navigator.language || 'en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: localStorage.getItem('preferredCurrency') || 'EUR',
   }).format(amount);
 };
 
-// Format date
+// Format date based on user's locale
 export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  return new Date(dateString).toLocaleDateString(navigator.language || 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
