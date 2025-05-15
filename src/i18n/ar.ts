@@ -63,10 +63,12 @@ export default {
   'premium.features.unlimited': 'معاملات غير محدودة',
   'premium.features.pdf': 'إيصالات PDF للمعاملات',
   'premium.features.excel': 'تصدير إلى Excel',
-  'premium.features.support': 'دعم ذو أولوية',
-  'premium.price': '€2.99/شهرياً',
+  'premium.features.json': 'تصدير إلى JSON',
+  'premium.price': '€4.99/شهرياً',
   'premium.upgrade': 'الترقية الآن',
   'premium.upgradePrompt': 'هذه ميزة متوفرة للمشتركين فقط. هل تريد الترقية إلى بريميوم؟',
+  'premium.success': 'مرحباً بك في النسخة المميزة!',
+  'premium.successDescription': 'شكراً لاشتراكك. تم ترقية حسابك بنجاح.',
   
   // Common
   'common.loading': 'جاري التحميل...',

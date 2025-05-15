@@ -7,6 +7,7 @@ import { useIntl } from 'react-intl';
 import TransactionModal from './TransactionModal';
 import Button from './UI/Button';
 import Badge from './UI/Badge';
+import { STRIPE_PRODUCTS } from '../stripe-config';
 
 const Header: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,7 +64,7 @@ const Header: React.FC = () => {
             {isPremium && (
               <Badge type="neutral" className="ml-2 bg-yellow-100 text-yellow-800">
                 <Crown size={14} className="mr-1" />
-                Premium
+                {STRIPE_PRODUCTS.premium_access.name}
               </Badge>
             )}
           </div>

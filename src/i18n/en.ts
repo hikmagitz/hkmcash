@@ -63,10 +63,12 @@ export default {
   'premium.features.unlimited': 'Unlimited transactions',
   'premium.features.pdf': 'PDF receipts for transactions',
   'premium.features.excel': 'Export to Excel',
-  'premium.features.support': 'Priority support',
-  'premium.price': '€2.99/month',
+  'premium.features.json': 'Export to JSON',
+  'premium.price': '€4.99/month',
   'premium.upgrade': 'Upgrade to Premium',
   'premium.upgradePrompt': 'This is a premium feature. Would you like to upgrade to premium?',
+  'premium.success': 'Welcome to Premium!',
+  'premium.successDescription': 'Thank you for subscribing. Your account has been upgraded successfully.',
   
   // Common
   'common.loading': 'Loading...',
