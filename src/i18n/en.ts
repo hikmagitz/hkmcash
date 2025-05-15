@@ -1,5 +1,5 @@
 export default {
-  'app.title': 'FinanceTracker',
+  'app.title': 'HikmaCash',
   'app.subtitle': 'Manage Your Finances',
   
   // Navigation

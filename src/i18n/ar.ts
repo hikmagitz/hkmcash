@@ -1,5 +1,5 @@
 export default {
-  'app.title': 'تتبع المالية',
+  'app.title': 'حكمة كاش',
   'app.subtitle': 'إدارة أموالك',
   
   // Navigation
