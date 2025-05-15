@@ -17,11 +17,9 @@
   }
 
   /* Improved touch targets for mobile */
-  button, 
-  [role="button"],
-  input,
-  select {
-    @apply min-h-[44px] min-w-[44px];
+  select,
+  input {
+    @apply min-h-[36px] md:min-h-[44px];
   }
 
   /* Better mobile form handling */
