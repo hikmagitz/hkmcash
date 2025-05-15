@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
-import { Crown, CheckCircle, Loader2 } from 'lucide-react';
-import { useIntl } from 'react-intl';
+import { Crown } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useStripe } from '../hooks/useStripe';
-import { useAuth } from '../context/AuthContext';
-import { STRIPE_PRODUCTS } from '../stripe-config';
 
 const PremiumPage: React.FC = () => {
   const { redirectToCheckout } = useStripe();
-  const { isPremium } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const intl = useIntl();
 
   const handleUpgrade = async () => {
     setIsLoading(true);
@@ -27,26 +22,6 @@ const PremiumPage: React.FC = () => {
     }
   };
 
-  if (isPremium) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-        <Card className="w-full max-w-md text-center">
-          <div className="mb-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              You're a Premium Member!
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Thank you for your support. Enjoy all premium features!
-            </p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <Card className="w-full max-w-md text-center">
@@ -55,37 +30,29 @@ const PremiumPage: React.FC = () => {
             <Crown className="w-8 h-8 text-teal-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {intl.formatMessage({ id: 'premium.title' })}
+            Upgrade to Premium
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {intl.formatMessage({ id: 'premium.description' })}
+            Get access to advanced features and unlimited transactions
           </p>
         </div>
 
         <div className="space-y-4 mb-8">
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.unlimited' })}
-            </span>
+            <span className="text-gray-700 dark:text-gray-300">Unlimited transactions</span>
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.pdf' })}
-            </span>
+            <span className="text-gray-700 dark:text-gray-300">PDF receipts for transactions</span>
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.excel' })}
-            </span>
+            <span className="text-gray-700 dark:text-gray-300">Export to Excel</span>
           </div>
           <div className="flex items-center">
             <span className="text-teal-600 mr-2">✓</span>
-            <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.support' })}
-            </span>
+            <span className="text-gray-700 dark:text-gray-300">Priority support</span>
           </div>
         </div>
 
@@ -108,17 +75,8 @@ const PremiumPage: React.FC = () => {
           onClick={handleUpgrade}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Crown className="w-5 h-5 mr-2" />
-              {intl.formatMessage({ id: 'premium.upgrade' })}
-            </>
-          )}
+          <Crown className="w-5 h-5 mr-2" />
+          {isLoading ? 'Processing...' : 'Upgrade Now'}
         </Button>
       </Card>
     </div>

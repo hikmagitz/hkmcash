@@ -22,7 +22,7 @@ export function useStripe() {
       throw new Error('Failed to get session');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
