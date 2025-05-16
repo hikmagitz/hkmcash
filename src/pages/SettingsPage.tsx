@@ -174,6 +174,7 @@ const SettingsPage: React.FC = () => {
       Date: new Date(t.date).toLocaleDateString(intl.locale),
       Type: intl.formatMessage({ id: `transaction.${t.type}` }),
       Category: t.category,
+      Client: t.client || 'N/A',
       Description: t.description,
       Amount: t.amount,
     }));
@@ -196,6 +197,7 @@ const SettingsPage: React.FC = () => {
       { wch: 12 }, // Date
       { wch: 10 }, // Type
       { wch: 15 }, // Category
+      { wch: 20 }, // Client
       { wch: 30 }, // Description
       { wch: 12 }, // Amount
     ];
