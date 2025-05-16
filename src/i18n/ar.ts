@@ -1,5 +1,5 @@
 export default {
-  'app.title': 'حكمة كاش',
+  'app.title': 'HKM CASH',
   'app.subtitle': 'إدارة أموالك',
   
   // Navigation
