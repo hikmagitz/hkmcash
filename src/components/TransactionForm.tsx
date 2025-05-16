@@ -15,9 +15,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   onClose, 
   isModal = false 
 }) => {
-  const { addTransaction, categories, hasReachedLimit } = useTransactions();
+  const { addTransaction, categories, clients, hasReachedLimit } = useTransactions();
   const { redirectToCheckout } = useStripe();
   const [isLoading, setIsLoading] = useState(false);
+  const [showClientForm, setShowClientForm] = useState(false);
+  const [newClient, setNewClient] = useState('');
   
   const [formData, setFormData] = useState({
     amount: '',
@@ -25,7 +27,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     category: '',
     type: 'expense',
     date: new Date().toISOString().slice(0, 10),
-    client: '', // New client field
+    client: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -79,7 +81,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           category: formData.category,
           type: formData.type as 'income' | 'expense',
           date: formData.date,
-          client: formData.client.trim() || undefined, // Only include if not empty
+          client: formData.client || undefined,
         });
         
         setFormData({
@@ -121,6 +123,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       alert('Failed to redirect to checkout. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddClient = () => {
+    if (newClient.trim()) {
+      addClient({ name: newClient.trim() });
+      setNewClient('');
+      setShowClientForm(false);
     }
   };
 
@@ -236,15 +246,49 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Client
           </label>
-          <input
-            type="text"
-            name="client"
-            value={formData.client}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-            placeholder="Client name (optional)"
-          />
+          <div className="flex gap-2">
+            <select
+              name="client"
+              value={formData.client}
+              onChange={handleChange}
+              className="flex-1 px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+            >
+              <option value="">Select Client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.name}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="secondary"
+              onClick={() => setShowClientForm(true)}
+              className="whitespace-nowrap"
+            >
+              Add New
+            </Button>
+          </div>
         </div>
+
+        {showClientForm && (
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newClient}
+                onChange={(e) => setNewClient(e.target.value)}
+                placeholder="Enter client name"
+                className="flex-1 px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <Button type="primary" onClick={handleAddClient}>
+                Add
+              </Button>
+              <Button type="secondary" onClick={() => setShowClientForm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

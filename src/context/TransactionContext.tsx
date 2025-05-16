@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { createClient } from '@supabase/supabase-js';
 import { 
   Transaction, 
-  Category, 
+  Category,
+  Client,
   TransactionSummary 
 } from '../types';
 import { 
@@ -20,12 +21,15 @@ const supabase = createClient(
 interface TransactionContextType {
   transactions: Transaction[];
   categories: Category[];
+  clients: Client[];
   summary: TransactionSummary;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (transaction: Transaction) => Promise<void>;
   addCategory: (category: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
+  addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void;
+  deleteClient: (id: string) => void;
   hasReachedLimit: boolean;
   isLoading: boolean;
 }
@@ -44,6 +48,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const { user, isPremium } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [clients, setClients] = useState<Client[]>(() => {
+    const savedClients = localStorage.getItem('clients');
+    return savedClients ? JSON.parse(savedClients) : [];
+  });
 
   const [categories, setCategories] = useState<Category[]>(() => {
     const savedCategories = localStorage.getItem('categories');
@@ -93,6 +101,11 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   useEffect(() => {
     localStorage.setItem('categories', JSON.stringify(categories));
   }, [categories]);
+
+  // Save clients to localStorage
+  useEffect(() => {
+    localStorage.setItem('clients', JSON.stringify(clients));
+  }, [clients]);
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     if (!user) throw new Error('User must be authenticated');
@@ -148,6 +161,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
           category: updatedTransaction.category,
           type: updatedTransaction.type,
           date: updatedTransaction.date,
+          client: updatedTransaction.client,
         })
         .eq('id', updatedTransaction.id)
         .eq('user_id', user.id);
@@ -174,17 +188,33 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     setCategories(categories.filter(category => category.id !== id));
   };
 
+  const addClient = (client: Omit<Client, 'id' | 'createdAt'>) => {
+    const newClient = { 
+      ...client, 
+      id: generateId(),
+      createdAt: new Date().toISOString()
+    };
+    setClients([...clients, newClient]);
+  };
+
+  const deleteClient = (id: string) => {
+    setClients(clients.filter(client => client.id !== id));
+  };
+
   return (
     <TransactionContext.Provider
       value={{
         transactions,
         categories,
+        clients,
         summary,
         addTransaction,
         deleteTransaction,
         updateTransaction,
         addCategory,
         deleteCategory,
+        addClient,
+        deleteClient,
         hasReachedLimit,
         isLoading
       }}
