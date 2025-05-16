@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, ChevronDown, ChevronUp, FileText, Crown, Users } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronUp, FileText, Crown } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
@@ -92,7 +92,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                   />
                   <div>
                     <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                      {transaction.client || 'No Client'}
+                      {transaction.type === 'income' ? transaction.client || 'No Client' : transaction.description}
                       {isPremium && (
                         <Badge type="neutral" className="bg-yellow-100 text-yellow-800">
                           <Crown size={12} className="mr-1" />
@@ -131,7 +131,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
               {expandedTransaction === transaction.id && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {transaction.description}
+                    {transaction.type === 'income' ? transaction.description : transaction.client || 'No Client'}
                   </p>
                   <div className="flex justify-end space-x-2">
                     <Button 
