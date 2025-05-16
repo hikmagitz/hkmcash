@@ -30,7 +30,7 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
   doc.setTextColor(...primaryColor);
   doc.setFontSize(120);
   doc.setGState(new doc.GState({ opacity: 0.05 }));
-  doc.text(enterpriseName || 'HikmaCash', pageWidth / 2, pageHeight / 2, {
+  doc.text(enterpriseName || 'HKM Cash', pageWidth / 2, pageHeight / 2, {
     align: 'center',
     angle: 45,
   });
