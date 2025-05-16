@@ -43,7 +43,7 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text(enterpriseName || 'HKM Cash (edit in entreprise name)', margin, 25);
+  doc.text(enterpriseName || 'HKM Cash', margin, 25);
 
   // Receipt title
   doc.setTextColor(...textColor);
@@ -66,6 +66,7 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
   const details = [
     { label: 'Date', value: formatDate(transaction.date) },
     { label: 'Category', value: transaction.category },
+    { label: 'Client', value: transaction.client || 'N/A' },
     { label: 'Description', value: transaction.description },
     { label: 'Amount', value: formatCurrency(transaction.amount), highlight: true },
     { label: 'Transaction ID', value: transaction.id },
