@@ -91,23 +91,15 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                     }`}
                   />
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {transaction.description}
-                      </h3>
-                      {transaction.client && (
-                        <Badge type="neutral" className="bg-blue-100 text-blue-800">
-                          <Users size={12} className="mr-1" />
-                          {transaction.client}
-                        </Badge>
-                      )}
+                    <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                      {transaction.client || 'No Client'}
                       {isPremium && (
                         <Badge type="neutral" className="bg-yellow-100 text-yellow-800">
                           <Crown size={12} className="mr-1" />
                           {STRIPE_PRODUCTS.premium_access.name}
                         </Badge>
                       )}
-                    </div>
+                    </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(transaction.date)}
                     </p>
@@ -137,47 +129,52 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
               </div>
               
               {expandedTransaction === transaction.id && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
-                  <Button 
-                    type="secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadReceipt(transaction);
-                    }}
-                    disabled={isLoading}
-                  >
-                    {isPremium ? (
-                      <>
-                        <FileText size={16} />
-                        Download Receipt
-                      </>
-                    ) : (
-                      <>
-                        <Crown size={16} />
-                        {isLoading ? 'Processing...' : 'Premium Receipt'}
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    type="secondary" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(transaction.id);
-                    }}
-                  >
-                    <Edit size={16} />
-                    Edit
-                  </Button>
-                  <Button 
-                    type="danger" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(transaction.id);
-                    }}
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </Button>
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    {transaction.description}
+                  </p>
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadReceipt(transaction);
+                      }}
+                      disabled={isLoading}
+                    >
+                      {isPremium ? (
+                        <>
+                          <FileText size={16} />
+                          Download Receipt
+                        </>
+                      ) : (
+                        <>
+                          <Crown size={16} />
+                          {isLoading ? 'Processing...' : 'Premium Receipt'}
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      type="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(transaction.id);
+                      }}
+                    >
+                      <Edit size={16} />
+                      Edit
+                    </Button>
+                    <Button 
+                      type="danger" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(transaction.id);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               )}
             </Card>
