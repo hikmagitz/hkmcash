@@ -62,6 +62,7 @@ export const getSampleTransactions = (): Transaction[] => {
       category: 'Salary',
       type: 'income',
       date: '2025-04-01',
+      client: 'ABC Corp',
     },
     {
       id: generateId(),
@@ -86,6 +87,7 @@ export const getSampleTransactions = (): Transaction[] => {
       category: 'Freelance',
       type: 'income',
       date: '2025-04-10',
+      client: 'XYZ Ltd',
     },
     {
       id: generateId(),

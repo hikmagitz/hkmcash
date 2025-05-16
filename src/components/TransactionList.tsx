@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, ChevronDown, ChevronUp, FileText, Crown } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronUp, FileText, Crown, Users } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
@@ -95,6 +95,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       <h3 className="font-medium text-gray-900 dark:text-white">
                         {transaction.description}
                       </h3>
+                      {transaction.client && (
+                        <Badge type="neutral" className="bg-blue-100 text-blue-800">
+                          <Users size={12} className="mr-1" />
+                          {transaction.client}
+                        </Badge>
+                      )}
                       {isPremium && (
                         <Badge type="neutral" className="bg-yellow-100 text-yellow-800">
                           <Crown size={12} className="mr-1" />
