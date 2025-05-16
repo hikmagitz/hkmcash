@@ -43,7 +43,7 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text(enterpriseName || 'HikmaCash', margin, 25);
+  doc.text(enterpriseName || 'HKM Cash (edit in entreprise name)', margin, 25);
 
   // Receipt title
   doc.setTextColor(...textColor);
