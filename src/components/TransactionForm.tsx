@@ -25,6 +25,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     category: '',
     type: 'expense',
     date: new Date().toISOString().slice(0, 10),
+    client: '', // New client field
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,6 +79,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           category: formData.category,
           type: formData.type as 'income' | 'expense',
           date: formData.date,
+          client: formData.client.trim() || undefined, // Only include if not empty
         });
         
         setFormData({
@@ -86,6 +88,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           category: '',
           type: 'expense',
           date: new Date().toISOString().slice(0, 10),
+          client: '',
         });
         
         if (onClose) {
@@ -227,6 +230,20 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           {errors.description && (
             <p className="mt-1 text-sm text-red-500">{errors.description}</p>
           )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Client
+          </label>
+          <input
+            type="text"
+            name="client"
+            value={formData.client}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+            placeholder="Client name (optional)"
+          />
         </div>
 
         <div>

@@ -5,6 +5,7 @@ export interface Transaction {
   category: string;
   type: 'income' | 'expense';
   date: string;
+  client?: string; // Optional client field
 }
 
 export interface Category {
