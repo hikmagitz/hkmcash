@@ -82,7 +82,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                 className="flex items-center justify-between cursor-pointer"
                 onClick={() => toggleExpand(transaction.id)}
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-3">
                   <div 
                     className={`w-2 h-10 rounded-full ${
                       transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
@@ -97,9 +97,10 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
+
+                <div className="flex items-center gap-3">
                   <div 
-                    className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    className="px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
                     style={{ 
                       backgroundColor: `${getCategoryColor(transaction.category)}20`,
                       color: getCategoryColor(transaction.category)
@@ -108,7 +109,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                     {transaction.category}
                   </div>
                   <span 
-                    className={`font-semibold ${
+                    className={`font-semibold whitespace-nowrap ${
                       transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
@@ -116,9 +117,9 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                     {formatCurrency(transaction.amount)}
                   </span>
                   {expandedTransaction === transaction.id ? (
-                    <ChevronUp size={18} className="text-gray-400" />
+                    <ChevronUp size={18} className="text-gray-400 flex-shrink-0" />
                   ) : (
-                    <ChevronDown size={18} className="text-gray-400" />
+                    <ChevronDown size={18} className="text-gray-400 flex-shrink-0" />
                   )}
                 </div>
               </div>
@@ -128,7 +129,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
                     {transaction.type === 'income' ? transaction.description : transaction.client || 'No Client'}
                   </p>
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button 
                       type="secondary"
                       onClick={(e) => {
@@ -136,6 +137,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                         handleDownloadReceipt(transaction);
                       }}
                       disabled={isLoading}
+                      className="flex-1 min-w-[120px]"
                     >
                       {isPremium ? (
                         <>
@@ -157,6 +159,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                         e.stopPropagation();
                         handleEdit(transaction.id);
                       }}
+                      className="flex-1 min-w-[120px]"
                     >
                       <Edit size={16} />
                       <span className="ml-1">Edit</span>
@@ -167,6 +170,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                         e.stopPropagation();
                         handleDelete(transaction.id);
                       }}
+                      className="flex-1 min-w-[120px]"
                     >
                       <Trash2 size={16} />
                       <span className="ml-1">Delete</span>
