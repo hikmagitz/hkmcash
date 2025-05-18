@@ -1,13 +1,11 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListOrdered, Settings, Crown } from 'lucide-react';
+import { LayoutDashboard, ListOrdered, Settings } from 'lucide-react';
 import Header from '../components/Header';
-import { useAuth } from '../context/AuthContext';
 
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isPremium } = useAuth();
   const currentPage = location.pathname.substring(1) || 'dashboard';
 
   const handleNavigate = (page: string) => {
@@ -18,10 +16,10 @@ const MainLayout: React.FC = () => {
   const showNavigation = !location.pathname.includes('/success');
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="flex flex-col min-h-[100dvh] w-full bg-gray-50 dark:bg-gray-900 transition-colors">
       {showNavigation && <Header />}
       
-      <main className="flex-1 pb-24">
+      <main className="flex-1 w-full pb-24 px-4 md:px-6">
         <Outlet />
       </main>
       
