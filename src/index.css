@@ -18,8 +18,9 @@
 
   /* Improved touch targets for mobile */
   select,
-  input {
-    @apply min-h-[36px] md:min-h-[44px];
+  input,
+  button {
+    @apply min-h-[44px];
   }
 
   /* Better mobile form handling */
@@ -82,6 +83,14 @@
   
   .text-2xl {
     @apply text-xl;
+  }
+
+  /* Improved touch targets */
+  .button, 
+  .link,
+  .nav-item {
+    @apply p-3;
+    min-height: 44px;
   }
 }
 

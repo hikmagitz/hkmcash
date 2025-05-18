@@ -1,11 +1,13 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListOrdered, Settings } from 'lucide-react';
+import { LayoutDashboard, ListOrdered, Settings, Crown } from 'lucide-react';
 import Header from '../components/Header';
+import { useAuth } from '../context/AuthContext';
 
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isPremium } = useAuth();
   const currentPage = location.pathname.substring(1) || 'dashboard';
 
   const handleNavigate = (page: string) => {
@@ -19,48 +21,62 @@ const MainLayout: React.FC = () => {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       {showNavigation && <Header />}
       
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-24">
         <Outlet />
       </main>
       
       {showNavigation && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
-          <div className="max-w-6xl mx-auto flex justify-around items-center">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 safe-area-inset z-10">
+          <div className="max-w-6xl mx-auto grid grid-cols-4 gap-1">
             <button
-              className={`flex flex-col items-center py-3 px-6 ${
+              className={`flex flex-col items-center py-3 ${
                 currentPage === 'dashboard'
                   ? 'text-teal-600 dark:text-teal-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
               onClick={() => handleNavigate('dashboard')}
             >
-              <LayoutDashboard size={24} />
+              <LayoutDashboard size={20} />
               <span className="text-xs mt-1">Dashboard</span>
             </button>
             
             <button
-              className={`flex flex-col items-center py-3 px-6 ${
+              className={`flex flex-col items-center py-3 ${
                 currentPage === 'transactions'
                   ? 'text-teal-600 dark:text-teal-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
               onClick={() => handleNavigate('transactions')}
             >
-              <ListOrdered size={24} />
+              <ListOrdered size={20} />
               <span className="text-xs mt-1">Transactions</span>
             </button>
             
             <button
-              className={`flex flex-col items-center py-3 px-6 ${
+              className={`flex flex-col items-center py-3 ${
                 currentPage === 'settings'
                   ? 'text-teal-600 dark:text-teal-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
               onClick={() => handleNavigate('settings')}
             >
-              <Settings size={24} />
+              <Settings size={20} />
               <span className="text-xs mt-1">Settings</span>
             </button>
+
+            {!isPremium && (
+              <button
+                className={`flex flex-col items-center py-3 ${
+                  currentPage === 'premium'
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+                onClick={() => handleNavigate('premium')}
+              >
+                <Crown size={20} />
+                <span className="text-xs mt-1">Premium</span>
+              </button>
+            )}
           </div>
         </nav>
       )}
