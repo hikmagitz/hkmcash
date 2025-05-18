@@ -22,8 +22,8 @@ const MonthlyChart: React.FC = () => {
       const months: Record<string, MonthData> = {};
       const currentYear = new Date().getFullYear();
       
-      // Initialize last 6 months
-      for (let i = 5; i >= 0; i--) {
+      // Initialize last 2 months
+      for (let i = 1; i >= 0; i--) {
         const date = new Date(currentYear, new Date().getMonth() - i, 1);
         const monthStr = date.toLocaleString(intl.locale, { month: 'short' });
         months[`${monthStr}`] = {
@@ -93,9 +93,7 @@ const MonthlyChart: React.FC = () => {
         <div className="flex h-full">
           <div className="flex flex-col justify-between pr-2 text-xs text-gray-500 dark:text-gray-400">
             <span>{formatCurrency(maxValue)}</span>
-            <span>{formatCurrency(maxValue * 0.75)}</span>
             <span>{formatCurrency(maxValue * 0.5)}</span>
-            <span>{formatCurrency(maxValue * 0.25)}</span>
             <span>{formatCurrency(0)}</span>
           </div>
           <div 
@@ -103,11 +101,11 @@ const MonthlyChart: React.FC = () => {
             className="flex-1 flex items-end justify-between h-56 pt-4 border-t border-l border-gray-200 dark:border-gray-700"
           >
             {monthlyData.map((data) => (
-              <div key={data.month} className="flex items-end space-x-1 h-full">
+              <div key={data.month} className="flex items-end space-x-2 h-full">
                 <div className="flex flex-col items-center justify-end">
-                  <div className="relative h-full w-6 flex items-end">
+                  <div className="relative h-full w-8 flex items-end">
                     <div 
-                      className="income-bar w-6 bg-green-500 transition-all duration-1000 ease-out rounded-t"
+                      className="income-bar w-8 bg-green-500 transition-all duration-1000 ease-out rounded-t"
                       style={{ height: '0%' }}
                     ></div>
                   </div>
@@ -116,9 +114,9 @@ const MonthlyChart: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex flex-col items-center justify-end">
-                  <div className="relative h-full w-6 flex items-end">
+                  <div className="relative h-full w-8 flex items-end">
                     <div 
-                      className="expense-bar w-6 bg-red-500 transition-all duration-1000 ease-out rounded-t"
+                      className="expense-bar w-8 bg-red-500 transition-all duration-1000 ease-out rounded-t"
                       style={{ height: '0%' }}
                     ></div>
                   </div>
