@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, ChevronDown, ChevronUp, FileText, Crown } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { generateTransactionReceipt } from '../utils/pdfGenerator';
-import { STRIPE_PRODUCTS } from '../stripe-config';
-import Badge from './UI/Badge';
 import Button from './UI/Button';
 import Card from './UI/Card';
 import TransactionModal from './TransactionModal';
@@ -91,14 +89,8 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                     }`}
                   />
                   <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    <h3 className="font-medium text-gray-900 dark:text-white">
                       {transaction.type === 'income' ? transaction.client || 'No Client' : transaction.description}
-                      {isPremium && (
-                        <Badge type="neutral" className="bg-yellow-100 text-yellow-800">
-                          <Crown size={12} className="mr-1" />
-                          {STRIPE_PRODUCTS.premium_access.name}
-                        </Badge>
-                      )}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(transaction.date)}
@@ -106,12 +98,15 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <Badge 
-                    type={transaction.type === 'income' ? 'income' : 'expense'}
-                    color={getCategoryColor(transaction.category)}
+                  <div 
+                    className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    style={{ 
+                      backgroundColor: `${getCategoryColor(transaction.category)}20`,
+                      color: getCategoryColor(transaction.category)
+                    }}
                   >
                     {transaction.category}
-                  </Badge>
+                  </div>
                   <span 
                     className={`font-semibold ${
                       transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
@@ -145,12 +140,14 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       {isPremium ? (
                         <>
                           <FileText size={16} />
-                          Download Receipt
+                          <span className="ml-1">Receipt</span>
                         </>
                       ) : (
                         <>
-                          <Crown size={16} />
-                          {isLoading ? 'Processing...' : 'Premium Receipt'}
+                          <FileText size={16} />
+                          <span className="ml-1">
+                            {isLoading ? 'Processing...' : 'Premium Receipt'}
+                          </span>
                         </>
                       )}
                     </Button>
@@ -162,7 +159,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       }}
                     >
                       <Edit size={16} />
-                      Edit
+                      <span className="ml-1">Edit</span>
                     </Button>
                     <Button 
                       type="danger" 
@@ -172,7 +169,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
                       }}
                     >
                       <Trash2 size={16} />
-                      Delete
+                      <span className="ml-1">Delete</span>
                     </Button>
                   </div>
                 </div>
