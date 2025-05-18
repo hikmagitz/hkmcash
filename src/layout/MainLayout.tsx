@@ -63,7 +63,6 @@ const MainLayout: React.FC = () => {
               <Settings size={20} className="mb-1" />
               <span className="text-xs">Settings</span>
             </button>
-            )}
           </div>
         </nav>
       )}
