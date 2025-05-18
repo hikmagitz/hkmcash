@@ -27,7 +27,7 @@ const MainLayout: React.FC = () => {
       
       {showNavigation && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 safe-area-inset z-10">
-          <div className="grid grid-cols-4 h-16">
+          <div className="grid grid-cols-3 h-16">
             <button
               className={`flex flex-col items-center justify-center ${
                 currentPage === 'dashboard'
@@ -63,19 +63,6 @@ const MainLayout: React.FC = () => {
               <Settings size={20} className="mb-1" />
               <span className="text-xs">Settings</span>
             </button>
-
-            {!isPremium && (
-              <button
-                className={`flex flex-col items-center justify-center ${
-                  currentPage === 'premium'
-                    ? 'text-yellow-600 dark:text-yellow-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                }`}
-                onClick={() => handleNavigate('premium')}
-              >
-                <Crown size={20} className="mb-1" />
-                <span className="text-xs">Premium</span>
-              </button>
             )}
           </div>
         </nav>
