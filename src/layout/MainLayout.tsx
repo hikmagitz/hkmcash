@@ -27,54 +27,54 @@ const MainLayout: React.FC = () => {
       
       {showNavigation && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 safe-area-inset z-10">
-          <div className="max-w-6xl mx-auto grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-4 h-16">
             <button
-              className={`flex flex-col items-center py-3 ${
+              className={`flex flex-col items-center justify-center ${
                 currentPage === 'dashboard'
                   ? 'text-teal-600 dark:text-teal-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
               onClick={() => handleNavigate('dashboard')}
             >
-              <LayoutDashboard size={20} />
-              <span className="text-xs mt-1">Dashboard</span>
+              <LayoutDashboard size={20} className="mb-1" />
+              <span className="text-xs">Dashboard</span>
             </button>
             
             <button
-              className={`flex flex-col items-center py-3 ${
+              className={`flex flex-col items-center justify-center ${
                 currentPage === 'transactions'
                   ? 'text-teal-600 dark:text-teal-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
               onClick={() => handleNavigate('transactions')}
             >
-              <ListOrdered size={20} />
-              <span className="text-xs mt-1">Transactions</span>
+              <ListOrdered size={20} className="mb-1" />
+              <span className="text-xs">Transactions</span>
             </button>
             
             <button
-              className={`flex flex-col items-center py-3 ${
+              className={`flex flex-col items-center justify-center ${
                 currentPage === 'settings'
                   ? 'text-teal-600 dark:text-teal-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
               onClick={() => handleNavigate('settings')}
             >
-              <Settings size={20} />
-              <span className="text-xs mt-1">Settings</span>
+              <Settings size={20} className="mb-1" />
+              <span className="text-xs">Settings</span>
             </button>
 
             {!isPremium && (
               <button
-                className={`flex flex-col items-center py-3 ${
+                className={`flex flex-col items-center justify-center ${
                   currentPage === 'premium'
                     ? 'text-yellow-600 dark:text-yellow-400'
                     : 'text-gray-500 dark:text-gray-400'
                 }`}
                 onClick={() => handleNavigate('premium')}
               >
-                <Crown size={20} />
-                <span className="text-xs mt-1">Premium</span>
+                <Crown size={20} className="mb-1" />
+                <span className="text-xs">Premium</span>
               </button>
             )}
           </div>
