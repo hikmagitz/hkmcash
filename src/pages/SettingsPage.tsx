@@ -250,12 +250,12 @@ const SettingsPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+    <div className="max-w-6xl mx-auto space-y-6 py-6">
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-white px-4">
         {intl.formatMessage({ id: 'nav.settings' })}
       </h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4">
         {/* Enterprise Settings Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
@@ -298,11 +298,7 @@ const SettingsPage: React.FC = () => {
                 placeholder="Enter client name"
                 value={newClient}
                 onChange={(e) => setNewClient(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newClient.trim()) {
-                    handleAddClient();
-                  }
-                }}
+                onKeyDown={handleKeyPress}
                 className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
               />
               <Button 
@@ -361,7 +357,7 @@ const SettingsPage: React.FC = () => {
                   placeholder={intl.formatMessage({ id: 'settings.categoryName' })}
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
                 />
               </div>
               
@@ -369,7 +365,7 @@ const SettingsPage: React.FC = () => {
                 <select
                   value={newCategory.type}
                   onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
-                  className="px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
                 >
                   <option value="expense">
                     {intl.formatMessage({ id: 'transaction.expense' })}
@@ -381,7 +377,7 @@ const SettingsPage: React.FC = () => {
                 
                 <div className="relative">
                   <button 
-                    className="w-10 h-10 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none"
+                    className="w-[44px] h-[44px] rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none"
                     style={{ backgroundColor: newCategory.color }}
                     onClick={() => setShowColorPicker(!showColorPicker)}
                   ></button>
@@ -392,7 +388,7 @@ const SettingsPage: React.FC = () => {
                         {colorOptions.map((color) => (
                           <button
                             key={color}
-                            className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600"
+                            className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600"
                             style={{ backgroundColor: color }}
                             onClick={() => {
                               setNewCategory({ ...newCategory, color });
@@ -408,6 +404,7 @@ const SettingsPage: React.FC = () => {
                 <Button 
                   type="primary" 
                   onClick={handleAddCategory}
+                  className="w-full sm:w-auto"
                 >
                   <Plus size={18} />
                   {intl.formatMessage({ id: 'action.add' })}
@@ -429,19 +426,21 @@ const SettingsPage: React.FC = () => {
                       key={category.id} 
                       className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1 min-w-0">
                         <div 
-                          className="w-4 h-4 rounded-full mr-3"
+                          className="w-4 h-4 rounded-full mr-3 flex-shrink-0"
                           style={{ backgroundColor: category.color }}
                         ></div>
-                        <span className="text-gray-800 dark:text-gray-200">{category.name}</span>
+                        <span className="text-gray-800 dark:text-gray-200 truncate">
+                          {category.name}
+                        </span>
                       </div>
                       <Button 
                         type="danger" 
-                        className="!p-1 !px-2"
+                        className="ml-2 !p-2 flex-shrink-0"
                         onClick={() => deleteCategory(category.id)}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </Button>
                     </div>
                   ))}
@@ -460,19 +459,21 @@ const SettingsPage: React.FC = () => {
                       key={category.id} 
                       className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1 min-w-0">
                         <div 
-                          className="w-4 h-4 rounded-full mr-3"
+                          className="w-4 h-4 rounded-full mr-3 flex-shrink-0"
                           style={{ backgroundColor: category.color }}
                         ></div>
-                        <span className="text-gray-800 dark:text-gray-200">{category.name}</span>
+                        <span className="text-gray-800 dark:text-gray-200 truncate">
+                          {category.name}
+                        </span>
                       </div>
                       <Button 
                         type="danger" 
-                        className="!p-1 !px-2"
+                        className="ml-2 !p-2 flex-shrink-0"
                         onClick={() => deleteCategory(category.id)}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </Button>
                     </div>
                   ))}
