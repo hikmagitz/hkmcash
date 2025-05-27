@@ -26,12 +26,14 @@ interface TransactionContextType {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (transaction: Transaction) => Promise<void>;
-  addCategory: (category: Omit<Category, 'id'>) => void;
-  deleteCategory: (id: string) => void;
-  addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void;
-  deleteClient: (id: string) => void;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  addClient: (client: Omit<Client, 'id' | 'createdAt'>) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
   hasReachedLimit: boolean;
   isLoading: boolean;
+  enterpriseName: string;
+  setEnterpriseName: (name: string) => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
@@ -48,15 +50,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const { user, isPremium } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [clients, setClients] = useState<Client[]>(() => {
-    const savedClients = localStorage.getItem('clients');
-    return savedClients ? JSON.parse(savedClients) : [];
-  });
-
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const savedCategories = localStorage.getItem('categories');
-    return savedCategories ? JSON.parse(savedCategories) : getDefaultCategories();
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [enterpriseName, setEnterpriseNameState] = useState('');
 
   const [summary, setSummary] = useState<TransactionSummary>(() => 
     calculateSummary(transactions)
@@ -65,31 +61,59 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const FREE_TRANSACTION_LIMIT = 50;
   const hasReachedLimit = !isPremium && transactions.length >= FREE_TRANSACTION_LIMIT;
 
-  // Load transactions from Supabase
+  // Load data from Supabase
   useEffect(() => {
-    const loadTransactions = async () => {
+    const loadData = async () => {
       if (!user) return;
 
+      setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        // Load transactions
+        const { data: transactionsData, error: transactionsError } = await supabase
           .from('transactions')
           .select('*')
           .eq('user_id', user.id)
           .order('date', { ascending: false });
 
-        if (error) {
-          throw error;
-        }
+        if (transactionsError) throw transactionsError;
+        setTransactions(transactionsData || []);
 
-        setTransactions(data || []);
+        // Load categories
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (categoriesError) throw categoriesError;
+        setCategories(categoriesData?.length ? categoriesData : getDefaultCategories());
+
+        // Load clients
+        const { data: clientsData, error: clientsError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (clientsError) throw clientsError;
+        setClients(clientsData || []);
+
+        // Load enterprise settings
+        const { data: settingsData, error: settingsError } = await supabase
+          .from('enterprise_settings')
+          .select('name')
+          .eq('user_id', user.id)
+          .single();
+
+        if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+        setEnterpriseNameState(settingsData?.name || '');
+
       } catch (error) {
-        console.error('Error loading transactions:', error);
+        console.error('Error loading data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadTransactions();
+    loadData();
   }, [user]);
 
   // Update summary when transactions change
@@ -97,15 +121,22 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     setSummary(calculateSummary(transactions));
   }, [transactions]);
 
-  // Save categories to localStorage
-  useEffect(() => {
-    localStorage.setItem('categories', JSON.stringify(categories));
-  }, [categories]);
+  const setEnterpriseName = async (name: string) => {
+    if (!user) return;
 
-  // Save clients to localStorage
-  useEffect(() => {
-    localStorage.setItem('clients', JSON.stringify(clients));
-  }, [clients]);
+    try {
+      const { error } = await supabase
+        .from('enterprise_settings')
+        .upsert({ user_id: user.id, name })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setEnterpriseNameState(name);
+    } catch (error) {
+      console.error('Error updating enterprise name:', error);
+      throw error;
+    }
+  };
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     if (!user) throw new Error('User must be authenticated');
@@ -179,26 +210,82 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  const addCategory = (category: Omit<Category, 'id'>) => {
-    const newCategory = { ...category, id: generateId() };
-    setCategories([...categories, newCategory]);
+  const addCategory = async (category: Omit<Category, 'id'>) => {
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([{ ...category, user_id: user.id }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('No data returned from insert');
+
+      setCategories(prev => [...prev, data]);
+    } catch (error) {
+      console.error('Error adding category:', error);
+      throw error;
+    }
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(categories.filter(category => category.id !== id));
+  const deleteCategory = async (id: string) => {
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setCategories(prev => prev.filter(category => category.id !== id));
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      throw error;
+    }
   };
 
-  const addClient = (client: Omit<Client, 'id' | 'createdAt'>) => {
-    const newClient = { 
-      ...client, 
-      id: generateId(),
-      createdAt: new Date().toISOString()
-    };
-    setClients([...clients, newClient]);
+  const addClient = async (client: Omit<Client, 'id' | 'createdAt'>) => {
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([{ ...client, user_id: user.id }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('No data returned from insert');
+
+      setClients(prev => [...prev, data]);
+    } catch (error) {
+      console.error('Error adding client:', error);
+      throw error;
+    }
   };
 
-  const deleteClient = (id: string) => {
-    setClients(clients.filter(client => client.id !== id));
+  const deleteClient = async (id: string) => {
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setClients(prev => prev.filter(client => client.id !== id));
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      throw error;
+    }
   };
 
   return (
@@ -216,7 +303,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         addClient,
         deleteClient,
         hasReachedLimit,
-        isLoading
+        isLoading,
+        enterpriseName,
+        setEnterpriseName
       }}
     >
       {children}

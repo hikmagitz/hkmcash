@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2 } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import { useTransactions } from '../context/TransactionContext';
-import { generateId, getDefaultCategories, SUPPORTED_CURRENCIES } from '../utils/helpers';
+import { generateId, getDefaultCategories } from '../utils/helpers';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
@@ -17,7 +17,17 @@ const supabase = createClient(
 );
 
 const SettingsPage: React.FC = () => {
-  const { categories, addCategory, deleteCategory, transactions } = useTransactions();
+  const { 
+    categories, 
+    addCategory, 
+    deleteCategory, 
+    transactions, 
+    clients, 
+    addClient, 
+    deleteClient,
+    enterpriseName,
+    setEnterpriseName 
+  } = useTransactions();
   const { isPremium, user } = useAuth();
   const { redirectToCheckout } = useStripe();
   const intl = useIntl();
@@ -28,17 +38,9 @@ const SettingsPage: React.FC = () => {
     color: '#6B7280',
   });
 
-  const [enterpriseName, setEnterpriseName] = useState('');
+  const [newClient, setNewClient] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [currency, setCurrency] = useState(localStorage.getItem('preferredCurrency') || 'EUR');
 
-  useEffect(() => {
-    const savedEnterpriseName = localStorage.getItem('enterpriseName');
-    if (savedEnterpriseName) {
-      setEnterpriseName(savedEnterpriseName);
-    }
-  }, []);
-  
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
       addCategory({
@@ -55,17 +57,16 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleEnterpriseNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEnterpriseName(value);
-    localStorage.setItem('enterpriseName', value);
+  const handleAddClient = () => {
+    if (newClient.trim()) {
+      addClient({ name: newClient.trim() });
+      setNewClient('');
+    }
   };
 
-  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCurrency = e.target.value;
-    setCurrency(newCurrency);
-    localStorage.setItem('preferredCurrency', newCurrency);
-    window.location.reload(); // Refresh to update all currency displays
+  const handleEnterpriseNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    await setEnterpriseName(value);
   };
 
   const handleExportData = async () => {
@@ -142,11 +143,29 @@ const SettingsPage: React.FC = () => {
           }
 
           if (data.categories && Array.isArray(data.categories)) {
-            localStorage.setItem('categories', JSON.stringify(data.categories));
+            // Delete existing categories
+            const { error: deleteCatError } = await supabase
+              .from('categories')
+              .delete()
+              .eq('user_id', user?.id);
+
+            if (deleteCatError) throw deleteCatError;
+
+            // Insert new categories
+            const { error: insertCatError } = await supabase
+              .from('categories')
+              .insert(
+                data.categories.map((c: any) => ({
+                  ...c,
+                  user_id: user?.id
+                }))
+              );
+
+            if (insertCatError) throw insertCatError;
           }
 
           if (data.enterpriseName) {
-            localStorage.setItem('enterpriseName', data.enterpriseName);
+            await setEnterpriseName(data.enterpriseName);
           }
 
           window.location.reload();
@@ -174,6 +193,7 @@ const SettingsPage: React.FC = () => {
       Date: new Date(t.date).toLocaleDateString(intl.locale),
       Type: intl.formatMessage({ id: `transaction.${t.type}` }),
       Category: t.category,
+      Client: t.client || 'N/A',
       Description: t.description,
       Amount: t.amount,
     }));
@@ -196,6 +216,7 @@ const SettingsPage: React.FC = () => {
       { wch: 12 }, // Date
       { wch: 10 }, // Type
       { wch: 15 }, // Category
+      { wch: 20 }, // Client
       { wch: 30 }, // Description
       { wch: 12 }, // Amount
     ];
@@ -209,17 +230,34 @@ const SettingsPage: React.FC = () => {
     if (window.confirm(intl.formatMessage({ id: 'settings.clearDataConfirm' }))) {
       try {
         if (user) {
-          const { error } = await supabase
+          // Delete transactions
+          const { error: transError } = await supabase
             .from('transactions')
             .delete()
             .eq('user_id', user.id);
 
-          if (error) {
-            throw error;
-          }
+          if (transError) throw transError;
+
+          // Delete categories
+          const { error: catError } = await supabase
+            .from('categories')
+            .delete()
+            .eq('user_id', user.id);
+
+          if (catError) throw catError;
+
+          // Delete clients
+          const { error: clientError } = await supabase
+            .from('clients')
+            .delete()
+            .eq('user_id', user.id);
+
+          if (clientError) throw clientError;
+
+          // Reset enterprise name
+          await setEnterpriseName('');
         }
         
-        localStorage.setItem('categories', JSON.stringify(getDefaultCategories()));
         window.location.reload();
       } catch (error) {
         console.error('Error clearing data:', error);
@@ -250,49 +288,79 @@ const SettingsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-            General Settings
+            Enterprise Settings
           </h2>
           
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Enterprise Name
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={enterpriseName}
-                  onChange={handleEnterpriseNameChange}
-                  placeholder="Enter enterprise name"
-                  className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-                <div className="flex items-center">
-                  <Building2 className="w-5 h-5 text-gray-400" />
-                </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Enterprise Name
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={enterpriseName}
+                onChange={handleEnterpriseNameChange}
+                placeholder="Enter enterprise name"
+                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <div className="flex items-center">
+                <Building2 className="w-5 h-5 text-gray-400" />
               </div>
-              <p className="mt-1 text-sm text-gray-500">
-                This name will appear on your PDF receipts and Excel exports
-              </p>
             </div>
+            <p className="mt-1 text-sm text-gray-500">
+              This name will appear on your PDF receipts and Excel exports
+            </p>
+          </div>
+        </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Preferred Currency
-              </label>
-              <select
-                value={currency}
-                onChange={handleCurrencyChange}
-                className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        <Card>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Clients
+          </h2>
+          
+          <div className="mb-6">
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="Enter client name"
+                value={newClient}
+                onChange={(e) => setNewClient(e.target.value)}
+                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <Button 
+                type="primary" 
+                onClick={handleAddClient}
               >
-                {SUPPORTED_CURRENCIES.map(curr => (
-                  <option key={curr.code} value={curr.code}>
-                    {curr.symbol} {curr.name} ({curr.code})
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-sm text-gray-500">
-                Choose your preferred currency for displaying amounts
-              </p>
+                <Plus size={18} />
+                Add Client
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              {clients.map((client) => (
+                <div 
+                  key={client.id} 
+                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                >
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 text-gray-500 mr-3" />
+                    <span className="text-gray-800 dark:text-gray-200">{client.name}</span>
+                  </div>
+                  <Button 
+                    type="danger" 
+                    className="!p-1 !px-2"
+                    onClick={() => deleteClient(client.id)}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              ))}
+              {clients.length === 0 && (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                  No clients added yet
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -395,6 +463,7 @@ const SettingsPage: React.FC = () => {
                       >
                         <Trash2 size={16} />
                       </Button>
+                
                     </div>
                   ))}
               </div>
