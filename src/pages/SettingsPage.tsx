@@ -250,68 +250,13 @@ const SettingsPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white mb-4 sm:mb-6">
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
         {intl.formatMessage({ id: 'nav.settings' })}
       </h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <Card>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Clients
-          </h2>
-          
-          <div className="mb-6">
-            <div className="flex flex-col sm:flex-row gap-2 mb-4">
-              <input
-                type="text"
-                placeholder="Enter client name"
-                value={newClient}
-                onChange={(e) => setNewClient(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
-              />
-              <Button 
-                type="primary" 
-                onClick={handleAddClient}
-                className="w-full sm:w-auto"
-              >
-                <Plus size={18} />
-                Add Client
-              </Button>
-            </div>
-            
-            <div className="space-y-2">
-              {clients.map((client) => (
-                <div 
-                  key={client.id} 
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                >
-                  <div className="flex items-center min-w-0">
-                    <Users className="w-4 h-4 text-gray-500 flex-shrink-0 mr-3" />
-                    <span className="text-gray-800 dark:text-gray-200 truncate">
-                      {client.name}
-                    </span>
-                  </div>
-                  <Button 
-                    type="danger" 
-                    className="!p-2 ml-2 flex-shrink-0"
-                    onClick={() => deleteClient(client.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              ))}
-              {clients.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                  No clients added yet
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Enterprise Settings Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
             Enterprise Settings
@@ -327,7 +272,7 @@ const SettingsPage: React.FC = () => {
                 value={enterpriseName}
                 onChange={handleEnterpriseNameChange}
                 placeholder="Enter enterprise name"
-                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
               />
               <div className="flex items-center">
                 <Building2 className="w-5 h-5 text-gray-400" />
@@ -336,6 +281,67 @@ const SettingsPage: React.FC = () => {
             <p className="mt-1 text-sm text-gray-500">
               This name will appear on your PDF receipts and Excel exports
             </p>
+          </div>
+        </Card>
+
+        {/* Clients Card */}
+        <Card>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Clients
+          </h2>
+          
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="Enter client name"
+                value={newClient}
+                onChange={(e) => setNewClient(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newClient.trim()) {
+                    handleAddClient();
+                  }
+                }}
+                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
+              />
+              <Button 
+                type="primary" 
+                onClick={handleAddClient}
+                className="w-full sm:w-auto justify-center"
+              >
+                <Plus size={18} />
+                Add Client
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              {clients.map((client) => (
+                <div 
+                  key={client.id} 
+                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                >
+                  <div className="flex items-center flex-1 min-w-0">
+                    <Users className="w-4 h-4 text-gray-500 flex-shrink-0 mr-3" />
+                    <span className="text-gray-800 dark:text-gray-200 truncate">
+                      {client.name}
+                    </span>
+                  </div>
+                  <Button 
+                    type="danger" 
+                    className="ml-2 !p-2 flex-shrink-0"
+                    onClick={() => deleteClient(client.id)}
+                  >
+                    <Trash2 size={18} />
+                  </Button>
+                </div>
+              ))}
+              {clients.length === 0 && (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                  No clients added yet
+                </p>
+              )}
+            </div>
           </div>
         </Card>
 
