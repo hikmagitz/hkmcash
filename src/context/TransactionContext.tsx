@@ -96,14 +96,14 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         if (clientsError) throw clientsError;
         setClients(clientsData || []);
 
-        // Load enterprise settings
+        // Load enterprise settings - Using maybeSingle() instead of single()
         const { data: settingsData, error: settingsError } = await supabase
           .from('enterprise_settings')
           .select('name')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+        if (settingsError) throw settingsError;
         setEnterpriseNameState(settingsData?.name || '');
 
       } catch (error) {
@@ -125,6 +125,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) return;
 
     try {
+      // Use upsert with maybeSingle to handle the case where the record might not exist
       const { error } = await supabase
         .from('enterprise_settings')
         .upsert({ user_id: user.id, name })
@@ -232,6 +233,12 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const deleteCategory = async (id: string) => {
     if (!user) throw new Error('User must be authenticated');
+    
+    // Validate UUID format before making the request
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new Error('Invalid category ID format');
+    }
 
     try {
       const { error } = await supabase
