@@ -85,7 +85,23 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
           .eq('user_id', user.id);
 
         if (categoriesError) throw categoriesError;
-        setCategories(categoriesData?.length ? categoriesData : getDefaultCategories());
+        
+        // If no categories exist for the user, create default ones
+        if (!categoriesData?.length) {
+          const defaultCategories = getDefaultCategories().map(cat => ({
+            ...cat,
+            user_id: user.id
+          }));
+          
+          const { error: insertError } = await supabase
+            .from('categories')
+            .insert(defaultCategories);
+            
+          if (insertError) throw insertError;
+          setCategories(defaultCategories);
+        } else {
+          setCategories(categoriesData);
+        }
 
         // Load clients
         const { data: clientsData, error: clientsError } = await supabase
@@ -96,7 +112,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         if (clientsError) throw clientsError;
         setClients(clientsData || []);
 
-        // Load enterprise settings - Using maybeSingle() instead of single()
+        // Load enterprise settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('enterprise_settings')
           .select('name')
@@ -125,7 +141,6 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) return;
 
     try {
-      // Use upsert with maybeSingle to handle the case where the record might not exist
       const { error } = await supabase
         .from('enterprise_settings')
         .upsert({ user_id: user.id, name })

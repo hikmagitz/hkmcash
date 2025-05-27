@@ -49,55 +49,7 @@ export const calculateSummary = (transactions: Transaction[]): TransactionSummar
 
 // Generate random ID
 export const generateId = (): string => {
-  return Math.random().toString(36).substring(2, 15);
-};
-
-// Get sample transactions for initial state
-export const getSampleTransactions = (): Transaction[] => {
-  return [
-    {
-      id: generateId(),
-      amount: 2500,
-      description: 'Monthly Salary',
-      category: 'Salary',
-      type: 'income',
-      date: '2025-04-01',
-      client: 'ABC Corp',
-    },
-    {
-      id: generateId(),
-      amount: 800,
-      description: 'Rent Payment',
-      category: 'Housing',
-      type: 'expense',
-      date: '2025-04-03',
-    },
-    {
-      id: generateId(),
-      amount: 120,
-      description: 'Grocery Shopping',
-      category: 'Food',
-      type: 'expense',
-      date: '2025-04-05',
-    },
-    {
-      id: generateId(),
-      amount: 200,
-      description: 'Freelance Work',
-      category: 'Freelance',
-      type: 'income',
-      date: '2025-04-10',
-      client: 'XYZ Ltd',
-    },
-    {
-      id: generateId(),
-      amount: 50,
-      description: 'Book Purchase',
-      category: 'Entertainment',
-      type: 'expense',
-      date: '2025-04-15',
-    },
-  ];
+  return crypto.randomUUID();
 };
 
 // Get default categories
