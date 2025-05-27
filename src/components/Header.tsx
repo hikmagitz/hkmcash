@@ -12,6 +12,7 @@ import { STRIPE_PRODUCTS } from '../stripe-config';
 const Header: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { signOut, isPremium } = useAuth();
   const { language, setLanguage } = useLanguage();
   const intl = useIntl();
@@ -43,10 +44,15 @@ const Header: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+    
+    setIsLoggingOut(true);
     try {
       await signOut();
+      // Navigation will be handled by AuthContext since user will become null
     } catch (error) {
       console.error('Error logging out:', error);
+      setIsLoggingOut(false);
     }
   };
 
@@ -117,6 +123,7 @@ const Header: React.FC = () => {
             <Button 
               type="secondary"
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="!px-2"
             >
               <LogOut size={16} />
@@ -188,6 +195,7 @@ const Header: React.FC = () => {
             <Button 
               type="secondary"
               onClick={handleLogout}
+              disabled={isLoggingOut}
             >
               <LogOut size={18} />
               {intl.formatMessage({ id: 'action.logout' })}
