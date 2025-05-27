@@ -128,7 +128,7 @@ const Header: React.FC = () => {
         <div className="hidden md:flex justify-between items-center">
           <div className="flex items-center">
             <img 
-              src="https://raw.githubusercontent.com/hikmagitz/hkmcash/refs/heads/main/files_4787970-1747344275123-ChatGPT_Image_15_mai_2025_20_14_10.png" 
+              src="https://raw.githubusercontent.com/hikmagitz/hkmcash/refs/heads/main/ChatGPT%20Image%2027%20mai%202025%2C%2019_24_21.png" 
               alt="Hikma Cash Logo"
               className="h-10 w-10 mr-3"
             />
