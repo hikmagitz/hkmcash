@@ -292,19 +292,19 @@ const SettingsPage: React.FC = () => {
           </h2>
           
           <div className="mb-6">
-            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <div className="flex flex-col gap-2 mb-4">
               <input
                 type="text"
                 placeholder="Enter client name"
                 value={newClient}
                 onChange={(e) => setNewClient(e.target.value)}
                 onKeyDown={handleKeyPress}
-                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
+                className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
               />
               <Button 
                 type="primary" 
                 onClick={handleAddClient}
-                className="w-full sm:w-auto justify-center"
+                className="w-full justify-center"
               >
                 <Plus size={18} />
                 Add Client
