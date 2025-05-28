@@ -61,6 +61,7 @@ export default {
   'auth.createAccount': 'Create Account',
   'auth.noAccount': "Don't have an account?",
   'auth.haveAccount': 'Already have an account?',
+  'auth.sessionExpired': 'Your session has expired. Please sign in again.',
   
   // Premium
   'premium.title': 'Upgrade to Premium',

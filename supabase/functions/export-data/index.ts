@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
-import * as XLSX from 'npm:xlsx@0.18.5';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,87 +30,19 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { format, enterpriseName } = await req.json();
-
-    const { data: transactions, error: transactionsError } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (transactionsError) {
-      throw transactionsError;
-    }
-
-    const { data: categories, error: categoriesError } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (categoriesError) {
-      throw categoriesError;
-    }
-
-    let fileContent: Uint8Array;
-    let contentType: string;
-    let fileName: string;
-
-    if (format === 'json') {
-      const data = {
-        transactions,
-        categories,
-        enterpriseName,
-      };
-
-      fileName = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
-      contentType = 'application/json';
-      fileContent = new TextEncoder().encode(JSON.stringify(data, null, 2));
-    } else if (format === 'excel') {
-      const transactionData = transactions.map((t: any) => ({
-        Date: new Date(t.date).toLocaleDateString(),
-        Type: t.type,
-        Category: t.category,
-        Client: t.client || 'N/A',
-        Description: t.description,
-        Amount: t.amount,
-      }));
-
-      const wb = XLSX.utils.book_new();
-      
-      if (enterpriseName) {
-        const infoSheet = XLSX.utils.aoa_to_sheet([
-          ['Enterprise Name', enterpriseName],
-          ['Export Date', new Date().toLocaleDateString()],
-          [],
-        ]);
-        XLSX.utils.book_append_sheet(wb, infoSheet, 'Info');
-      }
-
-      const ws = XLSX.utils.json_to_sheet(transactionData);
-
-      const colWidths = [
-        { wch: 12 }, // Date
-        { wch: 10 }, // Type
-        { wch: 15 }, // Category
-        { wch: 20 }, // Client
-        { wch: 30 }, // Description
-        { wch: 12 }, // Amount
-      ];
-      ws['!cols'] = colWidths;
-
-      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-
-      fileName = `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      fileContent = new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }));
-    } else {
-      throw new Error('Invalid format specified');
+    const formData = await req.formData();
+    const file = formData.get('file');
+    const fileName = formData.get('fileName');
+    
+    if (!file || !(file instanceof File) || !fileName) {
+      throw new Error('No file or filename provided');
     }
 
     // Upload the file to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('exports')
-      .upload(`${user.id}/${fileName}`, fileContent, {
-        contentType,
+      .upload(`${user.id}/${fileName}`, await file.arrayBuffer(), {
+        contentType: file.type,
         upsert: true,
       });
 
