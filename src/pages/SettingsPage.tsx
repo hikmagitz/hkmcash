@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
@@ -106,15 +106,8 @@ const SettingsPage: React.FC = () => {
         throw new Error('Failed to export data');
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const { downloadUrl } = await response.json();
+      window.location.href = downloadUrl;
     } catch (error) {
       console.error('Error exporting data:', error);
       alert(intl.formatMessage({ id: 'common.error' }));
@@ -160,15 +153,8 @@ const SettingsPage: React.FC = () => {
         throw new Error('Failed to export data');
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const { downloadUrl } = await response.json();
+      window.location.href = downloadUrl;
     } catch (error) {
       console.error('Error exporting data:', error);
       alert(intl.formatMessage({ id: 'common.error' }));

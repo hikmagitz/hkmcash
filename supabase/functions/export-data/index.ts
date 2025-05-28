@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 import * as XLSX from 'npm:xlsx@0.18.5';
+import { join } from 'https://deno.land/std@0.224.0/path/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +52,12 @@ serve(async (req) => {
       throw categoriesError;
     }
 
+    // Create a temporary directory for the export
+    const tempDir = await Deno.makeTempDir();
+    let filePath: string;
+    let contentType: string;
+    let fileName: string;
+
     if (format === 'json') {
       const data = {
         transactions,
@@ -58,13 +65,11 @@ serve(async (req) => {
         enterpriseName,
       };
 
-      return new Response(JSON.stringify(data), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json"`,
-        },
-      });
+      fileName = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
+      filePath = join(tempDir, fileName);
+      contentType = 'application/json';
+
+      await Deno.writeTextFile(filePath, JSON.stringify(data, null, 2));
     } else if (format === 'excel') {
       const transactionData = transactions.map((t: any) => ({
         Date: new Date(t.date).toLocaleDateString(),
@@ -99,19 +104,44 @@ serve(async (req) => {
       ws['!cols'] = colWidths;
 
       XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-      
-      const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-      return new Response(excelBuffer, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx"`,
-        },
-      });
+      fileName = `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      filePath = join(tempDir, fileName);
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+      XLSX.writeFile(wb, filePath);
+    } else {
+      throw new Error('Invalid format specified');
     }
 
-    throw new Error('Invalid format specified');
+    // Upload the file to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('exports')
+      .upload(`${user.id}/${fileName}`, await Deno.readFile(filePath), {
+        contentType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // Get a signed URL for the uploaded file
+    const { data: { signedUrl }, error: signedUrlError } = await supabase.storage
+      .from('exports')
+      .createSignedUrl(`${user.id}/${fileName}`, 300); // URL expires in 5 minutes
+
+    if (signedUrlError) {
+      throw signedUrlError;
+    }
+
+    // Clean up the temporary file
+    await Deno.remove(filePath);
+    await Deno.remove(tempDir);
+
+    return new Response(JSON.stringify({ downloadUrl: signedUrl }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error:', error);
     return new Response(
