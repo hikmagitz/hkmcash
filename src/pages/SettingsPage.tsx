@@ -6,7 +6,6 @@ import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import { useTransactions } from '../context/TransactionContext';
 import { generateId, getDefaultCategories } from '../utils/helpers';
-import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
 import { createClient } from '@supabase/supabase-js';
@@ -17,7 +16,17 @@ const supabase = createClient(
 );
 
 const SettingsPage: React.FC = () => {
-  const { categories, addCategory, deleteCategory, transactions, clients, addClient, deleteClient } = useTransactions();
+  const { 
+    categories, 
+    addCategory, 
+    deleteCategory, 
+    transactions, 
+    clients, 
+    addClient, 
+    deleteClient,
+    enterpriseName,
+    setEnterpriseName 
+  } = useTransactions();
   const { isPremium, user } = useAuth();
   const { redirectToCheckout } = useStripe();
   const intl = useIntl();
@@ -29,28 +38,8 @@ const SettingsPage: React.FC = () => {
   });
 
   const [newClient, setNewClient] = useState('');
-  const [enterpriseName, setEnterpriseName] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
-
-  useEffect(() => {
-    const savedEnterpriseName = localStorage.getItem('enterpriseName');
-    if (savedEnterpriseName) {
-      setEnterpriseName(savedEnterpriseName);
-    }
-  }, []);
-
-  const handleAddClient = () => {
-    if (newClient.trim()) {
-      addClient({ name: newClient.trim() });
-      setNewClient('');
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleAddClient();
-    }
-  };
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
@@ -68,10 +57,16 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleEnterpriseNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddClient = () => {
+    if (newClient.trim()) {
+      addClient({ name: newClient.trim() });
+      setNewClient('');
+    }
+  };
+
+  const handleEnterpriseNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setEnterpriseName(value);
-    localStorage.setItem('enterpriseName', value);
+    await setEnterpriseName(value);
   };
 
   const handleExportData = async () => {
@@ -83,31 +78,92 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const { data: transactions, error: transactionsError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user?.id);
-
-      if (transactionsError) throw transactionsError;
-
-      const data = {
-        transactions,
-        categories,
-        enterpriseName,
-      };
+      setIsExporting(true);
+      const { data: session } = await supabase.auth.getSession();
       
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      if (!session?.access_token) {
+        throw new Error('No session found');
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          format: 'json',
+          enterpriseName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export data');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting data:', error);
       alert(intl.formatMessage({ id: 'common.error' }));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!isPremium) {
+      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+        await redirectToCheckout('premium_access');
+      }
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No session found');
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          format: 'excel',
+          enterpriseName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export data');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert(intl.formatMessage({ id: 'common.error' }));
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -120,111 +176,44 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string);
-          
-          if (data.transactions && Array.isArray(data.transactions)) {
-            // Delete existing transactions
-            const { error: deleteError } = await supabase
-              .from('transactions')
-              .delete()
-              .eq('user_id', user?.id);
+      const formData = new FormData();
+      formData.append('file', file);
 
-            if (deleteError) throw deleteError;
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No session found');
+      }
 
-            // Insert new transactions
-            const { error: insertError } = await supabase
-              .from('transactions')
-              .insert(
-                data.transactions.map((t: any) => ({
-                  ...t,
-                  user_id: user?.id
-                }))
-              );
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-data`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
 
-            if (insertError) throw insertError;
-          }
+      if (!response.ok) {
+        throw new Error('Failed to import data');
+      }
 
-          if (data.categories && Array.isArray(data.categories)) {
-            localStorage.setItem('categories', JSON.stringify(data.categories));
-          }
-
-          if (data.enterpriseName) {
-            localStorage.setItem('enterpriseName', data.enterpriseName);
-          }
-
-          window.location.reload();
-        } catch (error) {
-          console.error('Error importing data:', error);
-          alert(intl.formatMessage({ id: 'common.error' }));
-        }
-      };
-      reader.readAsText(file);
+      window.location.reload();
     } catch (error) {
-      console.error('Error reading file:', error);
+      console.error('Error importing data:', error);
       alert(intl.formatMessage({ id: 'common.error' }));
     }
-  };
-
-  const handleExportExcel = () => {
-    if (!isPremium) {
-      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        redirectToCheckout('premium_access');
-      }
-      return;
-    }
-
-    const transactionData = transactions.map(t => ({
-      Date: new Date(t.date).toLocaleDateString(intl.locale),
-      Type: intl.formatMessage({ id: `transaction.${t.type}` }),
-      Category: t.category,
-      Client: t.client || 'N/A',
-      Description: t.description,
-      Amount: t.amount,
-    }));
-
-    const wb = XLSX.utils.book_new();
-    
-    // Add enterprise information
-    if (enterpriseName) {
-      const infoSheet = XLSX.utils.aoa_to_sheet([
-        ['Enterprise Name', enterpriseName],
-        ['Export Date', new Date().toLocaleDateString()],
-        [],
-      ]);
-      XLSX.utils.book_append_sheet(wb, infoSheet, 'Info');
-    }
-
-    const ws = XLSX.utils.json_to_sheet(transactionData);
-
-    const colWidths = [
-      { wch: 12 }, // Date
-      { wch: 10 }, // Type
-      { wch: 15 }, // Category
-      { wch: 20 }, // Client
-      { wch: 30 }, // Description
-      { wch: 12 }, // Amount
-    ];
-    ws['!cols'] = colWidths;
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-    XLSX.writeFile(wb, `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleClearData = async () => {
     if (window.confirm(intl.formatMessage({ id: 'settings.clearDataConfirm' }))) {
       try {
         if (user) {
-          const { error } = await supabase
+          const { error: deleteError } = await supabase
             .from('transactions')
             .delete()
             .eq('user_id', user.id);
 
-          if (error) {
-            throw error;
-          }
+          if (deleteError) throw deleteError;
         }
         
         localStorage.setItem('categories', JSON.stringify(getDefaultCategories()));
@@ -256,7 +245,6 @@ const SettingsPage: React.FC = () => {
       </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4">
-        {/* Enterprise Settings Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
             Enterprise Settings
@@ -284,7 +272,6 @@ const SettingsPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Clients Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -298,7 +285,6 @@ const SettingsPage: React.FC = () => {
                 placeholder="Enter client name"
                 value={newClient}
                 onChange={(e) => setNewClient(e.target.value)}
-                onKeyDown={handleKeyPress}
                 className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
               />
               <Button 
@@ -496,11 +482,12 @@ const SettingsPage: React.FC = () => {
               type="primary" 
               className="w-full"
               onClick={handleExportData}
+              disabled={isExporting}
             >
               {isPremium ? (
                 <>
                   <Download size={18} />
-                  {intl.formatMessage({ id: 'settings.exportData' })} (JSON)
+                  {isExporting ? 'Exporting...' : `${intl.formatMessage({ id: 'settings.exportData' })} (JSON)`}
                 </>
               ) : (
                 <>
@@ -514,11 +501,12 @@ const SettingsPage: React.FC = () => {
               type="primary" 
               className="w-full"
               onClick={handleExportExcel}
+              disabled={isExporting}
             >
               {isPremium ? (
                 <>
                   <FileSpreadsheet size={18} />
-                  {intl.formatMessage({ id: 'settings.exportData' })} (Excel)
+                  {isExporting ? 'Exporting...' : `${intl.formatMessage({ id: 'settings.exportData' })} (Excel)`}
                 </>
               ) : (
                 <>
