@@ -77,11 +77,16 @@ const SettingsPage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      alert(intl.formatMessage({ id: 'auth.sessionExpired' }));
+      return;
+    }
+
     try {
       setIsExporting(true);
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session?.access_token) {
+      if (sessionError || !session?.access_token) {
         throw new Error('No session found');
       }
 
@@ -126,11 +131,16 @@ const SettingsPage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      alert(intl.formatMessage({ id: 'auth.sessionExpired' }));
+      return;
+    }
+
     try {
       setIsExporting(true);
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session?.access_token) {
+      if (sessionError || !session?.access_token) {
         throw new Error('No session found');
       }
 
@@ -175,13 +185,18 @@ const SettingsPage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      alert(intl.formatMessage({ id: 'auth.sessionExpired' }));
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session?.access_token) {
+      if (sessionError || !session?.access_token) {
         throw new Error('No session found');
       }
 
