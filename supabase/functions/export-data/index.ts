@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
 import * as XLSX from 'npm:xlsx@0.18.5';
-import { join } from 'https://deno.land/std@0.224.0/path/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,9 +51,7 @@ serve(async (req) => {
       throw categoriesError;
     }
 
-    // Create a temporary directory for the export
-    const tempDir = await Deno.makeTempDir();
-    let filePath: string;
+    let fileContent: Uint8Array;
     let contentType: string;
     let fileName: string;
 
@@ -66,10 +63,8 @@ serve(async (req) => {
       };
 
       fileName = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
-      filePath = join(tempDir, fileName);
       contentType = 'application/json';
-
-      await Deno.writeTextFile(filePath, JSON.stringify(data, null, 2));
+      fileContent = new TextEncoder().encode(JSON.stringify(data, null, 2));
     } else if (format === 'excel') {
       const transactionData = transactions.map((t: any) => ({
         Date: new Date(t.date).toLocaleDateString(),
@@ -106,10 +101,8 @@ serve(async (req) => {
       XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
 
       fileName = `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      filePath = join(tempDir, fileName);
       contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-      XLSX.writeFile(wb, filePath);
+      fileContent = new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }));
     } else {
       throw new Error('Invalid format specified');
     }
@@ -117,7 +110,7 @@ serve(async (req) => {
     // Upload the file to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('exports')
-      .upload(`${user.id}/${fileName}`, await Deno.readFile(filePath), {
+      .upload(`${user.id}/${fileName}`, fileContent, {
         contentType,
         upsert: true,
       });
@@ -134,10 +127,6 @@ serve(async (req) => {
     if (signedUrlError) {
       throw signedUrlError;
     }
-
-    // Clean up the temporary file
-    await Deno.remove(filePath);
-    await Deno.remove(tempDir);
 
     return new Response(JSON.stringify({ downloadUrl: signedUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
