@@ -61,7 +61,6 @@ export default {
   'auth.createAccount': 'إنشاء حساب جديد',
   'auth.noAccount': 'ليس لديك حساب؟',
   'auth.haveAccount': 'لديك حساب بالفعل؟',
-  'auth.sessionExpired': 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
   
   // Premium
   'premium.title': 'الترقية إلى بريميوم',
