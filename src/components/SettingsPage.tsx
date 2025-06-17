@@ -40,6 +40,7 @@ const SettingsPage: React.FC = () => {
 
   const [newClient, setNewClient] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [isSavingEnterprise, setIsSavingEnterprise] = useState(false);
 
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
@@ -66,7 +67,15 @@ const SettingsPage: React.FC = () => {
 
   const handleEnterpriseNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    await setEnterpriseName(value);
+    setIsSavingEnterprise(true);
+    
+    try {
+      await setEnterpriseName(value);
+    } catch (error) {
+      console.error('Error saving enterprise name:', error);
+    } finally {
+      setIsSavingEnterprise(false);
+    }
   };
 
   const handleExportData = async () => {
@@ -287,36 +296,55 @@ const SettingsPage: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-            Enterprise Settings
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Company Settings
           </h2>
           
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Enterprise Name
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Company Name
             </label>
-            <div className="flex gap-2">
+            <div className="relative">
               <input
                 type="text"
                 value={enterpriseName}
                 onChange={handleEnterpriseNameChange}
-                placeholder="Enter enterprise name"
-                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Enter your company name (e.g., Acme Corp, John's Business)"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                disabled={isSavingEnterprise}
               />
-              <div className="flex items-center">
-                <Building2 className="w-5 h-5 text-gray-400" />
-              </div>
+              {isSavingEnterprise && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                </div>
+              )}
             </div>
-            <p className="mt-1 text-sm text-gray-500">
-              This name will appear on your PDF receipts and Excel exports
-            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                💡 This name will automatically appear on:
+              </p>
+              <ul className="text-sm text-gray-500 dark:text-gray-400 ml-4 space-y-1">
+                <li>• PDF receipts and invoices</li>
+                <li>• Excel export files</li>
+                <li>• Data export files</li>
+                <li>• All generated documents</li>
+              </ul>
+              {enterpriseName && (
+                <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                    ✅ Company name saved: <strong>{enterpriseName}</strong>
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Clients
+            Client Management
           </h2>
           
           <div className="mb-6">
@@ -326,22 +354,24 @@ const SettingsPage: React.FC = () => {
                 placeholder="Enter client name"
                 value={newClient}
                 onChange={(e) => setNewClient(e.target.value)}
-                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
+                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
               />
               <Button 
                 type="primary" 
                 onClick={handleAddClient}
+                disabled={!newClient.trim()}
               >
                 <Plus size={18} />
-                Add Client
+                Add
               </Button>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-48 overflow-y-auto">
               {clients.map((client) => (
                 <div 
                   key={client.id} 
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
+                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-center">
                     <Users className="w-4 h-4 text-gray-500 mr-3" />
@@ -357,9 +387,11 @@ const SettingsPage: React.FC = () => {
                 </div>
               ))}
               {clients.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                  No clients added yet
-                </p>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No clients added yet</p>
+                  <p className="text-sm">Add clients to quickly select them when creating transactions</p>
+                </div>
               )}
             </div>
           </div>
