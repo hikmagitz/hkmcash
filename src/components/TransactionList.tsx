@@ -5,16 +5,18 @@ import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { generateTransactionReceipt } from '../utils/pdfGenerator';
+import { Transaction } from '../types';
 import Button from './UI/Button';
 import Card from './UI/Card';
 import TransactionModal from './TransactionModal';
 
 interface TransactionListProps {
   limit?: number;
+  transactions?: Transaction[];
 }
 
-const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
-  const { transactions, deleteTransaction, categories } = useTransactions();
+const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: propTransactions }) => {
+  const { transactions: contextTransactions, deleteTransaction, categories } = useTransactions();
   const { isPremium } = useAuth();
   const { redirectToCheckout } = useStripe();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -22,6 +24,9 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit }) => {
   const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Use provided transactions or context transactions
+  const transactions = propTransactions || contextTransactions;
+  
   const displayTransactions = limit
     ? transactions.slice(0, limit)
     : transactions;
