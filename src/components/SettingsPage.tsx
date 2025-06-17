@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -40,7 +40,17 @@ const SettingsPage: React.FC = () => {
 
   const [newClient, setNewClient] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
+  
+  // Enterprise name state management
+  const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
+  const [tempEnterpriseName, setTempEnterpriseName] = useState('');
   const [isSavingEnterprise, setIsSavingEnterprise] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Initialize temp name when component mounts or enterprise name changes
+  useEffect(() => {
+    setTempEnterpriseName(enterpriseName);
+  }, [enterpriseName]);
 
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
@@ -65,14 +75,34 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleEnterpriseNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleStartEditingEnterprise = () => {
+    setIsEditingEnterprise(true);
+    setTempEnterpriseName(enterpriseName);
+    setSaveSuccess(false);
+  };
+
+  const handleCancelEditingEnterprise = () => {
+    setIsEditingEnterprise(false);
+    setTempEnterpriseName(enterpriseName);
+    setSaveSuccess(false);
+  };
+
+  const handleSaveEnterpriseName = async () => {
     setIsSavingEnterprise(true);
+    setSaveSuccess(false);
     
     try {
-      await setEnterpriseName(value);
+      await setEnterpriseName(tempEnterpriseName.trim());
+      setIsEditingEnterprise(false);
+      setSaveSuccess(true);
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
     } catch (error) {
       console.error('Error saving enterprise name:', error);
+      alert('Failed to save company name. Please try again.');
     } finally {
       setIsSavingEnterprise(false);
     }
@@ -305,22 +335,80 @@ const SettingsPage: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Company Name
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={enterpriseName}
-                onChange={handleEnterpriseNameChange}
-                placeholder="Enter your company name (e.g., Acme Corp, John's Business)"
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                disabled={isSavingEnterprise}
-              />
-              {isSavingEnterprise && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+            
+            {!isEditingEnterprise ? (
+              // Display Mode
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-5 h-5 text-gray-500" />
+                    <span className="text-gray-800 dark:text-white font-medium">
+                      {enterpriseName || 'No company name set'}
+                    </span>
+                  </div>
+                  <Button
+                    type="secondary"
+                    onClick={handleStartEditingEnterprise}
+                    className="!px-3 !py-2"
+                  >
+                    <Edit3 size={16} />
+                    Modify
+                  </Button>
                 </div>
-              )}
-            </div>
-            <div className="mt-2 space-y-1">
+                
+                {saveSuccess && (
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                      <Check size={16} />
+                      Company name saved successfully!
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Edit Mode
+              <div className="space-y-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={tempEnterpriseName}
+                    onChange={(e) => setTempEnterpriseName(e.target.value)}
+                    placeholder="Enter your company name (e.g., Acme Corp, John's Business)"
+                    className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                    disabled={isSavingEnterprise}
+                    autoFocus
+                  />
+                  {isSavingEnterprise && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="primary"
+                    onClick={handleSaveEnterpriseName}
+                    disabled={isSavingEnterprise || !tempEnterpriseName.trim()}
+                    className="flex-1"
+                  >
+                    <Save size={16} />
+                    {isSavingEnterprise ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    type="secondary"
+                    onClick={handleCancelEditingEnterprise}
+                    disabled={isSavingEnterprise}
+                    className="flex-1"
+                  >
+                    <X size={16} />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div className="mt-4 space-y-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 💡 This name will automatically appear on:
               </p>
@@ -330,13 +418,6 @@ const SettingsPage: React.FC = () => {
                 <li>• Data export files</li>
                 <li>• All generated documents</li>
               </ul>
-              {enterpriseName && (
-                <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                    ✅ Company name saved: <strong>{enterpriseName}</strong>
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </Card>
@@ -373,13 +454,15 @@ const SettingsPage: React.FC = () => {
                   key={client.id} 
                   className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 text-gray-500 mr-3" />
-                    <span className="text-gray-800 dark:text-gray-200">{client.name}</span>
+                  <div className="flex items-center flex-1 min-w-0">
+                    <Users className="w-4 h-4 text-gray-500 flex-shrink-0 mr-3" />
+                    <span className="text-gray-800 dark:text-gray-200 truncate">
+                      {client.name}
+                    </span>
                   </div>
                   <Button 
                     type="danger" 
-                    className="!p-1 !px-2"
+                    className="ml-2 !p-2 flex-shrink-0"
                     onClick={() => deleteClient(client.id)}
                   >
                     <Trash2 size={16} />
@@ -413,7 +496,7 @@ const SettingsPage: React.FC = () => {
                   placeholder={intl.formatMessage({ id: 'settings.categoryName' })}
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
                 />
               </div>
               
@@ -421,7 +504,7 @@ const SettingsPage: React.FC = () => {
                 <select
                   value={newCategory.type}
                   onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
-                  className="px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
                 >
                   <option value="expense">
                     {intl.formatMessage({ id: 'transaction.expense' })}
@@ -433,7 +516,7 @@ const SettingsPage: React.FC = () => {
                 
                 <div className="relative">
                   <button 
-                    className="w-10 h-10 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none"
+                    className="w-[44px] h-[44px] rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none"
                     style={{ backgroundColor: newCategory.color }}
                     onClick={() => setShowColorPicker(!showColorPicker)}
                   ></button>
@@ -444,7 +527,7 @@ const SettingsPage: React.FC = () => {
                         {colorOptions.map((color) => (
                           <button
                             key={color}
-                            className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600"
+                            className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600"
                             style={{ backgroundColor: color }}
                             onClick={() => {
                               setNewCategory({ ...newCategory, color });
@@ -460,6 +543,7 @@ const SettingsPage: React.FC = () => {
                 <Button 
                   type="primary" 
                   onClick={handleAddCategory}
+                  className="w-full sm:w-auto"
                 >
                   <Plus size={18} />
                   {intl.formatMessage({ id: 'action.add' })}
@@ -481,21 +565,22 @@ const SettingsPage: React.FC = () => {
                       key={category.id} 
                       className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1 min-w-0">
                         <div 
-                          className="w-4 h-4 rounded-full mr-3"
+                          className="w-4 h-4 rounded-full mr-3 flex-shrink-0"
                           style={{ backgroundColor: category.color }}
                         ></div>
-                        <span className="text-gray-800 dark:text-gray-200">{category.name}</span>
+                        <span className="text-gray-800 dark:text-gray-200 truncate">
+                          {category.name}
+                        </span>
                       </div>
                       <Button 
                         type="danger" 
-                        className="!p-1 !px-2"
+                        className="ml-2 !p-2 flex-shrink-0"
                         onClick={() => deleteCategory(category.id)}
                       >
                         <Trash2 size={16} />
                       </Button>
-                
                     </div>
                   ))}
               </div>
@@ -513,16 +598,18 @@ const SettingsPage: React.FC = () => {
                       key={category.id} 
                       className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1 min-w-0">
                         <div 
-                          className="w-4 h-4 rounded-full mr-3"
+                          className="w-4 h-4 rounded-full mr-3 flex-shrink-0"
                           style={{ backgroundColor: category.color }}
                         ></div>
-                        <span className="text-gray-800 dark:text-gray-200">{category.name}</span>
+                        <span className="text-gray-800 dark:text-gray-200 truncate">
+                          {category.name}
+                        </span>
                       </div>
                       <Button 
                         type="danger" 
-                        className="!p-1 !px-2"
+                        className="ml-2 !p-2 flex-shrink-0"
                         onClick={() => deleteCategory(category.id)}
                       >
                         <Trash2 size={16} />
