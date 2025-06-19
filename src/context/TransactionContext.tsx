@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { 
   Transaction, 
   Category,
@@ -11,12 +10,6 @@ import {
   generateId, 
   getDefaultCategories
 } from '../utils/helpers';
-import { useAuth } from './AuthContext';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 interface TransactionContextType {
   transactions: Transaction[];
@@ -47,90 +40,107 @@ export const useTransactions = () => {
 };
 
 export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, isPremium } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [enterpriseName, setEnterpriseNameState] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [enterpriseName, setEnterpriseNameState] = useState('HKM Cash Demo');
 
   const [summary, setSummary] = useState<TransactionSummary>(() => 
     calculateSummary(transactions)
   );
 
-  const FREE_TRANSACTION_LIMIT = 50;
-  const hasReachedLimit = !isPremium && transactions.length >= FREE_TRANSACTION_LIMIT;
+  const hasReachedLimit = false; // No limits in demo mode
 
-  // Load data from Supabase
+  // Load data from localStorage
   useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-
-      setIsLoading(true);
+    const loadData = () => {
       try {
         // Load transactions
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
-
-        if (transactionsError) throw transactionsError;
-        setTransactions(transactionsData || []);
+        const savedTransactions = localStorage.getItem('demo_transactions');
+        if (savedTransactions) {
+          setTransactions(JSON.parse(savedTransactions));
+        } else {
+          // Add some demo transactions
+          const demoTransactions: Transaction[] = [
+            {
+              id: generateId(),
+              amount: 3500,
+              description: 'Monthly Salary',
+              category: 'Salary',
+              type: 'income',
+              date: new Date().toISOString().slice(0, 10),
+              client: 'ABC Company'
+            },
+            {
+              id: generateId(),
+              amount: 1200,
+              description: 'Rent Payment',
+              category: 'Housing',
+              type: 'expense',
+              date: new Date().toISOString().slice(0, 10)
+            },
+            {
+              id: generateId(),
+              amount: 250,
+              description: 'Groceries',
+              category: 'Food',
+              type: 'expense',
+              date: new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+            },
+            {
+              id: generateId(),
+              amount: 800,
+              description: 'Freelance Project',
+              category: 'Freelance',
+              type: 'income',
+              date: new Date(Date.now() - 172800000).toISOString().slice(0, 10),
+              client: 'XYZ Corp'
+            }
+          ];
+          setTransactions(demoTransactions);
+          localStorage.setItem('demo_transactions', JSON.stringify(demoTransactions));
+        }
 
         // Load categories
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (categoriesError) throw categoriesError;
-        
-        // If no categories exist for the user, create default ones
-        if (!categoriesData?.length) {
-          const defaultCategories = getDefaultCategories().map(cat => ({
-            ...cat,
-            user_id: user.id
-          }));
-          
-          const { error: insertError } = await supabase
-            .from('categories')
-            .insert(defaultCategories);
-            
-          if (insertError) throw insertError;
-          setCategories(defaultCategories);
+        const savedCategories = localStorage.getItem('demo_categories');
+        if (savedCategories) {
+          setCategories(JSON.parse(savedCategories));
         } else {
-          setCategories(categoriesData);
+          const defaultCategories = getDefaultCategories();
+          setCategories(defaultCategories);
+          localStorage.setItem('demo_categories', JSON.stringify(defaultCategories));
         }
 
         // Load clients
-        const { data: clientsData, error: clientsError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user.id);
+        const savedClients = localStorage.getItem('demo_clients');
+        if (savedClients) {
+          setClients(JSON.parse(savedClients));
+        } else {
+          const demoClients: Client[] = [
+            { id: generateId(), name: 'ABC Company', createdAt: new Date().toISOString() },
+            { id: generateId(), name: 'XYZ Corp', createdAt: new Date().toISOString() },
+            { id: generateId(), name: 'Tech Solutions Ltd', createdAt: new Date().toISOString() }
+          ];
+          setClients(demoClients);
+          localStorage.setItem('demo_clients', JSON.stringify(demoClients));
+        }
 
-        if (clientsError) throw clientsError;
-        setClients(clientsData || []);
-
-        // Load enterprise settings
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('enterprise_settings')
-          .select('name')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (settingsError) throw settingsError;
-        setEnterpriseNameState(settingsData?.name || '');
+        // Load enterprise name
+        const savedEnterpriseName = localStorage.getItem('demo_enterpriseName');
+        if (savedEnterpriseName) {
+          setEnterpriseNameState(savedEnterpriseName);
+        }
 
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading demo data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, [user]);
+  }, []);
 
   // Update summary when transactions change
   useEffect(() => {
@@ -138,18 +148,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   }, [transactions]);
 
   const setEnterpriseName = async (name: string) => {
-    if (!user) return;
-
     try {
-      const { error } = await supabase
-        .from('enterprise_settings')
-        .upsert(
-          { user_id: user.id, name },
-          { onConflict: 'user_id' }
-        );
-
-      if (error) throw error;
       setEnterpriseNameState(name);
+      localStorage.setItem('demo_enterpriseName', name);
     } catch (error) {
       console.error('Error updating enterprise name:', error);
       throw error;
@@ -157,22 +158,15 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    if (!user) throw new Error('User must be authenticated');
-    if (!isPremium && transactions.length >= FREE_TRANSACTION_LIMIT) {
-      throw new Error('Transaction limit reached. Upgrade to premium for unlimited transactions.');
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([{ ...transaction, user_id: user.id }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
-
-      setTransactions(prev => [data, ...prev]);
+      const newTransaction: Transaction = {
+        ...transaction,
+        id: generateId()
+      };
+      
+      const updatedTransactions = [newTransaction, ...transactions];
+      setTransactions(updatedTransactions);
+      localStorage.setItem('demo_transactions', JSON.stringify(updatedTransactions));
     } catch (error) {
       console.error('Error adding transaction:', error);
       throw error;
@@ -180,18 +174,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const deleteTransaction = async (id: string) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+      const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
+      setTransactions(updatedTransactions);
+      localStorage.setItem('demo_transactions', JSON.stringify(updatedTransactions));
     } catch (error) {
       console.error('Error deleting transaction:', error);
       throw error;
@@ -199,29 +185,12 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const updateTransaction = async (updatedTransaction: Transaction) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          amount: updatedTransaction.amount,
-          description: updatedTransaction.description,
-          category: updatedTransaction.category,
-          type: updatedTransaction.type,
-          date: updatedTransaction.date,
-          client: updatedTransaction.client,
-        })
-        .eq('id', updatedTransaction.id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setTransactions(prev =>
-        prev.map(transaction =>
-          transaction.id === updatedTransaction.id ? updatedTransaction : transaction
-        )
+      const updatedTransactions = transactions.map(transaction =>
+        transaction.id === updatedTransaction.id ? updatedTransaction : transaction
       );
+      setTransactions(updatedTransactions);
+      localStorage.setItem('demo_transactions', JSON.stringify(updatedTransactions));
     } catch (error) {
       console.error('Error updating transaction:', error);
       throw error;
@@ -229,19 +198,15 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const addCategory = async (category: Omit<Category, 'id'>) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{ ...category, user_id: user.id }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
-
-      setCategories(prev => [...prev, data]);
+      const newCategory: Category = {
+        ...category,
+        id: generateId()
+      };
+      
+      const updatedCategories = [...categories, newCategory];
+      setCategories(updatedCategories);
+      localStorage.setItem('demo_categories', JSON.stringify(updatedCategories));
     } catch (error) {
       console.error('Error adding category:', error);
       throw error;
@@ -249,24 +214,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const deleteCategory = async (id: string) => {
-    if (!user) throw new Error('User must be authenticated');
-    
-    // Validate UUID format before making the request
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      throw new Error('Invalid category ID format');
-    }
-
     try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setCategories(prev => prev.filter(category => category.id !== id));
+      const updatedCategories = categories.filter(category => category.id !== id);
+      setCategories(updatedCategories);
+      localStorage.setItem('demo_categories', JSON.stringify(updatedCategories));
     } catch (error) {
       console.error('Error deleting category:', error);
       throw error;
@@ -274,19 +225,16 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const addClient = async (client: Omit<Client, 'id' | 'createdAt'>) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .insert([{ ...client, user_id: user.id }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
-
-      setClients(prev => [...prev, data]);
+      const newClient: Client = {
+        ...client,
+        id: generateId(),
+        createdAt: new Date().toISOString()
+      };
+      
+      const updatedClients = [...clients, newClient];
+      setClients(updatedClients);
+      localStorage.setItem('demo_clients', JSON.stringify(updatedClients));
     } catch (error) {
       console.error('Error adding client:', error);
       throw error;
@@ -294,18 +242,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const deleteClient = async (id: string) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setClients(prev => prev.filter(client => client.id !== id));
+      const updatedClients = clients.filter(client => client.id !== id);
+      setClients(updatedClients);
+      localStorage.setItem('demo_clients', JSON.stringify(updatedClients));
     } catch (error) {
       console.error('Error deleting client:', error);
       throw error;
