@@ -168,7 +168,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
-                  $
+                  €
                 </span>
                 <input
                   type="number"
