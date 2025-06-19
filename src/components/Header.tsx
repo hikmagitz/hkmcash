@@ -153,7 +153,7 @@ const Header: React.FC = () => {
               </button>
               
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-[110]">
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-[110]">
                   <div className="py-1">
                     <div className="px-4 py-2 border-b border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
@@ -245,7 +245,7 @@ const Header: React.FC = () => {
               </button>
               
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-[110]">
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-[110]">
                   <div className="py-1">
                     <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
