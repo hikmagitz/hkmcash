@@ -4,6 +4,7 @@ import MainLayout from './layout/MainLayout';
 import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import SettingsPage from './pages/SettingsPage';
+import AdvancedSettingsPage from './pages/AdvancedSettingsPage';
 import PremiumPage from './pages/PremiumPage';
 import SuccessPage from './pages/SuccessPage';
 import AuthPage from './pages/AuthPage';
@@ -16,10 +17,13 @@ const AppContent = () => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900 dark:to-purple-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+          <div className="w-16 h-16 bg-gradient-to-r from-sky-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg animate-pulse">
+            <span className="text-white font-bold text-xl">H</span>
+          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading HKM Cash...</p>
         </div>
       </div>
     );
@@ -37,6 +41,7 @@ const AppContent = () => {
             <Route index element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="advanced-settings" element={<AdvancedSettingsPage />} />
             <Route path="premium" element={<PremiumPage />} />
             <Route path="success" element={<SuccessPage />} />
           </Route>
