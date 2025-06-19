@@ -48,6 +48,12 @@ const SettingsPage: React.FC = () => {
   const [isSavingEnterprise, setIsSavingEnterprise] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Currency state management
+  const [isEditingCurrency, setIsEditingCurrency] = useState(false);
+  const [tempCurrency, setTempCurrency] = useState('EUR');
+  const [isSavingCurrency, setIsSavingCurrency] = useState(false);
+  const [currencySaveSuccess, setCurrencySaveSuccess] = useState(false);
+
   // Initialize temp name when component mounts or enterprise name changes
   useEffect(() => {
     setTempEnterpriseName(enterpriseName);
@@ -55,18 +61,10 @@ const SettingsPage: React.FC = () => {
 
   // Load saved currency preference
   useEffect(() => {
-    const savedCurrency = localStorage.getItem('preferredCurrency');
-    if (savedCurrency) {
-      setSelectedCurrency(savedCurrency);
-    }
+    const savedCurrency = localStorage.getItem('preferredCurrency') || 'EUR';
+    setSelectedCurrency(savedCurrency);
+    setTempCurrency(savedCurrency);
   }, []);
-
-  const handleCurrencyChange = (currency: string) => {
-    setSelectedCurrency(currency);
-    localStorage.setItem('preferredCurrency', currency);
-    // Force a page refresh to update all currency displays
-    window.location.reload();
-  };
 
   const getCurrentCurrencyInfo = () => {
     return SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency) || SUPPORTED_CURRENCIES[0];
@@ -95,6 +93,7 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  // Enterprise name functions
   const handleStartEditingEnterprise = () => {
     setIsEditingEnterprise(true);
     setTempEnterpriseName(enterpriseName);
@@ -125,6 +124,43 @@ const SettingsPage: React.FC = () => {
       alert('Failed to save company name. Please try again.');
     } finally {
       setIsSavingEnterprise(false);
+    }
+  };
+
+  // Currency functions
+  const handleStartEditingCurrency = () => {
+    setIsEditingCurrency(true);
+    setTempCurrency(selectedCurrency);
+    setCurrencySaveSuccess(false);
+  };
+
+  const handleCancelEditingCurrency = () => {
+    setIsEditingCurrency(false);
+    setTempCurrency(selectedCurrency);
+    setCurrencySaveSuccess(false);
+  };
+
+  const handleSaveCurrency = async () => {
+    setIsSavingCurrency(true);
+    setCurrencySaveSuccess(false);
+    
+    try {
+      setSelectedCurrency(tempCurrency);
+      localStorage.setItem('preferredCurrency', tempCurrency);
+      setIsEditingCurrency(false);
+      setCurrencySaveSuccess(true);
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setCurrencySaveSuccess(false);
+        // Force a page refresh to update all currency displays
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving currency:', error);
+      alert('Failed to save currency. Please try again.');
+    } finally {
+      setIsSavingCurrency(false);
     }
   };
 
@@ -347,52 +383,190 @@ const SettingsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Currency Settings Card */}
         <Card>
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl font-semibold mb-6 text-gray-800 dark:text-white flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
-            Currency Settings
+            Business Settings
           </h2>
           
-          <div className="space-y-4">
-            {/* Current Currency Display */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900 rounded-full flex items-center justify-center">
-                    <span className="text-lg font-bold text-teal-600 dark:text-teal-400">
-                      {getCurrentCurrencyInfo().symbol}
-                    </span>
+          <div className="space-y-6">
+            {/* Enterprise Name Section */}
+            <div>
+              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Company Name
+              </h3>
+              
+              {!isEditingEnterprise ? (
+                // Display Mode
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-800 dark:text-white font-medium">
+                        {enterpriseName || 'No company name set'}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {getCurrentCurrencyInfo().name}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {getCurrentCurrencyInfo().code}
-                    </p>
+                  
+                  <Button
+                    type="secondary"
+                    onClick={handleStartEditingEnterprise}
+                    className="w-full"
+                  >
+                    <Edit3 size={16} />
+                    Modify Company Name
+                  </Button>
+                  
+                  {saveSuccess && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                        <Check size={16} />
+                        Company name saved successfully!
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Edit Mode
+                <div className="space-y-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={tempEnterpriseName}
+                      onChange={(e) => setTempEnterpriseName(e.target.value)}
+                      placeholder="Enter your company name (e.g., Acme Corp, John's Business)"
+                      className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                      disabled={isSavingEnterprise}
+                      autoFocus
+                    />
+                    {isSavingEnterprise && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="primary"
+                      onClick={handleSaveEnterpriseName}
+                      disabled={isSavingEnterprise || !tempEnterpriseName.trim()}
+                      className="flex-1"
+                    >
+                      <Save size={16} />
+                      {isSavingEnterprise ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      type="secondary"
+                      onClick={handleCancelEditingEnterprise}
+                      disabled={isSavingEnterprise}
+                      className="flex-1"
+                    >
+                      <X size={16} />
+                      Cancel
+                    </Button>
                   </div>
                 </div>
-                <Badge type="neutral" className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
-                  Current
-                </Badge>
-              </div>
+              )}
             </div>
 
-            {/* Currency Selector */}
+            {/* Divider */}
+            <hr className="border-gray-200 dark:border-gray-700" />
+
+            {/* Currency Section */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {intl.formatMessage({ id: 'settings.currency' })}
-              </label>
-              <select
-                value={selectedCurrency}
-                onChange={(e) => handleCurrencyChange(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px] text-base"
-              >
-                {SUPPORTED_CURRENCIES.map((currency) => (
-                  <option key={currency.code} value={currency.code}>
-                    {currency.symbol} {currency.name} ({currency.code})
-                  </option>
-                ))}
-              </select>
+              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Euro className="w-4 h-4" />
+                Currency Settings
+              </h3>
+              
+              {!isEditingCurrency ? (
+                // Display Mode
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-teal-100 dark:bg-teal-900 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-teal-600 dark:text-teal-400">
+                          {getCurrentCurrencyInfo().symbol}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-800 dark:text-white font-medium">
+                          {getCurrentCurrencyInfo().name}
+                        </span>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {getCurrentCurrencyInfo().code}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge type="neutral" className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
+                      Current
+                    </Badge>
+                  </div>
+                  
+                  <Button
+                    type="secondary"
+                    onClick={handleStartEditingCurrency}
+                    className="w-full"
+                  >
+                    <Edit3 size={16} />
+                    Modify Currency
+                  </Button>
+                  
+                  {currencySaveSuccess && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                        <Check size={16} />
+                        Currency saved successfully! Refreshing page...
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Edit Mode
+                <div className="space-y-3">
+                  <div className="relative">
+                    <select
+                      value={tempCurrency}
+                      onChange={(e) => setTempCurrency(e.target.value)}
+                      className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px] text-base"
+                      disabled={isSavingCurrency}
+                    >
+                      {SUPPORTED_CURRENCIES.map((currency) => (
+                        <option key={currency.code} value={currency.code}>
+                          {currency.symbol} {currency.name} ({currency.code})
+                        </option>
+                      ))}
+                    </select>
+                    {isSavingCurrency && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      type="primary"
+                      onClick={handleSaveCurrency}
+                      disabled={isSavingCurrency}
+                      className="flex-1"
+                    >
+                      <Save size={16} />
+                      {isSavingCurrency ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      type="secondary"
+                      onClick={handleCancelEditingCurrency}
+                      disabled={isSavingCurrency}
+                      className="flex-1"
+                    >
+                      <X size={16} />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Currency Info */}
@@ -403,135 +577,13 @@ const SettingsPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
-                    Currency Information
+                    Information
                   </p>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    {intl.formatMessage({ id: 'settings.currency.description' })}
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                    Note: Changing currency will refresh the page to update all displays.
+                    Company name appears on PDF receipts and exports. Currency setting affects all amount displays throughout the app.
                   </p>
                 </div>
               </div>
-            </div>
-
-            {/* Supported Currencies Preview */}
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Supported Currencies ({SUPPORTED_CURRENCIES.length})
-              </p>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                {SUPPORTED_CURRENCIES.map((currency) => (
-                  <div 
-                    key={currency.code}
-                    className={`flex items-center gap-2 p-2 rounded-md text-sm ${
-                      currency.code === selectedCurrency 
-                        ? 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200' 
-                        : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    <span className="font-medium">{currency.symbol}</span>
-                    <span className="truncate">{currency.code}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
-            <Building2 className="w-5 h-5" />
-            Company Settings
-          </h2>
-          
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Company Name
-            </label>
-            
-            {!isEditingEnterprise ? (
-              // Display Mode
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-gray-500" />
-                    <span className="text-gray-800 dark:text-white font-medium">
-                      {enterpriseName || 'No company name set'}
-                    </span>
-                  </div>
-                  <Button
-                    type="secondary"
-                    onClick={handleStartEditingEnterprise}
-                    className="!px-3 !py-2"
-                  >
-                    <Edit3 size={16} />
-                    Modify
-                  </Button>
-                </div>
-                
-                {saveSuccess && (
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                      <Check size={16} />
-                      Company name saved successfully!
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              // Edit Mode
-              <div className="space-y-3">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={tempEnterpriseName}
-                    onChange={(e) => setTempEnterpriseName(e.target.value)}
-                    placeholder="Enter your company name (e.g., Acme Corp, John's Business)"
-                    className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                    disabled={isSavingEnterprise}
-                    autoFocus
-                  />
-                  {isSavingEnterprise && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    type="primary"
-                    onClick={handleSaveEnterpriseName}
-                    disabled={isSavingEnterprise || !tempEnterpriseName.trim()}
-                    className="flex-1"
-                  >
-                    <Save size={16} />
-                    {isSavingEnterprise ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    type="secondary"
-                    onClick={handleCancelEditingEnterprise}
-                    disabled={isSavingEnterprise}
-                    className="flex-1"
-                  >
-                    <X size={16} />
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            <div className="mt-4 space-y-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                💡 This name will automatically appear on:
-              </p>
-              <ul className="text-sm text-gray-500 dark:text-gray-400 ml-4 space-y-1">
-                <li>• PDF receipts and invoices</li>
-                <li>• Excel export files</li>
-                <li>• Data export files</li>
-                <li>• All generated documents</li>
-              </ul>
             </div>
           </div>
         </Card>
