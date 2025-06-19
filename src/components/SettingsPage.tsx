@@ -475,6 +475,100 @@ const SettingsPage: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {/* Currency Settings */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Preferred Currency
+            </label>
+            
+            {!isEditingCurrency ? (
+              // Display Mode
+              <div className="space-y-3">
+                <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Euro className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-800 dark:text-white font-medium">
+                        {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="secondary"
+                    onClick={handleStartEditingCurrency}
+                    className="flex-1"
+                  >
+                    <Edit3 size={16} />
+                    Modify
+                  </Button>
+                </div>
+                
+                {currencySaveSuccess && (
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                      <Check size={16} />
+                      Currency saved successfully!
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Edit Mode
+              <div className="space-y-3">
+                <div className="relative">
+                  <select
+                    value={tempCurrency}
+                    onChange={(e) => setTempCurrency(e.target.value)}
+                    className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                    disabled={isSavingCurrency}
+                    autoFocus
+                  >
+                    {SUPPORTED_CURRENCIES.map((currency) => (
+                      <option key={currency.code} value={currency.code}>
+                        {currency.name} ({currency.symbol})
+                      </option>
+                    ))}
+                  </select>
+                  {isSavingCurrency && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="primary"
+                    onClick={handleSaveCurrency}
+                    disabled={isSavingCurrency}
+                    className="flex-1"
+                  >
+                    <Save size={16} />
+                    {isSavingCurrency ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    type="secondary"
+                    onClick={handleCancelEditingCurrency}
+                    disabled={isSavingCurrency}
+                    className="flex-1"
+                  >
+                    <X size={16} />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                💡 This currency will be used throughout the application
+              </p>
+            </div>
+          </div>
         </Card>
 
         <Card>
