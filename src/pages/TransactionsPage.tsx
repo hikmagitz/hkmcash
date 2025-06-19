@@ -134,7 +134,7 @@ const TransactionsPage: React.FC = () => {
               
               {/* Filter Panel */}
               {isFilterOpen && (
-                <Card className="absolute right-0 mt-2 w-80 z-20 max-h-96 overflow-y-auto">
+                <Card className="absolute right-0 mt-2 w-80 z-30 max-h-96 overflow-y-auto">
                   <div className="space-y-4">
                     {/* Header */}
                     <div className="flex justify-between items-center">
