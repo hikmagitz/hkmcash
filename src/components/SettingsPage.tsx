@@ -391,7 +391,7 @@ const SettingsPage: React.FC = () => {
           {/* Enterprise Name Section */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Enterprise Name4
+              Enterprise Name
             </label>
             
             {!isEditingEnterprise ? (
