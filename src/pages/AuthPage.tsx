@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -17,22 +17,23 @@ const AuthPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 Form submitted');
+    
     setError('');
     setSuccess('');
     setIsLoading(true);
 
     try {
       if (isForgotPassword) {
+        console.log('🔄 Processing password reset');
         // Handle password reset
-        if (!email) {
-          setError('Please enter your email address');
-          return;
+        if (!email.trim()) {
+          throw new Error('Please enter your email address');
         }
         
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          setError('Please enter a valid email address');
-          return;
+        if (!emailRegex.test(email.trim())) {
+          throw new Error('Please enter a valid email address');
         }
 
         await resetPassword(email);
@@ -44,58 +45,65 @@ const AuthPage: React.FC = () => {
           setSuccess('');
         }, 5000);
       } else {
+        console.log('🔄 Processing authentication');
         // Handle login/signup
-        if (!email || !password) {
-          setError('Please fill in all fields');
-          return;
+        if (!email.trim() || !password.trim()) {
+          throw new Error('Please fill in all fields');
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          setError('Please enter a valid email address');
-          return;
+        if (!emailRegex.test(email.trim())) {
+          throw new Error('Please enter a valid email address');
         }
 
         if (password.length < 6) {
-          setError('Password must be at least 6 characters long');
-          return;
+          throw new Error('Password must be at least 6 characters long');
         }
 
         if (isLogin) {
-          console.log('Attempting login with:', email);
+          console.log('🔐 Attempting login...');
           await signIn(email, password);
           setSuccess('Successfully signed in!');
         } else {
-          console.log('Attempting signup with:', email);
+          console.log('📝 Attempting signup...');
           await signUp(email, password);
           setSuccess('Account created successfully! Please check your email to verify your account before signing in.');
         }
       }
     } catch (err: any) {
-      console.error('Authentication error:', err);
+      console.error('❌ Authentication error:', err);
       
       // Handle specific error messages
-      if (err.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (err.message?.includes('Email not confirmed')) {
-        setError('Please check your email and click the confirmation link before signing in.');
-      } else if (err.message?.includes('User already registered')) {
-        setError('An account with this email already exists. Please sign in instead.');
-      } else if (err.message?.includes('Signup requires a valid password')) {
-        setError('Please enter a valid password (at least 6 characters).');
-      } else if (err.message?.includes('Unable to validate email address')) {
-        setError('Please enter a valid email address.');
-      } else if (err.message?.includes('Password should be at least 6 characters')) {
-        setError('Password must be at least 6 characters long.');
-      } else {
-        setError(err.message || 'An unexpected error occurred. Please try again.');
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      
+      if (err.message) {
+        if (err.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (err.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and click the confirmation link before signing in.';
+        } else if (err.message.includes('User already registered')) {
+          errorMessage = 'An account with this email already exists. Please sign in instead.';
+        } else if (err.message.includes('Signup requires a valid password')) {
+          errorMessage = 'Please enter a valid password (at least 6 characters).';
+        } else if (err.message.includes('Unable to validate email address')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (err.message.includes('Password should be at least 6 characters')) {
+          errorMessage = 'Password must be at least 6 characters long.';
+        } else if (err.message.includes('Email and password are required')) {
+          errorMessage = 'Please fill in all fields.';
+        } else {
+          errorMessage = err.message;
+        }
       }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleModeSwitch = (newMode: 'login' | 'signup' | 'forgot') => {
+    console.log('🔄 Switching mode to:', newMode);
     setError('');
     setSuccess('');
     
@@ -117,6 +125,13 @@ const AuthPage: React.FC = () => {
     return isLogin ? 'Sign in to your account' : 'Join HKM Cash today';
   };
 
+  const isFormValid = () => {
+    if (isForgotPassword) {
+      return email.trim().length > 0;
+    }
+    return email.trim().length > 0 && password.trim().length > 0;
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900 dark:to-purple-900 px-4">
       <Card className="w-full max-w-md">
@@ -133,7 +148,7 @@ const AuthPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-slide-up">
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
               <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
@@ -142,7 +157,7 @@ const AuthPage: React.FC = () => {
         )}
 
         {success && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg animate-slide-up">
             <div className="flex items-start">
               <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
               <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
@@ -150,7 +165,7 @@ const AuthPage: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Email Address
@@ -165,6 +180,8 @@ const AuthPage: React.FC = () => {
                 required
                 disabled={isLoading}
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
               />
               <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             </div>
@@ -186,12 +203,15 @@ const AuthPage: React.FC = () => {
                   disabled={isLoading}
                   minLength={6}
                   autoComplete={isLogin ? "current-password" : "new-password"}
+                  autoCapitalize="none"
+                  autoCorrect="off"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   disabled={isLoading}
+                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -202,12 +222,15 @@ const AuthPage: React.FC = () => {
           <Button 
             type="primary" 
             className="w-full"
-            disabled={isLoading || !email || (!isForgotPassword && !password)}
+            disabled={isLoading || !isFormValid()}
             loading={isLoading}
           >
             {isLoading ? (
-              isForgotPassword ? 'Sending Reset Email...' : 
-              isLogin ? 'Signing In...' : 'Creating Account...'
+              <div className="flex items-center justify-center">
+                <Loader className="w-5 h-5 animate-spin mr-2" />
+                {isForgotPassword ? 'Sending Reset Email...' : 
+                 isLogin ? 'Signing In...' : 'Creating Account...'}
+              </div>
             ) : (
               isForgotPassword ? 'Send Reset Email' :
               isLogin ? 'Sign In' : 'Sign Up'
@@ -264,11 +287,13 @@ const AuthPage: React.FC = () => {
         {/* Debug Information (only in development) */}
         {import.meta.env.DEV && (
           <div className="mt-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Debug Info:</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">🔧 Debug Info:</p>
             <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
               <div>Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing'}</div>
               <div>Supabase Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'}</div>
-              <div>Mode: {isLogin ? 'Login' : 'Signup'}</div>
+              <div>Mode: {isForgotPassword ? 'Reset Password' : isLogin ? 'Login' : 'Signup'}</div>
+              <div>Form Valid: {isFormValid() ? '✅' : '❌'}</div>
+              <div>Loading: {isLoading ? '⏳' : '✅'}</div>
             </div>
           </div>
         )}
