@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro, Settings, Palette, Database } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -375,498 +375,571 @@ const SettingsPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-        {intl.formatMessage({ id: 'nav.settings' })}
-      </h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Company Settings Card */}
-        <Card>
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
-            <Building2 className="w-5 h-5" />
-            Company Settings
-          </h2>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-teal-100 dark:bg-teal-900 rounded-lg">
+            <Settings className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+            {intl.formatMessage({ id: 'nav.settings' })}
+          </h1>
+        </div>
+        <p className="text-gray-600 dark:text-gray-400">
+          Gérez vos préférences, catégories et données d'entreprise
+        </p>
+      </div>
+
+      {/* Settings Sections */}
+      <div className="space-y-8">
+        
+        {/* General Settings Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+              Paramètres Généraux
+            </h2>
+          </div>
           
-          {/* Enterprise Name Section */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Enterprise Name
-            </label>
-            
-            {!isEditingEnterprise ? (
-              // Display Mode
-              <div className="space-y-3">
-                <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-gray-500" />
-                      <span className="text-gray-800 dark:text-white font-medium">
-                        {enterpriseName || 'No company name set'}
-                      </span>
-                    </div>
-                    <Button
-                      type="secondary"
-                      onClick={handleStartEditingEnterprise}
-                      className="!p-2"
-                    >
-                      <Edit3 size={16} />
-                      Modifier
-                    </Button>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Company Settings */}
+            <Card className="h-fit">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                
-                {saveSuccess && (
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                      <Check size={16} />
-                      Company name saved successfully!
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    Nom de l'Entreprise
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Apparaîtra sur vos reçus PDF et exports Excel
+                  </p>
+                </div>
               </div>
-            ) : (
-              // Edit Mode
-              <div className="space-y-3">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={tempEnterpriseName}
-                    onChange={(e) => setTempEnterpriseName(e.target.value)}
-                    placeholder="Enter enterprise name"
-                    className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                    disabled={isSavingEnterprise}
-                    autoFocus
-                  />
-                  {isSavingEnterprise && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+              
+              {!isEditingEnterprise ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-l-4 border-blue-500">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-800 dark:text-white font-medium">
+                        {enterpriseName || 'Aucun nom défini'}
+                      </span>
+                      <Button
+                        type="secondary"
+                        onClick={handleStartEditingEnterprise}
+                        className="!px-3 !py-1.5"
+                      >
+                        <Edit3 size={14} />
+                        Modifier
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {saveSuccess && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                        <Check size={16} />
+                        Nom d'entreprise sauvegardé avec succès !
+                      </p>
                     </div>
                   )}
                 </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    type="primary"
-                    onClick={handleSaveEnterpriseName}
-                    disabled={isSavingEnterprise || !tempEnterpriseName.trim()}
-                    className="flex-1"
-                  >
-                    <Save size={16} />
-                    {isSavingEnterprise ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    type="secondary"
-                    onClick={handleCancelEditingEnterprise}
-                    disabled={isSavingEnterprise}
-                    className="flex-1"
-                  >
-                    <X size={16} />
-                    Cancel
-                  </Button>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={tempEnterpriseName}
+                      onChange={(e) => setTempEnterpriseName(e.target.value)}
+                      placeholder="Entrez le nom de l'entreprise"
+                      className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                      disabled={isSavingEnterprise}
+                      autoFocus
+                    />
+                    {isSavingEnterprise && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <Button
+                      type="primary"
+                      onClick={handleSaveEnterpriseName}
+                      disabled={isSavingEnterprise || !tempEnterpriseName.trim()}
+                      className="flex-1"
+                    >
+                      <Save size={16} />
+                      {isSavingEnterprise ? 'Sauvegarde...' : 'Sauvegarder'}
+                    </Button>
+                    <Button
+                      type="secondary"
+                      onClick={handleCancelEditingEnterprise}
+                      disabled={isSavingEnterprise}
+                      className="flex-1"
+                    >
+                      <X size={16} />
+                      Annuler
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* Currency Settings */}
+            <Card className="h-fit">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <Euro className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    Devise Préférée
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Utilisée dans toute l'application
+                  </p>
                 </div>
               </div>
-            )}
-            
-            <div className="mt-4 space-y-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                💡 This name will appear on your PDF receipts and Excel exports
-              </p>
-            </div>
-          </div>
-
-          {/* Currency Settings Section */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Preferred Currency
-            </label>
-            
-            {!isEditingCurrency ? (
-              // Display Mode
-              <div className="space-y-3">
-                <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Euro className="w-5 h-5 text-gray-500" />
+              
+              {!isEditingCurrency ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-l-4 border-green-500">
+                    <div className="flex items-center justify-between">
                       <span className="text-gray-800 dark:text-white font-medium">
                         {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
                       </span>
+                      <Button
+                        type="secondary"
+                        onClick={handleStartEditingCurrency}
+                        className="!px-3 !py-1.5"
+                      >
+                        <Edit3 size={14} />
+                        Modifier
+                      </Button>
                     </div>
+                  </div>
+                  
+                  {currencySaveSuccess && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                        <Check size={16} />
+                        Devise sauvegardée avec succès !
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <select
+                      value={tempCurrency}
+                      onChange={(e) => setTempCurrency(e.target.value)}
+                      className="w-full px-4 py-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                      disabled={isSavingCurrency}
+                      autoFocus
+                    >
+                      {SUPPORTED_CURRENCIES.map((currency) => (
+                        <option key={currency.code} value={currency.code}>
+                          {currency.name} ({currency.symbol})
+                        </option>
+                      ))}
+                    </select>
+                    {isSavingCurrency && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <Button
+                      type="primary"
+                      onClick={handleSaveCurrency}
+                      disabled={isSavingCurrency}
+                      className="flex-1"
+                    >
+                      <Save size={16} />
+                      {isSavingCurrency ? 'Sauvegarde...' : 'Sauvegarder'}
+                    </Button>
                     <Button
                       type="secondary"
-                      onClick={handleStartEditingCurrency}
-                      className="!p-2"
+                      onClick={handleCancelEditingCurrency}
+                      disabled={isSavingCurrency}
+                      className="flex-1"
                     >
-                      <Edit3 size={16} />
-                      Modifier
+                      <X size={16} />
+                      Annuler
                     </Button>
                   </div>
                 </div>
+              )}
+            </Card>
+          </div>
+        </section>
+
+        {/* Data Management Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <Palette className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+              Gestion des Données
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Categories Management */}
+            <Card>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                  <Palette className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    Catégories
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Organisez vos transactions par catégories
+                  </p>
+                </div>
+              </div>
+              
+              {/* Add Category Form */}
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Ajouter une nouvelle catégorie
+                </h4>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Nom de la catégorie"
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white text-sm"
+                  />
+                  
+                  <div className="flex gap-2">
+                    <select
+                      value={newCategory.type}
+                      onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
+                      className="flex-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white text-sm"
+                    >
+                      <option value="expense">Dépense</option>
+                      <option value="income">Revenu</option>
+                    </select>
+                    
+                    <div className="relative">
+                      <button 
+                        className="w-10 h-10 rounded-md border-2 border-gray-300 dark:border-gray-500 focus:outline-none hover:scale-105 transition-transform"
+                        style={{ backgroundColor: newCategory.color }}
+                        onClick={() => setShowColorPicker(!showColorPicker)}
+                      ></button>
+                      
+                      {showColorPicker && (
+                        <div className="absolute right-0 mt-2 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700 w-56">
+                          <div className="grid grid-cols-5 gap-3">
+                            {colorOptions.map((color) => (
+                              <button
+                                key={color}
+                                className="w-10 h-10 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform shadow-sm"
+                                style={{ backgroundColor: color }}
+                                onClick={() => {
+                                  setNewCategory({ ...newCategory, color });
+                                  setShowColorPicker(false);
+                                }}
+                              ></button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Button 
+                      type="primary" 
+                      onClick={handleAddCategory}
+                      disabled={!newCategory.name.trim()}
+                      className="!px-3 !py-2"
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Categories List */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    Revenus ({categories.filter(c => c.type === 'income').length})
+                  </h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {categories
+                      .filter((category) => category.type === 'income')
+                      .map((category) => (
+                        <div 
+                          key={category.id} 
+                          className="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-500"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="text-sm text-gray-800 dark:text-gray-200">
+                              {category.name}
+                            </span>
+                          </div>
+                          <Button 
+                            type="danger" 
+                            className="!p-1.5"
+                            onClick={() => deleteCategory(category.id)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
                 
-                {currencySaveSuccess && (
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                      <Check size={16} />
-                      Currency saved successfully!
-                    </p>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    Dépenses ({categories.filter(c => c.type === 'expense').length})
+                  </h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {categories
+                      .filter((category) => category.type === 'expense')
+                      .map((category) => (
+                        <div 
+                          key={category.id} 
+                          className="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-500"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="text-sm text-gray-800 dark:text-gray-200">
+                              {category.name}
+                            </span>
+                          </div>
+                          <Button 
+                            type="danger" 
+                            className="!p-1.5"
+                            onClick={() => deleteCategory(category.id)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Clients Management */}
+            <Card>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                  <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    Clients
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Gérez votre liste de clients
+                  </p>
+                </div>
+              </div>
+              
+              {/* Add Client Form */}
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Ajouter un nouveau client
+                </h4>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nom du client"
+                    value={newClient}
+                    onChange={(e) => setNewClient(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
+                    className="flex-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white text-sm"
+                  />
+                  <Button 
+                    type="primary" 
+                    onClick={handleAddClient}
+                    disabled={!newClient.trim()}
+                    className="!px-3 !py-2"
+                  >
+                    <Plus size={16} />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Clients List */}
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {clients.map((client) => (
+                  <div 
+                    key={client.id} 
+                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 bg-orange-100 dark:bg-orange-900 rounded-full">
+                        <Users className="w-3 h-3 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <span className="text-sm text-gray-800 dark:text-gray-200">
+                        {client.name}
+                      </span>
+                    </div>
+                    <Button 
+                      type="danger" 
+                      className="!p-1.5"
+                      onClick={() => deleteClient(client.id)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
+                {clients.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Aucun client ajouté</p>
+                    <p className="text-xs">Ajoutez des clients pour les sélectionner rapidement</p>
                   </div>
                 )}
               </div>
-            ) : (
-              // Edit Mode
-              <div className="space-y-3">
-                <div className="relative">
-                  <select
-                    value={tempCurrency}
-                    onChange={(e) => setTempCurrency(e.target.value)}
-                    className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                    disabled={isSavingCurrency}
-                    autoFocus
-                  >
-                    {SUPPORTED_CURRENCIES.map((currency) => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.name} ({currency.symbol})
-                      </option>
-                    ))}
-                  </select>
-                  {isSavingCurrency && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    type="primary"
-                    onClick={handleSaveCurrency}
-                    disabled={isSavingCurrency}
-                    className="flex-1"
-                  >
-                    <Save size={16} />
-                    {isSavingCurrency ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    type="secondary"
-                    onClick={handleCancelEditingCurrency}
-                    disabled={isSavingCurrency}
-                    className="flex-1"
-                  >
-                    <X size={16} />
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            <div className="mt-4 space-y-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                💡 This currency will be used throughout the application
-              </p>
-            </div>
+            </Card>
           </div>
-        </Card>
+        </section>
 
-        {/* Client Management Card */}
-        <Card>
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Client Management
-          </h2>
+        {/* Data Export/Import Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <Database className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+              Sauvegarde et Données
+            </h2>
+          </div>
           
-          <div className="mb-6">
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                placeholder="Enter client name"
-                value={newClient}
-                onChange={(e) => setNewClient(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
-                className="flex-grow px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
-              />
+          <Card>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
+                <Database className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                  Gestion des Données
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Exportez, importez ou supprimez vos données
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Button 
                 type="primary" 
-                onClick={handleAddClient}
-                disabled={!newClient.trim()}
-              >
-                <Plus size={18} />
-                Add
-              </Button>
-            </div>
-            
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {clients.map((client) => (
-                <div 
-                  key={client.id} 
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <div className="flex items-center flex-1 min-w-0">
-                    <Users className="w-4 h-4 text-gray-500 flex-shrink-0 mr-3" />
-                    <span className="text-gray-800 dark:text-gray-200 truncate">
-                      {client.name}
-                    </span>
-                  </div>
-                  <Button 
-                    type="danger" 
-                    className="ml-2 !p-2 flex-shrink-0"
-                    onClick={() => deleteClient(client.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              ))}
-              {clients.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>No clients added yet</p>
-                  <p className="text-sm">Add clients to quickly select them when creating transactions</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
-
-        {/* Categories Card */}
-        <Card>
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-            {intl.formatMessage({ id: 'settings.categories' })}
-          </h2>
-          
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'settings.addCategory' })}
-            </h3>
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-grow">
-                <input
-                  type="text"
-                  placeholder={intl.formatMessage({ id: 'settings.categoryName' })}
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <select
-                  value={newCategory.type}
-                  onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
-                  className="px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
-                >
-                  <option value="expense">
-                    {intl.formatMessage({ id: 'transaction.expense' })}
-                  </option>
-                  <option value="income">
-                    {intl.formatMessage({ id: 'transaction.income' })}
-                  </option>
-                </select>
-                
-                <div className="relative">
-                  <button 
-                    className="w-[44px] h-[44px] rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none"
-                    style={{ backgroundColor: newCategory.color }}
-                    onClick={() => setShowColorPicker(!showColorPicker)}
-                  ></button>
-                  
-                  {showColorPicker && (
-                    <div className="absolute right-0 mt-2 p-4 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700 w-48">
-                      <div className="grid grid-cols-5 gap-3">
-                        {colorOptions.map((color) => (
-                          <button
-                            key={color}
-                            className="w-10 h-10 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
-                            style={{ backgroundColor: color }}
-                            onClick={() => {
-                              setNewCategory({ ...newCategory, color });
-                              setShowColorPicker(false);
-                            }}
-                          ></button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <Button 
-                  type="primary" 
-                  onClick={handleAddCategory}
-                  className="w-full sm:w-auto"
-                >
-                  <Plus size={18} />
-                  {intl.formatMessage({ id: 'action.add' })}
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">
-                {intl.formatMessage({ id: 'transaction.income' })}
-              </h3>
-              <div className="space-y-2">
-                {categories
-                  .filter((category) => category.type === 'income')
-                  .map((category) => (
-                    <div 
-                      key={category.id} 
-                      className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                    >
-                      <div className="flex items-center flex-1 min-w-0">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-3 flex-shrink-0"
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <span className="text-gray-800 dark:text-gray-200 truncate">
-                          {category.name}
-                        </span>
-                      </div>
-                      <Button 
-                        type="danger" 
-                        className="ml-2 !p-2 flex-shrink-0"
-                        onClick={() => deleteCategory(category.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  ))}
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">
-                {intl.formatMessage({ id: 'transaction.expense' })}
-              </h3>
-              <div className="space-y-2">
-                {categories
-                  .filter((category) => category.type === 'expense')
-                  .map((category) => (
-                    <div 
-                      key={category.id} 
-                      className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md"
-                    >
-                      <div className="flex items-center flex-1 min-w-0">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-3 flex-shrink-0"
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <span className="text-gray-800 dark:text-gray-200 truncate">
-                          {category.name}
-                        </span>
-                      </div>
-                      <Button 
-                        type="danger" 
-                        className="ml-2 !p-2 flex-shrink-0"
-                        onClick={() => deleteCategory(category.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </Card>
-        
-        {/* Data Management Card */}
-        <Card>
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-            {intl.formatMessage({ id: 'settings.dataManagement' })}
-          </h2>
-          
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {intl.formatMessage({ id: 'settings.exportData' })}
-          </p>
-          
-          <div className="space-y-4">
-            <Button 
-              type="primary" 
-              className="w-full"
-              onClick={handleExportData}
-            >
-              {isPremium ? (
-                <>
-                  <Download size={18} />
-                  {intl.formatMessage({ id: 'settings.exportData' })} (JSON)
-                </>
-              ) : (
-                <>
-                  <Crown size={18} />
-                  {intl.formatMessage({ id: 'premium.upgrade' })}
-                </>
-              )}
-            </Button>
-
-            <Button 
-              type="primary" 
-              className="w-full"
-              onClick={handleExportExcel}
-            >
-              {isPremium ? (
-                <>
-                  <FileSpreadsheet size={18} />
-                  {intl.formatMessage({ id: 'settings.exportData' })} (Excel)
-                </>
-              ) : (
-                <>
-                  <Crown size={18} />
-                  {intl.formatMessage({ id: 'premium.upgrade' })}
-                </>
-              )}
-            </Button>
-            
-            <label className="block">
-              <Button 
-                type="secondary" 
-                className="w-full"
-                onClick={() => {
-                  if (!isPremium) {
-                    if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-                      redirectToCheckout('premium_access');
-                    }
-                    return;
-                  }
-                  document.getElementById('file-input')?.click();
-                }}
+                className="w-full justify-center"
+                onClick={handleExportData}
               >
                 {isPremium ? (
                   <>
-                    <Upload size={18} />
-                    {intl.formatMessage({ id: 'settings.importData' })}
+                    <Download size={18} />
+                    Export JSON
                   </>
                 ) : (
                   <>
                     <Crown size={18} />
-                    {intl.formatMessage({ id: 'premium.upgrade' })}
+                    Premium requis
                   </>
                 )}
               </Button>
-              <input 
-                id="file-input"
-                type="file" 
-                accept=".json" 
-                className="hidden" 
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    handleImportData(file);
-                  }
-                }}
-              />
-            </label>
 
-            <hr className="border-gray-200 dark:border-gray-700" />
+              <Button 
+                type="primary" 
+                className="w-full justify-center"
+                onClick={handleExportExcel}
+              >
+                {isPremium ? (
+                  <>
+                    <FileSpreadsheet size={18} />
+                    Export Excel
+                  </>
+                ) : (
+                  <>
+                    <Crown size={18} />
+                    Premium requis
+                  </>
+                )}
+              </Button>
+              
+              <label className="block">
+                <Button 
+                  type="secondary" 
+                  className="w-full justify-center"
+                  onClick={() => {
+                    if (!isPremium) {
+                      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+                        redirectToCheckout('premium_access');
+                      }
+                      return;
+                    }
+                    document.getElementById('file-input')?.click();
+                  }}
+                >
+                  {isPremium ? (
+                    <>
+                      <Upload size={18} />
+                      Importer
+                    </>
+                  ) : (
+                    <>
+                      <Crown size={18} />
+                      Premium requis
+                    </>
+                  )}
+                </Button>
+                <input 
+                  id="file-input"
+                  type="file" 
+                  accept=".json" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleImportData(file);
+                    }
+                  }}
+                />
+              </label>
 
-            <Button 
-              type="danger" 
-              className="w-full"
-              onClick={handleClearData}
-            >
-              <AlertTriangle size={18} />
-              {intl.formatMessage({ id: 'settings.clearData' })}
-            </Button>
-          </div>
-        </Card>
+              <Button 
+                type="danger" 
+                className="w-full justify-center"
+                onClick={handleClearData}
+              >
+                <AlertTriangle size={18} />
+                Tout supprimer
+              </Button>
+            </div>
+            
+            {!isPremium && (
+              <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 flex items-center gap-2">
+                  <Crown size={16} />
+                  Les fonctions d'export et d'import nécessitent un abonnement Premium
+                </p>
+              </div>
+            )}
+          </Card>
+        </section>
       </div>
     </div>
   );
