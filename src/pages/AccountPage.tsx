@@ -18,24 +18,19 @@ import {
   CreditCard,
   Key,
   Save,
-  RefreshCw
+  RefreshCw,
+  CheckCircle
 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import { useAuth } from '../context/AuthContext';
-import { createClient } from '@supabase/supabase-js';
 import { STRIPE_PRODUCTS } from '../stripe-config';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const AccountPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, signOut, isPremium } = useAuth();
+  const { user, signOut, updatePassword, resetPassword, isPremium } = useAuth();
   const intl = useIntl();
   
   // Loading states
@@ -130,11 +125,7 @@ const AccountPage: React.FC = () => {
     
     setLoading('changePassword', true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
-      });
-      
-      if (error) throw error;
+      await updatePassword(passwordData.newPassword);
       
       setPasswordSuccess(true);
       setPasswordData({
@@ -143,11 +134,15 @@ const AccountPage: React.FC = () => {
         confirmPassword: '',
       });
       
+      // Auto-hide success message after 5 seconds
       setTimeout(() => {
         setPasswordSuccess(false);
       }, 5000);
     } catch (error: any) {
-      setPasswordErrors({ general: error.message || 'Failed to change password' });
+      console.error('Password change error:', error);
+      setPasswordErrors({ 
+        general: error.message || 'Failed to change password. Please check your current password and try again.' 
+      });
     } finally {
       setLoading('changePassword', false);
     }
@@ -163,40 +158,54 @@ const AccountPage: React.FC = () => {
       setResetError('Email is required');
       return;
     }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail)) {
+      setResetError('Please enter a valid email address');
+      return;
+    }
     
     setLoading('resetPassword', true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      
-      if (error) throw error;
+      await resetPassword(resetEmail);
       
       setResetSuccess(true);
+      // Auto-hide success message after 10 seconds
       setTimeout(() => {
         setResetSuccess(false);
       }, 10000);
     } catch (error: any) {
-      setResetError(error.message || 'Failed to send reset email');
+      console.error('Password reset error:', error);
+      setResetError(error.message || 'Failed to send reset email. Please try again.');
     } finally {
       setLoading('resetPassword', false);
     }
   };
 
-  // Handle logout
+  // Handle logout with confirmation
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      setLoading('logout', true);
-      try {
-        await signOut();
-        navigate('/');
-      } catch (error) {
-        console.error('Error logging out:', error);
-        alert('Failed to log out. Please try again.');
-      } finally {
-        setLoading('logout', false);
-      }
+    const confirmed = window.confirm(
+      'Are you sure you want to log out? You will need to sign in again to access your account.'
+    );
+    
+    if (!confirmed) return;
+    
+    setLoading('logout', true);
+    try {
+      await signOut();
+      // Navigation will be handled automatically by AuthContext
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      alert('Failed to log out. Please try again.');
+    } finally {
+      setLoading('logout', false);
     }
+  };
+
+  // Handle premium upgrade
+  const handleUpgradeClick = () => {
+    navigate('/premium');
   };
 
   const formatDate = (dateString: string) => {
@@ -370,7 +379,7 @@ const AccountPage: React.FC = () => {
 
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 {passwordErrors.general && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-slide-up">
                     <p className="text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
                       <AlertTriangle size={16} />
                       {passwordErrors.general}
@@ -381,7 +390,7 @@ const AccountPage: React.FC = () => {
                 {passwordSuccess && (
                   <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg animate-slide-up">
                     <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                      <Check size={16} />
+                      <CheckCircle size={16} />
                       Mot de passe changé avec succès !
                     </p>
                   </div>
@@ -400,11 +409,13 @@ const AccountPage: React.FC = () => {
                         passwordErrors.currentPassword ? 'border-red-300' : 'border-green-300'
                       }`}
                       placeholder="Entrez votre mot de passe actuel"
+                      disabled={isLoading.changePassword}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      disabled={isLoading.changePassword}
                     >
                       {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -427,11 +438,13 @@ const AccountPage: React.FC = () => {
                         passwordErrors.newPassword ? 'border-red-300' : 'border-green-300'
                       }`}
                       placeholder="Entrez votre nouveau mot de passe"
+                      disabled={isLoading.changePassword}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      disabled={isLoading.changePassword}
                     >
                       {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -479,11 +492,13 @@ const AccountPage: React.FC = () => {
                         passwordErrors.confirmPassword ? 'border-red-300' : 'border-green-300'
                       }`}
                       placeholder="Confirmez votre nouveau mot de passe"
+                      disabled={isLoading.changePassword}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      disabled={isLoading.changePassword}
                     >
                       {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -500,7 +515,7 @@ const AccountPage: React.FC = () => {
                   disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
                 >
                   <Save size={18} />
-                  Changer le Mot de Passe
+                  {isLoading.changePassword ? 'Changement en cours...' : 'Changer le Mot de Passe'}
                 </Button>
               </form>
             </div>
@@ -527,7 +542,7 @@ const AccountPage: React.FC = () => {
 
               <form onSubmit={handlePasswordReset} className="space-y-4">
                 {resetError && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-slide-up">
                     <p className="text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
                       <AlertTriangle size={16} />
                       {resetError}
@@ -538,7 +553,7 @@ const AccountPage: React.FC = () => {
                 {resetSuccess && (
                   <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg animate-slide-up">
                     <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-                      <Check size={16} />
+                      <CheckCircle size={16} />
                       Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.
                     </p>
                   </div>
@@ -554,6 +569,7 @@ const AccountPage: React.FC = () => {
                     onChange={(e) => setResetEmail(e.target.value)}
                     className="w-full px-4 py-3 border-2 border-orange-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
                     placeholder="Entrez votre adresse email"
+                    disabled={isLoading.resetPassword}
                   />
                 </div>
 
@@ -564,7 +580,7 @@ const AccountPage: React.FC = () => {
                   disabled={!resetEmail}
                 >
                   <Mail size={18} />
-                  Envoyer l'Email de Réinitialisation
+                  {isLoading.resetPassword ? 'Envoi en cours...' : "Envoyer l'Email de Réinitialisation"}
                 </Button>
               </form>
 
@@ -648,7 +664,7 @@ const AccountPage: React.FC = () => {
                     
                     <Button
                       type="primary"
-                      onClick={() => navigate('/premium')}
+                      onClick={handleUpgradeClick}
                       className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 hover:scale-105 transition-all"
                     >
                       <Crown size={18} />
