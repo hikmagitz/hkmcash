@@ -81,7 +81,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md py-4 px-4 md:px-6 shadow-lg border-b border-white/20 dark:border-gray-700/50 sticky top-0 z-10 transition-all">
+    <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md py-4 px-4 md:px-6 shadow-lg border-b border-white/20 dark:border-gray-700/50 sticky top-0 z-[100] transition-all">
       <div className="max-w-6xl mx-auto">
         {/* Mobile Layout */}
         <div className="md:hidden">
@@ -153,7 +153,7 @@ const Header: React.FC = () => {
               </button>
               
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-[110]">
                   <div className="py-1">
                     <div className="px-4 py-2 border-b border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
@@ -245,7 +245,7 @@ const Header: React.FC = () => {
               </button>
               
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
+                <div className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-[110]">
                   <div className="py-1">
                     <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
