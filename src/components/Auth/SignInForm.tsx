@@ -46,10 +46,12 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
         throw new Error('Password is required');
       }
 
+      console.log('🔐 Starting sign in process...');
       await signIn(formData.email, formData.password);
       setSuccess('Welcome back! Redirecting to your dashboard...');
       
     } catch (err: any) {
+      console.error('❌ Sign in error:', err);
       setError(err.message || 'Sign in failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -62,6 +64,15 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
   };
 
   const isFormValid = formData.email.trim() && formData.password.trim() && validateEmail(formData.email);
+
+  // Test credentials for development
+  const fillTestCredentials = () => {
+    setFormData(prev => ({
+      ...prev,
+      email: 'test@example.com',
+      password: 'password123'
+    }));
+  };
 
   return (
     <div className="space-y-6">
@@ -271,6 +282,33 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
           </button>
         </p>
       </motion.div>
+
+      {/* Development Helper */}
+      {import.meta.env.DEV && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800"
+        >
+          <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-semibold">🧪 Development Mode:</p>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={fillTestCredentials}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline block"
+              disabled={isLoading}
+            >
+              📝 Fill test credentials
+            </button>
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              <p>Environment status:</p>
+              <p>• Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? '✅' : '❌'}</p>
+              <p>• Supabase Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅' : '❌'}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };

@@ -36,6 +36,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSwitchMode })
         throw new Error('Please enter a valid email address');
       }
 
+      console.log('📧 Starting password reset process...');
       await resetPassword(email);
       setSuccess('Password reset email sent! Check your inbox and follow the instructions to reset your password.');
       
@@ -45,6 +46,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSwitchMode })
       }, 5000);
       
     } catch (err: any) {
+      console.error('❌ Password reset error:', err);
       setError(err.message || 'Failed to send reset email. Please try again.');
     } finally {
       setIsLoading(false);

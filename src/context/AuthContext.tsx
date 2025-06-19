@@ -33,9 +33,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
 
+  // Debug function to check environment variables
+  const checkEnvironment = () => {
+    console.log('🔍 Environment Check:');
+    console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing');
+    console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
+    
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      console.error('❌ Missing Supabase environment variables!');
+      console.log('Please check your .env file contains:');
+      console.log('VITE_SUPABASE_URL=your_supabase_url');
+      console.log('VITE_SUPABASE_ANON_KEY=your_supabase_anon_key');
+    }
+  };
+
   // Initialize auth state
   useEffect(() => {
     let mounted = true;
+    
+    // Check environment variables first
+    checkEnvironment();
 
     const initializeAuth = async () => {
       try {
@@ -46,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (error) {
           console.error('❌ Session error:', error.message);
+          console.error('Full error:', error);
         } else if (session?.user && mounted) {
           console.log('✅ Found existing session for:', session.user.email);
           setUser(session.user);
@@ -68,6 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!mounted) return;
 
       console.log('🔄 Auth state change:', event);
+      console.log('Session:', session ? 'Present' : 'None');
       
       switch (event) {
         case 'SIGNED_IN':
@@ -205,6 +224,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('❌ Sign in error:', error);
         throw new Error(handleAuthError(error));
       }
 
@@ -249,6 +269,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('❌ Sign up error:', error);
         throw new Error(handleAuthError(error));
       }
 
@@ -284,6 +305,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('❌ Google sign in error:', error);
         throw new Error(handleAuthError(error));
       }
 
