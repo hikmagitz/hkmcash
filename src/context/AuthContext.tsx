@@ -36,16 +36,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        console.log('🔍 Getting initial session...');
+        console.log('🔍 Checking for existing session...');
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
-          console.error('❌ Error getting session:', error);
+          console.error('❌ Session error:', error);
+        } else if (session?.user) {
+          console.log('✅ Found existing session for:', session.user.email);
+          setUser(session.user);
         } else {
-          console.log('✅ Initial session:', session?.user?.email || 'No user');
-          setUser(session?.user ?? null);
+          console.log('ℹ️ No existing session found');
         }
       } catch (error) {
-        console.error('❌ Error in getInitialSession:', error);
+        console.error('❌ Error checking session:', error);
       } finally {
         setLoading(false);
       }
@@ -53,10 +56,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     getInitialSession();
 
-    // Listen for auth changes
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
-      setUser(session?.user ?? null);
+      console.log('🔄 Auth event:', event);
+      
+      if (session?.user) {
+        console.log('✅ User authenticated:', session.user.email);
+        setUser(session.user);
+      } else {
+        console.log('ℹ️ User signed out');
+        setUser(null);
+      }
+      
       setLoading(false);
     });
 
@@ -71,9 +82,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-        console.log('💎 Checking premium status for user:', user.id);
+        console.log('💎 Checking premium status...');
         
-        // First, try to create the profile if it doesn't exist
+        // Create profile if it doesn't exist
         const { error: upsertError } = await supabase
           .from('profiles')
           .upsert(
@@ -82,10 +93,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           );
 
         if (upsertError) {
-          console.error('❌ Error upserting profile:', upsertError);
+          console.error('❌ Profile upsert error:', upsertError);
         }
 
-        // Now fetch the profile
+        // Fetch premium status
         const { data: profile, error: fetchError } = await supabase
           .from('profiles')
           .select('is_premium')
@@ -93,15 +104,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single();
 
         if (fetchError) {
-          console.error('❌ Error fetching profile:', fetchError);
+          console.error('❌ Profile fetch error:', fetchError);
           setIsPremium(false);
-          return;
+        } else {
+          const premiumStatus = profile?.is_premium ?? false;
+          console.log('✅ Premium status:', premiumStatus);
+          setIsPremium(premiumStatus);
         }
-
-        console.log('✅ Premium status:', profile?.is_premium);
-        setIsPremium(profile?.is_premium ?? false);
       } catch (error) {
-        console.error('❌ Unexpected error checking premium status:', error);
+        console.error('❌ Premium check error:', error);
         setIsPremium(false);
       }
     };
@@ -110,58 +121,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔐 Attempting to sign in with email:', email);
+    console.log('🔐 Attempting sign in for:', email);
     
-    // Validate inputs
-    if (!email || !password) {
-      throw new Error('Email and password are required');
+    if (!email?.trim() || !password?.trim()) {
+      throw new Error('Please enter both email and password');
     }
 
     const cleanEmail = email.trim().toLowerCase();
     
     try {
-      console.log('📡 Making sign in request to Supabase...');
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email: cleanEmail, 
+      setLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
         password: password.trim()
       });
-      
+
       if (error) {
-        console.error('❌ Supabase sign in error:', error.message);
+        console.error('❌ Sign in error:', error.message);
         
-        // Handle specific Supabase error messages
+        // Provide user-friendly error messages
         if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password. Please check your credentials and try again.');
+          throw new Error('Invalid email or password. Please check your credentials.');
         } else if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please check your email and click the confirmation link before signing in.');
+          throw new Error('Please verify your email address before signing in.');
         } else if (error.message.includes('Too many requests')) {
-          throw new Error('Too many login attempts. Please wait a moment and try again.');
+          throw new Error('Too many attempts. Please wait a moment and try again.');
         } else {
           throw new Error(error.message);
         }
       }
-      
+
       if (!data.user) {
-        console.error('❌ No user returned from sign in');
-        throw new Error('Authentication failed - please try again');
+        throw new Error('Sign in failed. Please try again.');
       }
+
+      console.log('✅ Sign in successful!');
+      // User state will be updated by the auth state change listener
       
-      console.log('✅ Sign in successful for user:', data.user.email);
-      console.log('✅ User ID:', data.user.id);
-      
-      // The auth state change listener will handle setting the user
     } catch (error: any) {
-      console.error('❌ Sign in failed:', error.message);
+      console.error('❌ Sign in failed:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string) => {
-    console.log('📝 Attempting to sign up with email:', email);
+    console.log('📝 Attempting sign up for:', email);
     
-    // Validate inputs
-    if (!email || !password) {
-      throw new Error('Email and password are required');
+    if (!email?.trim() || !password?.trim()) {
+      throw new Error('Please enter both email and password');
     }
 
     if (password.length < 6) {
@@ -171,62 +181,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const cleanEmail = email.trim().toLowerCase();
     
     try {
-      console.log('📡 Making sign up request to Supabase...');
-      const { data, error } = await supabase.auth.signUp({ 
-        email: cleanEmail, 
+      setLoading(true);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
         password: password.trim(),
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
-      
+
       if (error) {
-        console.error('❌ Supabase sign up error:', error.message);
+        console.error('❌ Sign up error:', error.message);
         
-        // Handle specific Supabase error messages
         if (error.message.includes('User already registered')) {
           throw new Error('An account with this email already exists. Please sign in instead.');
-        } else if (error.message.includes('Password should be at least 6 characters')) {
+        } else if (error.message.includes('Password should be at least')) {
           throw new Error('Password must be at least 6 characters long.');
-        } else if (error.message.includes('Unable to validate email address')) {
-          throw new Error('Please enter a valid email address.');
         } else {
           throw new Error(error.message);
         }
       }
-      
-      console.log('✅ Sign up successful:', data.user?.email);
+
+      console.log('✅ Sign up successful!');
       
       if (data.user && !data.session) {
-        // Email confirmation required
         console.log('📧 Email confirmation required');
       }
+      
     } catch (error: any) {
-      console.error('❌ Sign up failed:', error.message);
+      console.error('❌ Sign up failed:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
-    console.log('🚪 Signing out user');
+    console.log('🚪 Signing out...');
     
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('❌ Sign out error:', error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log('✅ Sign out successful');
+      console.log('✅ Signed out successfully');
     } catch (error: any) {
-      console.error('❌ Sign out failed:', error.message);
+      console.error('❌ Sign out error:', error);
       throw error;
     }
   };
 
   const updatePassword = async (newPassword: string) => {
-    console.log('🔑 Updating password');
-    
     if (!newPassword || newPassword.length < 6) {
       throw new Error('Password must be at least 6 characters long');
     }
@@ -236,23 +241,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password: newPassword
       });
       
-      if (error) {
-        console.error('❌ Update password error:', error);
-        throw error;
-      }
-      
-      console.log('✅ Password updated successfully');
+      if (error) throw error;
+      console.log('✅ Password updated');
     } catch (error: any) {
-      console.error('❌ Update password failed:', error.message);
+      console.error('❌ Password update error:', error);
       throw error;
     }
   };
 
   const resetPassword = async (email: string) => {
-    console.log('📧 Sending password reset email to:', email);
-    
-    if (!email) {
-      throw new Error('Email is required');
+    if (!email?.trim()) {
+      throw new Error('Please enter your email address');
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -262,30 +261,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
       
-      if (error) {
-        console.error('❌ Reset password error:', error);
-        throw error;
-      }
-      
-      console.log('✅ Password reset email sent successfully');
+      if (error) throw error;
+      console.log('✅ Reset email sent');
     } catch (error: any) {
-      console.error('❌ Reset password failed:', error.message);
+      console.error('❌ Reset password error:', error);
       throw error;
     }
   };
-
-  // Debug info
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('🔧 Auth Debug Info:');
-      console.log('- Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing');
-      console.log('- Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
-      console.log('- Current User:', user?.email || 'None');
-      console.log('- User ID:', user?.id || 'None');
-      console.log('- Loading:', loading);
-      console.log('- Premium:', isPremium);
-    }
-  }, [user, loading, isPremium]);
 
   return (
     <AuthContext.Provider value={{

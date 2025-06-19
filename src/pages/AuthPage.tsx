@@ -17,7 +17,6 @@ const AuthPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 Form submitted');
     
     setError('');
     setSuccess('');
@@ -25,19 +24,13 @@ const AuthPage: React.FC = () => {
 
     try {
       if (isForgotPassword) {
-        console.log('🔄 Processing password reset');
         // Handle password reset
         if (!email.trim()) {
           throw new Error('Please enter your email address');
         }
         
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-          throw new Error('Please enter a valid email address');
-        }
-
         await resetPassword(email);
-        setSuccess('Password reset email sent! Check your inbox and follow the instructions.');
+        setSuccess('Password reset email sent! Check your inbox.');
         
         // Auto switch back to login after 5 seconds
         setTimeout(() => {
@@ -45,49 +38,30 @@ const AuthPage: React.FC = () => {
           setSuccess('');
         }, 5000);
       } else {
-        console.log('🔄 Processing authentication');
         // Handle login/signup
         if (!email.trim() || !password.trim()) {
           throw new Error('Please fill in all fields');
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-          throw new Error('Please enter a valid email address');
-        }
-
-        if (password.length < 6) {
-          throw new Error('Password must be at least 6 characters long');
-        }
-
         if (isLogin) {
-          console.log('🔐 Attempting login with database credentials...');
+          console.log('🔐 Attempting login...');
           await signIn(email, password);
-          setSuccess('Successfully signed in! Redirecting...');
+          setSuccess('Welcome back! Redirecting to your dashboard...');
         } else {
           console.log('📝 Attempting signup...');
           await signUp(email, password);
-          setSuccess('Account created successfully! Please check your email to verify your account before signing in.');
+          setSuccess('Account created! Please check your email to verify your account.');
         }
       }
     } catch (err: any) {
-      console.error('❌ Authentication error:', err);
-      
-      // Handle specific error messages
-      let errorMessage = 'An unexpected error occurred. Please try again.';
-      
-      if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
+      console.error('❌ Auth error:', err);
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleModeSwitch = (newMode: 'login' | 'signup' | 'forgot') => {
-    console.log('🔄 Switching mode to:', newMode);
     setError('');
     setSuccess('');
     
@@ -106,7 +80,7 @@ const AuthPage: React.FC = () => {
 
   const getSubtitle = () => {
     if (isForgotPassword) return 'Enter your email to receive reset instructions';
-    return isLogin ? 'Sign in to your account' : 'Join HKM Cash today';
+    return isLogin ? 'Sign in to access your financial dashboard' : 'Join HKM Cash to start tracking your finances';
   };
 
   const isFormValid = () => {
@@ -268,16 +242,27 @@ const AuthPage: React.FC = () => {
           </div>
         </form>
 
-        {/* Debug Information (only in development) */}
+        {/* Quick Test Account (Development Only) */}
         {import.meta.env.DEV && (
-          <div className="mt-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">🔧 Debug Info:</p>
-            <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
-              <div>Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing'}</div>
-              <div>Supabase Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'}</div>
-              <div>Mode: {isForgotPassword ? 'Reset Password' : isLogin ? 'Login' : 'Signup'}</div>
-              <div>Form Valid: {isFormValid() ? '✅' : '❌'}</div>
-              <div>Loading: {isLoading ? '⏳' : '✅'}</div>
+          <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-medium">🧪 Quick Test:</p>
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('test@example.com');
+                  setPassword('password123');
+                  setIsLogin(true);
+                  setIsForgotPassword(false);
+                }}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline block"
+                disabled={isLoading}
+              >
+                Fill test credentials
+              </button>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Or create a new account with any email/password
+              </p>
             </div>
           </div>
         )}
