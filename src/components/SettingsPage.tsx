@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro, DollarSign } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -381,12 +381,14 @@ const SettingsPage: React.FC = () => {
       </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Company Settings Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <Building2 className="w-5 h-5" />
             Company Settings
           </h2>
           
+          {/* Enterprise Name Section */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Enterprise Name
@@ -474,7 +476,7 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Currency Settings */}
+          {/* Currency Settings Section */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Preferred Currency
@@ -567,6 +569,7 @@ const SettingsPage: React.FC = () => {
           </div>
         </Card>
 
+        {/* Client Management Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -625,6 +628,7 @@ const SettingsPage: React.FC = () => {
           </div>
         </Card>
 
+        {/* Categories Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
             {intl.formatMessage({ id: 'settings.categories' })}
@@ -766,6 +770,7 @@ const SettingsPage: React.FC = () => {
           </div>
         </Card>
         
+        {/* Data Management Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
             {intl.formatMessage({ id: 'settings.dataManagement' })}
