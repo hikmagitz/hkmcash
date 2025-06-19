@@ -20,11 +20,16 @@ const AppContent = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900 dark:to-purple-900">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-sky-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg animate-pulse">
-            <span className="text-white font-bold text-xl">H</span>
+          <div className="w-20 h-20 bg-gradient-to-r from-sky-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse">
+            <span className="text-white font-bold text-2xl">H</span>
           </div>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading HKM Cash...</p>
+          <div className="flex items-center justify-center mb-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500 mr-3"></div>
+            <p className="text-gray-600 dark:text-gray-400 font-medium text-lg">Loading HKM Cash...</p>
+          </div>
+          <div className="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mx-auto">
+            <div className="bg-gradient-to-r from-sky-500 to-purple-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+          </div>
         </div>
       </div>
     );
