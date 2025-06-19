@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Edit, Trash2, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
+import { useAuth } from '../context/AuthContext';
+import { useStripe } from '../hooks/useStripe';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { generateTransactionReceipt } from '../utils/pdfGenerator';
 import { Transaction } from '../types';
@@ -15,9 +17,12 @@ interface TransactionListProps {
 
 const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: propTransactions }) => {
   const { transactions: contextTransactions, deleteTransaction, categories } = useTransactions();
+  const { isPremium } = useAuth();
+  const { redirectToCheckout } = useStripe();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<string | null>(null);
   const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Use provided transactions or context transactions
   const transactions = propTransactions || contextTransactions;
@@ -37,8 +42,22 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: 
     }
   };
 
-  const handleDownloadReceipt = (transaction: Transaction) => {
-    const enterpriseName = localStorage.getItem('enterpriseName') || 'HKM Cash';
+  const handleDownloadReceipt = async (transaction: Transaction) => {
+    if (!isPremium) {
+      if (window.confirm('PDF receipts are a premium feature. Would you like to upgrade to premium?')) {
+        setIsLoading(true);
+        try {
+          await redirectToCheckout('premium_access');
+        } catch (error) {
+          console.error('Error redirecting to checkout:', error);
+          alert('Failed to redirect to checkout. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      return;
+    }
+    const enterpriseName = localStorage.getItem('enterpriseName') || '';
     generateTransactionReceipt(transaction, enterpriseName);
   };
 
@@ -119,10 +138,22 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: 
                     <Button 
                       type="secondary"
                       onClick={() => handleDownloadReceipt(transaction)}
+                      disabled={isLoading}
                       className="flex-1 min-w-[120px]"
                     >
-                      <FileText size={16} />
-                      <span className="ml-1">Receipt</span>
+                      {isPremium ? (
+                        <>
+                          <FileText size={16} />
+                          <span className="ml-1">Receipt</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText size={16} />
+                          <span className="ml-1">
+                            {isLoading ? 'Processing...' : 'Premium Receipt'}
+                          </span>
+                        </>
+                      )}
                     </Button>
                     <Button 
                       type="secondary" 

@@ -271,32 +271,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
           </button>
         </p>
       </motion.div>
-
-      {/* Quick Test Account (Development Only) */}
-      {import.meta.env.DEV && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800"
-        >
-          <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-semibold">🧪 Development Mode:</p>
-          <button
-            type="button"
-            onClick={() => {
-              setFormData(prev => ({
-                ...prev,
-                email: 'test@example.com',
-                password: 'password123'
-              }));
-            }}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            disabled={isLoading}
-          >
-            📝 Fill test credentials
-          </button>
-        </motion.div>
-      )}
     </div>
   );
 };
