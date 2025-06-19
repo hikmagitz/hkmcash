@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { PlusCircle, X, Crown } from 'lucide-react';
+import { PlusCircle, X } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
-import { useAuth } from '../context/AuthContext';
-import { useStripe } from '../hooks/useStripe';
-import { STRIPE_PRODUCTS } from '../stripe-config';
 import Button from './UI/Button';
 
 interface TransactionFormProps {
@@ -15,8 +12,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   onClose, 
   isModal = false 
 }) => {
-  const { addTransaction, categories, clients, hasReachedLimit } = useTransactions();
-  const { redirectToCheckout } = useStripe();
+  const { addTransaction, categories, clients } = useTransactions();
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -73,7 +69,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     
     if (validateForm()) {
       try {
-        addTransaction({
+        setIsLoading(true);
+        await addTransaction({
           amount: Number(formData.amount),
           description: formData.description,
           category: formData.category,
@@ -95,58 +92,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           onClose();
         }
       } catch (error) {
-        if (error instanceof Error && error.message.includes('limit reached')) {
-          if (window.confirm('You have reached the transaction limit. Would you like to upgrade to premium for unlimited transactions?')) {
-            setIsLoading(true);
-            try {
-              await redirectToCheckout('premium_access');
-            } catch (checkoutError) {
-              console.error('Error redirecting to checkout:', checkoutError);
-              alert('Failed to redirect to checkout. Please try again.');
-            } finally {
-              setIsLoading(false);
-            }
-          }
-        }
+        console.error('Error adding transaction:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  };
-
-  const handleUpgrade = async () => {
-    setIsLoading(true);
-    try {
-      await redirectToCheckout('premium_access');
-    } catch (error) {
-      console.error('Error redirecting to checkout:', error);
-      alert('Failed to redirect to checkout. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const filteredCategories = categories.filter(
     category => category.type === formData.type
   );
-
-  if (hasReachedLimit) {
-    return (
-      <div className="p-6 text-center">
-        <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold mb-2">Transaction Limit Reached</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          You've reached the limit of 50 transactions. Upgrade to {STRIPE_PRODUCTS.premium_access.name} for unlimited transactions!
-        </p>
-        <Button 
-          type="primary"
-          onClick={handleUpgrade}
-          disabled={isLoading}
-        >
-          <Crown size={18} />
-          {isLoading ? 'Processing...' : `Upgrade to ${STRIPE_PRODUCTS.premium_access.name}`}
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className={`${isModal ? 'p-6' : 'p-0'}`}>
@@ -299,7 +254,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           disabled={isLoading}
         >
           <PlusCircle size={18} />
-          {isLoading ? 'Processing...' : 'Add Transaction'}
+          {isLoading ? 'Adding...' : 'Add Transaction'}
         </Button>
       </form>
     </div>

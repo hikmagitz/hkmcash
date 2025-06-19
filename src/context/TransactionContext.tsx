@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { 
   Transaction, 
   Category,
@@ -11,12 +10,6 @@ import {
   generateId, 
   getDefaultCategories
 } from '../utils/helpers';
-import { useAuth } from './AuthContext';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 interface TransactionContextType {
   transactions: Transaction[];
@@ -47,7 +40,6 @@ export const useTransactions = () => {
 };
 
 export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, isPremium } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -59,68 +51,41 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   );
 
   const FREE_TRANSACTION_LIMIT = 50;
-  const hasReachedLimit = !isPremium && transactions.length >= FREE_TRANSACTION_LIMIT;
+  const hasReachedLimit = false; // No limit without authentication
 
-  // Load data from Supabase
+  // Load data from localStorage
   useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-
+    const loadData = () => {
       setIsLoading(true);
       try {
         // Load transactions
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
-
-        if (transactionsError) throw transactionsError;
-        setTransactions(transactionsData || []);
+        const savedTransactions = localStorage.getItem('transactions');
+        if (savedTransactions) {
+          setTransactions(JSON.parse(savedTransactions));
+        }
 
         // Load categories
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (categoriesError) throw categoriesError;
-        
-        // If no categories exist for the user, create default ones
-        if (!categoriesData?.length) {
-          const defaultCategories = getDefaultCategories().map(cat => ({
-            ...cat,
-            user_id: user.id
-          }));
-          
-          const { error: insertError } = await supabase
-            .from('categories')
-            .insert(defaultCategories);
-            
-          if (insertError) throw insertError;
-          setCategories(defaultCategories);
+        const savedCategories = localStorage.getItem('categories');
+        if (savedCategories) {
+          setCategories(JSON.parse(savedCategories));
         } else {
-          setCategories(categoriesData);
+          // Set default categories if none exist
+          const defaultCategories = getDefaultCategories();
+          setCategories(defaultCategories);
+          localStorage.setItem('categories', JSON.stringify(defaultCategories));
         }
 
         // Load clients
-        const { data: clientsData, error: clientsError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user.id);
+        const savedClients = localStorage.getItem('clients');
+        if (savedClients) {
+          setClients(JSON.parse(savedClients));
+        }
 
-        if (clientsError) throw clientsError;
-        setClients(clientsData || []);
-
-        // Load enterprise settings
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('enterprise_settings')
-          .select('name')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (settingsError) throw settingsError;
-        setEnterpriseNameState(settingsData?.name || '');
+        // Load enterprise name
+        const savedEnterpriseName = localStorage.getItem('enterpriseName');
+        if (savedEnterpriseName) {
+          setEnterpriseNameState(savedEnterpriseName);
+        }
 
       } catch (error) {
         console.error('Error loading data:', error);
@@ -130,7 +95,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     loadData();
-  }, [user]);
+  }, []);
 
   // Update summary when transactions change
   useEffect(() => {
@@ -138,17 +103,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   }, [transactions]);
 
   const setEnterpriseName = async (name: string) => {
-    if (!user) return;
-
     try {
-      const { error } = await supabase
-        .from('enterprise_settings')
-        .upsert(
-          { user_id: user.id, name },
-          { onConflict: 'user_id' }
-        );
-
-      if (error) throw error;
+      localStorage.setItem('enterpriseName', name);
       setEnterpriseNameState(name);
     } catch (error) {
       console.error('Error updating enterprise name:', error);
@@ -157,22 +113,15 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    if (!user) throw new Error('User must be authenticated');
-    if (!isPremium && transactions.length >= FREE_TRANSACTION_LIMIT) {
-      throw new Error('Transaction limit reached. Upgrade to premium for unlimited transactions.');
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([{ ...transaction, user_id: user.id }])
-        .select()
-        .single();
+      const newTransaction = {
+        ...transaction,
+        id: generateId()
+      };
 
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
-
-      setTransactions(prev => [data, ...prev]);
+      const updatedTransactions = [newTransaction, ...transactions];
+      setTransactions(updatedTransactions);
+      localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
     } catch (error) {
       console.error('Error adding transaction:', error);
       throw error;
@@ -180,18 +129,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const deleteTransaction = async (id: string) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+      const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
+      setTransactions(updatedTransactions);
+      localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
     } catch (error) {
       console.error('Error deleting transaction:', error);
       throw error;
@@ -199,29 +140,12 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const updateTransaction = async (updatedTransaction: Transaction) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          amount: updatedTransaction.amount,
-          description: updatedTransaction.description,
-          category: updatedTransaction.category,
-          type: updatedTransaction.type,
-          date: updatedTransaction.date,
-          client: updatedTransaction.client,
-        })
-        .eq('id', updatedTransaction.id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setTransactions(prev =>
-        prev.map(transaction =>
-          transaction.id === updatedTransaction.id ? updatedTransaction : transaction
-        )
+      const updatedTransactions = transactions.map(transaction =>
+        transaction.id === updatedTransaction.id ? updatedTransaction : transaction
       );
+      setTransactions(updatedTransactions);
+      localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
     } catch (error) {
       console.error('Error updating transaction:', error);
       throw error;
@@ -229,19 +153,15 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const addCategory = async (category: Omit<Category, 'id'>) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{ ...category, user_id: user.id }])
-        .select()
-        .single();
+      const newCategory = {
+        ...category,
+        id: generateId()
+      };
 
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
-
-      setCategories(prev => [...prev, data]);
+      const updatedCategories = [...categories, newCategory];
+      setCategories(updatedCategories);
+      localStorage.setItem('categories', JSON.stringify(updatedCategories));
     } catch (error) {
       console.error('Error adding category:', error);
       throw error;
@@ -249,24 +169,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const deleteCategory = async (id: string) => {
-    if (!user) throw new Error('User must be authenticated');
-    
-    // Validate UUID format before making the request
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      throw new Error('Invalid category ID format');
-    }
-
     try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setCategories(prev => prev.filter(category => category.id !== id));
+      const updatedCategories = categories.filter(category => category.id !== id);
+      setCategories(updatedCategories);
+      localStorage.setItem('categories', JSON.stringify(updatedCategories));
     } catch (error) {
       console.error('Error deleting category:', error);
       throw error;
@@ -274,19 +180,16 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const addClient = async (client: Omit<Client, 'id' | 'createdAt'>) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .insert([{ ...client, user_id: user.id }])
-        .select()
-        .single();
+      const newClient = {
+        ...client,
+        id: generateId(),
+        createdAt: new Date().toISOString()
+      };
 
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
-
-      setClients(prev => [...prev, data]);
+      const updatedClients = [...clients, newClient];
+      setClients(updatedClients);
+      localStorage.setItem('clients', JSON.stringify(updatedClients));
     } catch (error) {
       console.error('Error adding client:', error);
       throw error;
@@ -294,18 +197,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const deleteClient = async (id: string) => {
-    if (!user) throw new Error('User must be authenticated');
-
     try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setClients(prev => prev.filter(client => client.id !== id));
+      const updatedClients = clients.filter(client => client.id !== id);
+      setClients(updatedClients);
+      localStorage.setItem('clients', JSON.stringify(updatedClients));
     } catch (error) {
       console.error('Error deleting client:', error);
       throw error;

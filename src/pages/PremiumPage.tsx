@@ -1,78 +1,13 @@
-import React, { useState } from 'react';
-import { Crown, Check } from 'lucide-react';
+import React from 'react';
+import { Crown, Check, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
-import { useStripe } from '../hooks/useStripe';
-import { useAuth } from '../context/AuthContext';
-import { STRIPE_PRODUCTS } from '../stripe-config';
 
 const PremiumPage: React.FC = () => {
-  const { redirectToCheckout } = useStripe();
-  const { isPremium } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   const intl = useIntl();
-
-  const handleUpgrade = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await redirectToCheckout('premium_access');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start checkout process');
-      console.error('Error creating checkout session:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isPremium) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-        <Card className="w-full max-w-md text-center">
-          <div className="mb-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              {intl.formatMessage({ id: 'premium.success' })}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {intl.formatMessage({ id: 'premium.successDescription' })}
-            </p>
-          </div>
-
-          <div className="space-y-4 mb-8">
-            <div className="flex items-center">
-              <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">
-                {intl.formatMessage({ id: 'premium.features.unlimited' })}
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">
-                {intl.formatMessage({ id: 'premium.features.pdf' })}
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">
-                {intl.formatMessage({ id: 'premium.features.excel' })}
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-green-600 mr-2">✓</span>
-              <span className="text-gray-700 dark:text-gray-300">
-                {intl.formatMessage({ id: 'premium.features.json' })}
-              </span>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
@@ -82,61 +17,63 @@ const PremiumPage: React.FC = () => {
             <Crown className="w-8 h-8 text-teal-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {STRIPE_PRODUCTS.premium_access.name}
+            Premium Features
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {STRIPE_PRODUCTS.premium_access.description}
+            All features are available in the free version!
           </p>
         </div>
 
         <div className="space-y-4 mb-8">
           <div className="flex items-center">
-            <span className="text-teal-600 mr-2">✓</span>
+            <span className="text-green-600 mr-2">✓</span>
             <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.unlimited' })}
+              Unlimited transactions
             </span>
           </div>
           <div className="flex items-center">
-            <span className="text-teal-600 mr-2">✓</span>
+            <span className="text-green-600 mr-2">✓</span>
             <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.pdf' })}
+              PDF receipts for transactions
             </span>
           </div>
           <div className="flex items-center">
-            <span className="text-teal-600 mr-2">✓</span>
+            <span className="text-green-600 mr-2">✓</span>
             <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.excel' })}
+              Export to JSON
             </span>
           </div>
           <div className="flex items-center">
-            <span className="text-teal-600 mr-2">✓</span>
+            <span className="text-green-600 mr-2">✓</span>
             <span className="text-gray-700 dark:text-gray-300">
-              {intl.formatMessage({ id: 'premium.features.json' })}
+              All features included
             </span>
           </div>
         </div>
 
         <div className="mb-8">
           <div className="text-4xl font-bold text-gray-800 dark:text-white">
-            €{STRIPE_PRODUCTS.premium_access.price}
-            <span className="text-lg text-gray-600 dark:text-gray-400">/month</span>
+            FREE
+            <span className="text-lg text-gray-600 dark:text-gray-400">/forever</span>
           </div>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-            {error}
-          </div>
-        )}
-
         <Button 
           type="primary" 
-          className="w-full" 
-          onClick={handleUpgrade}
-          disabled={isLoading}
+          className="w-full mb-4" 
+          onClick={() => navigate('/dashboard')}
         >
-          <Crown className="w-5 h-5 mr-2" />
-          {isLoading ? 'Processing...' : intl.formatMessage({ id: 'premium.upgrade' })}
+          <Check className="w-5 h-5 mr-2" />
+          Continue Using Free Version
+        </Button>
+
+        <Button 
+          type="secondary" 
+          className="w-full" 
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          Go Back
         </Button>
       </Card>
     </div>
