@@ -472,6 +472,62 @@ const SettingsPage: React.FC = () => {
       {/* Main Settings Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         
+        {/* Company & Currency Settings Card */}
+        <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer" onClick={() => navigate('/company-settings')}>
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="p-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all group-hover:scale-110">
+                    <Building2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center animate-pulse">
+                    <Sparkles className="w-2 h-2 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                    Entreprise & Devise
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Configuration de base
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-lg border border-indigo-200 dark:border-indigo-800 hover:shadow-md transition-all">
+                <Building2 className="w-4 h-4 text-indigo-500" />
+                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                  {enterpriseName || 'Nom d\'entreprise'}
+                </span>
+                <Zap className="w-3 h-3 text-indigo-400 ml-auto" />
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800 hover:shadow-md transition-all">
+                <Euro className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                  {getCurrentCurrencyInfo().name}
+                </span>
+                <Star className="w-3 h-3 text-green-400 ml-auto" />
+              </div>
+            </div>
+
+            <div className="mt-6 p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Configuration rapide et sécurisée
+                </span>
+              </div>
+            </div>
+          </div>
+        </Card>
+
         {/* Advanced Settings Card */}
         <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer" onClick={() => navigate('/advanced-settings')}>
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
@@ -500,28 +556,20 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all">
-                <Building2 className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  Nom d'entreprise
-                </span>
-                <Zap className="w-3 h-3 text-blue-400 ml-auto" />
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800 hover:shadow-md transition-all">
-                <Euro className="w-4 h-4 text-green-500" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Paramètres de devise
-                </span>
-                <Star className="w-3 h-3 text-green-400 ml-auto" />
-              </div>
-              
               <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800 hover:shadow-md transition-all">
                 <Palette className="w-4 h-4 text-purple-500" />
                 <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
                   Gestion des catégories
                 </span>
                 <Target className="w-3 h-3 text-purple-400 ml-auto" />
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800 hover:shadow-md transition-all">
+                <Users className="w-4 h-4 text-orange-500" />
+                <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                  Gestion des clients
+                </span>
+                <Star className="w-3 h-3 text-orange-400 ml-auto" />
               </div>
             </div>
 

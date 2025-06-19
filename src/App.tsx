@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdvancedSettingsPage from './pages/AdvancedSettingsPage';
+import CompanySettingsPage from './pages/CompanySettingsPage';
 import PremiumPage from './pages/PremiumPage';
 import SuccessPage from './pages/SuccessPage';
 import AuthPage from './pages/AuthPage';
@@ -42,6 +43,7 @@ const AppContent = () => {
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="advanced-settings" element={<AdvancedSettingsPage />} />
+            <Route path="company-settings" element={<CompanySettingsPage />} />
             <Route path="premium" element={<PremiumPage />} />
             <Route path="success" element={<SuccessPage />} />
           </Route>
