@@ -10,24 +10,36 @@ import {
   Plus, 
   Trash2, 
   Settings,
-  ArrowLeft,
   Sparkles,
   Globe,
   Briefcase,
   Tag,
-  Zap,
-  Star,
-  Users
+  Users,
+  Shield,
+  Lock,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  AlertTriangle,
+  Crown,
+  Database
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useTransactions } from '../context/TransactionContext';
-import { generateId, getDefaultCategories, SUPPORTED_CURRENCIES } from '../utils/helpers';
+import { SUPPORTED_CURRENCIES } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
+import { useStripe } from '../hooks/useStripe';
+import { createClient } from '@supabase/supabase-js';
+import * as XLSX from 'xlsx';
 
-const AdvancedSettingsPage: React.FC = () => {
-  const navigate = useNavigate();
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+const PersonalizationPage: React.FC = () => {
   const intl = useIntl();
   const { 
     categories, 
@@ -37,20 +49,21 @@ const AdvancedSettingsPage: React.FC = () => {
     addClient,
     deleteClient,
     enterpriseName,
-    setEnterpriseName 
+    setEnterpriseName,
+    transactions
   } = useTransactions();
+  const { isPremium, user } = useAuth();
+  const { redirectToCheckout } = useStripe();
 
   // Loading states
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
 
   // Enterprise name state
-  const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
   const [tempEnterpriseName, setTempEnterpriseName] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Currency state
   const [selectedCurrency, setSelectedCurrency] = useState('EUR');
-  const [isEditingCurrency, setIsEditingCurrency] = useState(false);
   const [tempCurrency, setTempCurrency] = useState('EUR');
   const [currencySaveSuccess, setCurrencySaveSuccess] = useState(false);
 
@@ -90,25 +103,12 @@ const AdvancedSettingsPage: React.FC = () => {
   };
 
   // Enterprise functions
-  const handleStartEditingEnterprise = () => {
-    setIsEditingEnterprise(true);
-    setTempEnterpriseName(enterpriseName);
-    setSaveSuccess(false);
-  };
-
-  const handleCancelEditingEnterprise = () => {
-    setIsEditingEnterprise(false);
-    setTempEnterpriseName(enterpriseName);
-    setSaveSuccess(false);
-  };
-
   const handleSaveEnterpriseName = async () => {
     setLoading('saveEnterprise', true);
     setSaveSuccess(false);
     
     try {
       await setEnterpriseName(tempEnterpriseName.trim());
-      setIsEditingEnterprise(false);
       setSaveSuccess(true);
       
       setTimeout(() => {
@@ -123,18 +123,6 @@ const AdvancedSettingsPage: React.FC = () => {
   };
 
   // Currency functions
-  const handleStartEditingCurrency = () => {
-    setIsEditingCurrency(true);
-    setTempCurrency(selectedCurrency);
-    setCurrencySaveSuccess(false);
-  };
-
-  const handleCancelEditingCurrency = () => {
-    setIsEditingCurrency(false);
-    setTempCurrency(selectedCurrency);
-    setCurrencySaveSuccess(false);
-  };
-
   const handleSaveCurrency = async () => {
     setLoading('saveCurrency', true);
     setCurrencySaveSuccess(false);
@@ -142,7 +130,6 @@ const AdvancedSettingsPage: React.FC = () => {
     try {
       setSelectedCurrency(tempCurrency);
       localStorage.setItem('preferredCurrency', tempCurrency);
-      setIsEditingCurrency(false);
       setCurrencySaveSuccess(true);
       
       setTimeout(() => {
@@ -289,6 +276,213 @@ const AdvancedSettingsPage: React.FC = () => {
     }
   };
 
+  // Data management functions
+  const handleExportData = async () => {
+    if (!isPremium) {
+      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+        setLoading('upgradeRedirect', true);
+        await redirectToCheckout('premium_access');
+        setLoading('upgradeRedirect', false);
+      }
+      return;
+    }
+
+    setLoading('exportData', true);
+    try {
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user?.id);
+
+      if (transactionsError) throw transactionsError;
+
+      const data = {
+        transactions,
+        categories,
+        enterpriseName,
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert(intl.formatMessage({ id: 'common.error' }));
+    } finally {
+      setLoading('exportData', false);
+    }
+  };
+
+  const handleImportData = async (file: File) => {
+    if (!isPremium) {
+      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+        setLoading('upgradeRedirect', true);
+        await redirectToCheckout('premium_access');
+        setLoading('upgradeRedirect', false);
+      }
+      return;
+    }
+
+    setLoading('importData', true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string);
+          
+          if (data.transactions && Array.isArray(data.transactions)) {
+            const { error: deleteError } = await supabase
+              .from('transactions')
+              .delete()
+              .eq('user_id', user?.id);
+
+            if (deleteError) throw deleteError;
+
+            const { error: insertError } = await supabase
+              .from('transactions')
+              .insert(
+                data.transactions.map((t: any) => ({
+                  ...t,
+                  user_id: user?.id
+                }))
+              );
+
+            if (insertError) throw insertError;
+          }
+
+          if (data.categories && Array.isArray(data.categories)) {
+            const { error: deleteCatError } = await supabase
+              .from('categories')
+              .delete()
+              .eq('user_id', user?.id);
+
+            if (deleteCatError) throw deleteCatError;
+
+            const { error: insertCatError } = await supabase
+              .from('categories')
+              .insert(
+                data.categories.map((c: any) => ({
+                  ...c,
+                  user_id: user?.id
+                }))
+              );
+
+            if (insertCatError) throw insertCatError;
+          }
+
+          if (data.enterpriseName) {
+            await setEnterpriseName(data.enterpriseName);
+          }
+
+          window.location.reload();
+        } catch (error) {
+          console.error('Error importing data:', error);
+          alert(intl.formatMessage({ id: 'common.error' }));
+        } finally {
+          setLoading('importData', false);
+        }
+      };
+      reader.readAsText(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      alert(intl.formatMessage({ id: 'common.error' }));
+      setLoading('importData', false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!isPremium) {
+      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+        setLoading('upgradeRedirect', true);
+        await redirectToCheckout('premium_access');
+        setLoading('upgradeRedirect', false);
+      }
+      return;
+    }
+
+    setLoading('exportExcel', true);
+    try {
+      const transactionData = transactions.map(t => ({
+        Date: new Date(t.date).toLocaleDateString(intl.locale),
+        Type: intl.formatMessage({ id: `transaction.${t.type}` }),
+        Category: t.category,
+        Client: t.client || 'N/A',
+        Description: t.description,
+        Amount: t.amount,
+      }));
+
+      const wb = XLSX.utils.book_new();
+      
+      if (enterpriseName) {
+        const infoSheet = XLSX.utils.aoa_to_sheet([
+          ['Enterprise Name', enterpriseName],
+          ['Export Date', new Date().toLocaleDateString()],
+          [],
+        ]);
+        XLSX.utils.book_append_sheet(wb, infoSheet, 'Info');
+      }
+
+      const ws = XLSX.utils.json_to_sheet(transactionData);
+      const colWidths = [
+        { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 12 },
+      ];
+      ws['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+      XLSX.writeFile(wb, `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      alert('Failed to export Excel file. Please try again.');
+    } finally {
+      setLoading('exportExcel', false);
+    }
+  };
+
+  const handleClearData = async () => {
+    if (!window.confirm(intl.formatMessage({ id: 'settings.clearDataConfirm' }))) return;
+    
+    setLoading('clearData', true);
+    try {
+      if (user) {
+        const { error: transError } = await supabase
+          .from('transactions')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (transError) throw transError;
+
+        const { error: catError } = await supabase
+          .from('categories')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (catError) throw catError;
+
+        const { error: clientError } = await supabase
+          .from('clients')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (clientError) throw clientError;
+
+        await setEnterpriseName('');
+      }
+      
+      window.location.reload();
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      alert(intl.formatMessage({ id: 'common.error' }));
+    } finally {
+      setLoading('clearData', false);
+    }
+  };
+
   const colorOptions = [
     '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', 
     '#14B8A6', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6',
@@ -298,43 +492,36 @@ const AdvancedSettingsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900 dark:to-purple-900">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/50">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+      <div className="sticky top-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                type="secondary"
-                onClick={() => navigate('/settings')}
-                className="!p-2 hover:scale-105 transition-transform"
-              >
-                <ArrowLeft size={18} />
-              </Button>
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110">
+                  <Settings className="w-8 h-8 text-white" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center animate-pulse shadow-lg">
+                  <Sparkles className="w-2.5 h-2.5 text-white" />
+                </div>
+              </div>
               
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110">
-                    <Settings className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center animate-pulse">
-                    <Sparkles className="w-2 h-2 text-white" />
-                  </div>
-                </div>
-                
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    Paramètres Avancés
-                  </h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Personnalisez votre expérience HKM Cash
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Personnalisation
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Configurez tous vos paramètres personnels en un seul endroit
+                </p>
               </div>
             </div>
             
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Synchronisé
+            <div className="hidden md:flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-green-600" />
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              </div>
+              <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                Sécurisé & Synchronisé
               </span>
             </div>
           </div>
@@ -342,10 +529,63 @@ const AdvancedSettingsPage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500 rounded-lg group-hover:scale-110 transition-transform">
+                <Building2 className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Entreprise</p>
+                <p className="text-xs text-blue-500 dark:text-blue-300 truncate">
+                  {enterpriseName || 'Non défini'}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500 rounded-lg group-hover:scale-110 transition-transform">
+                <Palette className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Catégories</p>
+                <p className="text-xs text-purple-500 dark:text-purple-300">{categories.length} total</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-500 rounded-lg group-hover:scale-110 transition-transform">
+                <Users className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Clients</p>
+                <p className="text-xs text-orange-500 dark:text-orange-300">{clients.length} total</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800 hover:shadow-lg transition-all cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500 rounded-lg group-hover:scale-110 transition-transform">
+                <Euro className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Devise</p>
+                <p className="text-xs text-green-500 dark:text-green-300">{getCurrentCurrencyInfo().code}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
           
-          {/* Enterprise Settings */}
+          {/* Company Information */}
           <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             
@@ -355,12 +595,12 @@ const AdvancedSettingsPage: React.FC = () => {
                   <Building2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Entreprise</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Nom configuré</p>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Informations Entreprise</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Nom et devise</p>
                 </div>
               </div>
               
-              {/* Add Enterprise Name Form */}
+              {/* Enterprise Name */}
               <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 mb-3">
                   <Building2 className="w-4 h-4 text-blue-600" />
@@ -391,77 +631,13 @@ const AdvancedSettingsPage: React.FC = () => {
                   </Button>
                 </div>
               </div>
-              
-              {/* Current Enterprise Name Display */}
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {enterpriseName ? (
-                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all group hover:shadow-md">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1 bg-blue-500 rounded-lg">
-                        <Building2 className="w-3 h-3 text-white" />
-                      </div>
-                      <span className="font-medium text-gray-800 dark:text-gray-200">
-                        {enterpriseName}
-                      </span>
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        type="secondary" 
-                        size="sm"
-                        onClick={handleStartEditingEnterprise}
-                        className="!p-1.5"
-                      >
-                        <Edit3 size={12} />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
-                      <Building2 className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <p className="text-sm font-medium mb-1">Aucun nom d'entreprise</p>
-                    <p className="text-xs">Ajoutez le nom de votre entreprise</p>
-                  </div>
-                )}
-              </div>
 
-              {saveSuccess && (
-                <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl animate-slide-up">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1 bg-green-500 rounded-full">
-                      <Check size={12} className="text-white" />
-                    </div>
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                      Nom d'entreprise sauvegardé !
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Currency Settings */}
-          <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg group-hover:shadow-xl transition-all hover:scale-110">
-                  <Euro className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Devise</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Format configuré</p>
-                </div>
-              </div>
-              
-              {/* Add Currency Form */}
+              {/* Currency */}
               <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-2 mb-3">
                   <Euro className="w-4 h-4 text-green-600" />
                   <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                    Changer la devise
+                    Devise préférée
                   </span>
                 </div>
                 
@@ -489,38 +665,23 @@ const AdvancedSettingsPage: React.FC = () => {
                   </Button>
                 </div>
               </div>
-              
-              {/* Current Currency Display */}
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group hover:shadow-md">
-                  <div className="flex items-center gap-3">
-                    <div className="p-1 bg-green-500 rounded-lg">
-                      <Euro className="w-3 h-3 text-white" />
+
+              {/* Success Messages */}
+              {saveSuccess && (
+                <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl animate-slide-up">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 bg-green-500 rounded-full">
+                      <Check size={12} className="text-white" />
                     </div>
-                    <div>
-                      <span className="font-medium text-gray-800 dark:text-gray-200">
-                        {getCurrentCurrencyInfo().name}
-                      </span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {getCurrentCurrencyInfo().symbol} - {getCurrentCurrencyInfo().code}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      type="secondary" 
-                      size="sm"
-                      onClick={handleStartEditingCurrency}
-                      className="!p-1.5"
-                    >
-                      <Edit3 size={12} />
-                    </Button>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                      Nom d'entreprise sauvegardé !
+                    </p>
                   </div>
                 </div>
-              </div>
+              )}
 
               {currencySaveSuccess && (
-                <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl animate-slide-up">
+                <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl animate-slide-up">
                   <div className="flex items-center gap-2">
                     <div className="p-1 bg-green-500 rounded-full">
                       <Check size={12} className="text-white" />
@@ -534,8 +695,8 @@ const AdvancedSettingsPage: React.FC = () => {
             </div>
           </Card>
 
-          {/* Categories Management Card */}
-          <Card className="hover:shadow-xl transition-all duration-300 lg:col-span-2 xl:col-span-1">
+          {/* Categories Management */}
+          <Card className="hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-shadow hover:scale-110">
                 <Palette className="w-5 h-5 text-white" />
@@ -842,7 +1003,7 @@ const AdvancedSettingsPage: React.FC = () => {
             </div>
           </Card>
 
-          {/* Clients Settings */}
+          {/* Clients Management */}
           <Card className="hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-110">
@@ -965,14 +1126,141 @@ const AdvancedSettingsPage: React.FC = () => {
               )}
             </div>
           </Card>
+          
+          {/* Data Management Card */}
+          <Card className="hover:shadow-xl transition-all duration-300 lg:col-span-2 xl:col-span-3">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-110">
+                <Database className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Gestion des Données</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Export, Import & Sauvegarde</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Button 
+                type="primary" 
+                className="w-full justify-center hover:scale-105 transition-transform"
+                onClick={handleExportData}
+                loading={isLoading.exportData}
+              >
+                {isPremium ? (
+                  <>
+                    <Download size={16} />
+                    JSON
+                  </>
+                ) : (
+                  <>
+                    <Crown size={16} />
+                    Premium
+                  </>
+                )}
+              </Button>
+
+              <Button 
+                type="primary" 
+                className="w-full justify-center hover:scale-105 transition-transform"
+                onClick={handleExportExcel}
+                loading={isLoading.exportExcel}
+              >
+                {isPremium ? (
+                  <>
+                    <FileSpreadsheet size={16} />
+                    Excel
+                  </>
+                ) : (
+                  <>
+                    <Crown size={16} />
+                    Premium
+                  </>
+                )}
+              </Button>
+              
+              <label className="block">
+                <Button 
+                  type="secondary" 
+                  className="w-full justify-center hover:scale-105 transition-transform"
+                  onClick={() => {
+                    if (!isPremium) {
+                      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+                        redirectToCheckout('premium_access');
+                      }
+                      return;
+                    }
+                    document.getElementById('file-input')?.click();
+                  }}
+                  loading={isLoading.importData}
+                >
+                  {isPremium ? (
+                    <>
+                      <Upload size={16} />
+                      Import
+                    </>
+                  ) : (
+                    <>
+                      <Crown size={16} />
+                      Premium
+                    </>
+                  )}
+                </Button>
+                <input 
+                  id="file-input"
+                  type="file" 
+                  accept=".json" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleImportData(file);
+                    }
+                  }}
+                />
+              </label>
+
+              <Button 
+                type="danger" 
+                className="w-full justify-center hover:scale-105 transition-transform"
+                onClick={handleClearData}
+                loading={isLoading.clearData}
+              >
+                <AlertTriangle size={16} />
+                Supprimer
+              </Button>
+            </div>
+            
+            {!isPremium && (
+              <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl hover:shadow-md transition-all">
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown size={18} className="text-yellow-600 animate-pulse" />
+                  <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                    Fonctionnalités Premium
+                  </p>
+                </div>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+                  Débloquez l'export/import de données avec Premium
+                </p>
+                <Button
+                  type="primary"
+                  onClick={() => redirectToCheckout('premium_access')}
+                  loading={isLoading.upgradeRedirect}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 hover:scale-105 transition-all"
+                >
+                  <Crown size={16} />
+                  Passer à Premium
+                </Button>
+              </div>
+            )}
+          </Card>
         </div>
 
-        {/* Bottom Info Section */}
+        {/* Bottom Info */}
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all cursor-pointer">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all cursor-pointer">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Tous les changements sont automatiquement sauvegardés
+              Tous les changements sont automatiquement sauvegardés dans le cloud
             </span>
           </div>
         </div>
@@ -981,4 +1269,4 @@ const AdvancedSettingsPage: React.FC = () => {
   );
 };
 
-export default AdvancedSettingsPage;
+export default PersonalizationPage;
