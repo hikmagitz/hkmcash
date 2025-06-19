@@ -1,6 +1,6 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Euro } from 'lucide-react';
 import { useTransactions } from '../../context/TransactionContext';
 import { formatCurrency } from '../../utils/helpers';
 import Card from '../UI/Card';
@@ -50,7 +50,7 @@ const SummaryCards: React.FC = () => {
               ? 'bg-blue-100 dark:bg-blue-900' 
               : 'bg-orange-100 dark:bg-orange-900'
           } p-3 rounded-full`}>
-            <DollarSign className={`h-6 w-6 ${
+            <Euro className={`h-6 w-6 ${
               summary.balance >= 0 
                 ? 'text-blue-500' 
                 : 'text-orange-500'

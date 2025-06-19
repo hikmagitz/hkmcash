@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import { useTransactions } from '../context/TransactionContext';
-import { generateId, getDefaultCategories } from '../utils/helpers';
+import { generateId, getDefaultCategories, SUPPORTED_CURRENCIES } from '../utils/helpers';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
@@ -40,6 +40,7 @@ const SettingsPage: React.FC = () => {
 
   const [newClient, setNewClient] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('EUR');
   
   // Enterprise name state management
   const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
@@ -51,6 +52,21 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     setTempEnterpriseName(enterpriseName);
   }, [enterpriseName]);
+
+  // Load saved currency preference
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem('preferredCurrency');
+    if (savedCurrency) {
+      setSelectedCurrency(savedCurrency);
+    }
+  }, []);
+
+  const handleCurrencyChange = (currency: string) => {
+    setSelectedCurrency(currency);
+    localStorage.setItem('preferredCurrency', currency);
+    // Force a page refresh to update all currency displays
+    window.location.reload();
+  };
 
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
@@ -325,6 +341,34 @@ const SettingsPage: React.FC = () => {
       </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* General Settings Card */}
+        <Card>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+            <Euro className="w-5 h-5" />
+            {intl.formatMessage({ id: 'settings.general' })}
+          </h2>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {intl.formatMessage({ id: 'settings.currency' })}
+            </label>
+            <select
+              value={selectedCurrency}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
+            >
+              {SUPPORTED_CURRENCIES.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.symbol} {currency.name} ({currency.code})
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {intl.formatMessage({ id: 'settings.currency.description' })}
+            </p>
+          </div>
+        </Card>
+
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <Building2 className="w-5 h-5" />
