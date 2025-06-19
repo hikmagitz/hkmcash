@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Mail, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -38,7 +38,7 @@ const AuthPage: React.FC = () => {
         await resetPassword(email);
         setSuccess('Password reset email sent! Check your inbox and follow the instructions.');
         
-        // Auto switch back to login after 3 seconds
+        // Auto switch back to login after 5 seconds
         setTimeout(() => {
           setIsForgotPassword(false);
           setSuccess('');
@@ -62,10 +62,13 @@ const AuthPage: React.FC = () => {
         }
 
         if (isLogin) {
+          console.log('Attempting login with:', email);
           await signIn(email, password);
+          setSuccess('Successfully signed in!');
         } else {
+          console.log('Attempting signup with:', email);
           await signUp(email, password);
-          setSuccess('Account created successfully! Please check your email to verify your account.');
+          setSuccess('Account created successfully! Please check your email to verify your account before signing in.');
         }
       }
     } catch (err: any) {
@@ -78,6 +81,12 @@ const AuthPage: React.FC = () => {
         setError('Please check your email and click the confirmation link before signing in.');
       } else if (err.message?.includes('User already registered')) {
         setError('An account with this email already exists. Please sign in instead.');
+      } else if (err.message?.includes('Signup requires a valid password')) {
+        setError('Please enter a valid password (at least 6 characters).');
+      } else if (err.message?.includes('Unable to validate email address')) {
+        setError('Please enter a valid email address.');
+      } else if (err.message?.includes('Password should be at least 6 characters')) {
+        setError('Password must be at least 6 characters long.');
       } else {
         setError(err.message || 'An unexpected error occurred. Please try again.');
       }
@@ -124,14 +133,20 @@ const AuthPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            </div>
           </div>
         )}
 
         {success && (
-          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-start">
+              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
+              <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
+            </div>
           </div>
         )}
 
@@ -149,6 +164,7 @@ const AuthPage: React.FC = () => {
                 placeholder="Enter your email"
                 required
                 disabled={isLoading}
+                autoComplete="email"
               />
               <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             </div>
@@ -169,6 +185,7 @@ const AuthPage: React.FC = () => {
                   required
                   disabled={isLoading}
                   minLength={6}
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                 />
                 <button
                   type="button"
@@ -243,6 +260,18 @@ const AuthPage: React.FC = () => {
             )}
           </div>
         </form>
+
+        {/* Debug Information (only in development) */}
+        {import.meta.env.DEV && (
+          <div className="mt-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Debug Info:</p>
+            <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+              <div>Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing'}</div>
+              <div>Supabase Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'}</div>
+              <div>Mode: {isLogin ? 'Login' : 'Signup'}</div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500 dark:text-gray-400">
