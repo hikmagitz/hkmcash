@@ -120,23 +120,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const cleanEmail = email.trim().toLowerCase();
     
     try {
-      console.log('📡 Making sign in request...');
+      console.log('📡 Making sign in request to Supabase...');
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email: cleanEmail, 
         password: password.trim()
       });
       
       if (error) {
-        console.error('❌ Sign in error:', error.message);
-        throw error;
+        console.error('❌ Supabase sign in error:', error.message);
+        
+        // Handle specific Supabase error messages
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please check your email and click the confirmation link before signing in.');
+        } else if (error.message.includes('Too many requests')) {
+          throw new Error('Too many login attempts. Please wait a moment and try again.');
+        } else {
+          throw new Error(error.message);
+        }
       }
       
       if (!data.user) {
         console.error('❌ No user returned from sign in');
-        throw new Error('Authentication failed - no user returned');
+        throw new Error('Authentication failed - please try again');
       }
       
-      console.log('✅ Sign in successful:', data.user.email);
+      console.log('✅ Sign in successful for user:', data.user.email);
+      console.log('✅ User ID:', data.user.id);
+      
       // The auth state change listener will handle setting the user
     } catch (error: any) {
       console.error('❌ Sign in failed:', error.message);
@@ -159,7 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const cleanEmail = email.trim().toLowerCase();
     
     try {
-      console.log('📡 Making sign up request...');
+      console.log('📡 Making sign up request to Supabase...');
       const { data, error } = await supabase.auth.signUp({ 
         email: cleanEmail, 
         password: password.trim(),
@@ -169,11 +181,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       if (error) {
-        console.error('❌ Sign up error:', error.message);
-        throw error;
+        console.error('❌ Supabase sign up error:', error.message);
+        
+        // Handle specific Supabase error messages
+        if (error.message.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please sign in instead.');
+        } else if (error.message.includes('Password should be at least 6 characters')) {
+          throw new Error('Password must be at least 6 characters long.');
+        } else if (error.message.includes('Unable to validate email address')) {
+          throw new Error('Please enter a valid email address.');
+        } else {
+          throw new Error(error.message);
+        }
       }
       
       console.log('✅ Sign up successful:', data.user?.email);
+      
+      if (data.user && !data.session) {
+        // Email confirmation required
+        console.log('📧 Email confirmation required');
+      }
     } catch (error: any) {
       console.error('❌ Sign up failed:', error.message);
       throw error;
@@ -249,12 +276,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Debug info
   useEffect(() => {
-    console.log('🔧 Auth Debug Info:');
-    console.log('- Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing');
-    console.log('- Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
-    console.log('- Current User:', user?.email || 'None');
-    console.log('- Loading:', loading);
-    console.log('- Premium:', isPremium);
+    if (import.meta.env.DEV) {
+      console.log('🔧 Auth Debug Info:');
+      console.log('- Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing');
+      console.log('- Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
+      console.log('- Current User:', user?.email || 'None');
+      console.log('- User ID:', user?.id || 'None');
+      console.log('- Loading:', loading);
+      console.log('- Premium:', isPremium);
+    }
   }, [user, loading, isPremium]);
 
   return (

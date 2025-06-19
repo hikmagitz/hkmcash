@@ -61,9 +61,9 @@ const AuthPage: React.FC = () => {
         }
 
         if (isLogin) {
-          console.log('🔐 Attempting login...');
+          console.log('🔐 Attempting login with database credentials...');
           await signIn(email, password);
-          setSuccess('Successfully signed in!');
+          setSuccess('Successfully signed in! Redirecting...');
         } else {
           console.log('📝 Attempting signup...');
           await signUp(email, password);
@@ -77,23 +77,7 @@ const AuthPage: React.FC = () => {
       let errorMessage = 'An unexpected error occurred. Please try again.';
       
       if (err.message) {
-        if (err.message.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else if (err.message.includes('Email not confirmed')) {
-          errorMessage = 'Please check your email and click the confirmation link before signing in.';
-        } else if (err.message.includes('User already registered')) {
-          errorMessage = 'An account with this email already exists. Please sign in instead.';
-        } else if (err.message.includes('Signup requires a valid password')) {
-          errorMessage = 'Please enter a valid password (at least 6 characters).';
-        } else if (err.message.includes('Unable to validate email address')) {
-          errorMessage = 'Please enter a valid email address.';
-        } else if (err.message.includes('Password should be at least 6 characters')) {
-          errorMessage = 'Password must be at least 6 characters long.';
-        } else if (err.message.includes('Email and password are required')) {
-          errorMessage = 'Please fill in all fields.';
-        } else {
-          errorMessage = err.message;
-        }
+        errorMessage = err.message;
       }
       
       setError(errorMessage);
