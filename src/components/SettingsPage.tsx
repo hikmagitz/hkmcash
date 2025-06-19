@@ -385,7 +385,7 @@ const SettingsPage: React.FC = () => {
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <Building2 className="w-5 h-5" />
-            Company Settings
+            Company Settings1
           </h2>
           
           {/* Enterprise Name Section */}
