@@ -1,33 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Settings, 
-  Palette, 
-  Download, 
-  Upload, 
-  Trash2, 
-  Plus, 
-  X, 
-  Save,
-  Building,
-  Users,
-  Tag,
-  Crown,
-  FileText,
-  Database,
-  Sparkles,
-  Globe,
-  Moon,
-  Sun,
-  Languages,
-  Euro,
-  DollarSign,
-  PoundSterling,
-  Yen,
-  CheckCircle,
-  AlertTriangle,
-  Info
-} from 'lucide-react';
+import { Settings, Palette, Download, Upload, Trash2, Plus, X, Save, Building, Users, Tag, Crown, FileText, Database, Sparkles, Globe, Moon, Sun, Languages, Euro, DollarSign, PoundSterling, Pen as Yen, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
