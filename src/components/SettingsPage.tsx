@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro, Settings, Palette, Database, ChevronRight, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro, Settings, Palette, Database, ChevronRight, Info, ChevronDown, ChevronUp, ArrowRight, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -17,6 +18,7 @@ const supabase = createClient(
 );
 
 const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     categories, 
     addCategory, 
@@ -32,17 +34,26 @@ const SettingsPage: React.FC = () => {
   const { redirectToCheckout } = useStripe();
   const intl = useIntl();
   
+  const [newClient, setNewClient] = useState('');
+  const [selectedCurrency, setSelectedCurrency] = useState('EUR');
+  const [isClientListOpen, setIsClientListOpen] = useState(false);
+
+  // Category editing state
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryData, setEditCategoryData] = useState({
+    name: '',
+    color: '#6B7280'
+  });
+
+  // New category state
   const [newCategory, setNewCategory] = useState({
     name: '',
     type: 'expense',
     color: '#6B7280',
   });
-
-  const [newClient, setNewClient] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState('EUR');
-  const [isClientListOpen, setIsClientListOpen] = useState(false); // New state for client list visibility
-  
+  const [showEditColorPicker, setShowEditColorPicker] = useState(false);
+
   // Enterprise name state management
   const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
   const [tempEnterpriseName, setTempEnterpriseName] = useState('');
@@ -71,6 +82,13 @@ const SettingsPage: React.FC = () => {
     return SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency) || SUPPORTED_CURRENCIES[0];
   };
 
+  const handleAddClient = () => {
+    if (newClient.trim()) {
+      addClient({ name: newClient.trim() });
+      setNewClient('');
+    }
+  };
+
   const handleAddCategory = () => {
     if (newCategory.name.trim()) {
       addCategory({
@@ -87,11 +105,39 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleAddClient = () => {
-    if (newClient.trim()) {
-      addClient({ name: newClient.trim() });
-      setNewClient('');
+  const handleStartEditCategory = (category: any) => {
+    setEditingCategory(category.id);
+    setEditCategoryData({
+      name: category.name,
+      color: category.color
+    });
+  };
+
+  const handleSaveCategory = async (categoryId: string, type: 'income' | 'expense') => {
+    if (!editCategoryData.name.trim()) return;
+
+    try {
+      // Delete the old category
+      await deleteCategory(categoryId);
+      
+      // Add the updated category
+      await addCategory({
+        name: editCategoryData.name.trim(),
+        type: type,
+        color: editCategoryData.color,
+      });
+      
+      setEditingCategory(null);
+      setEditCategoryData({ name: '', color: '#6B7280' });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Failed to update category. Please try again.');
     }
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategory(null);
+    setEditCategoryData({ name: '', color: '#6B7280' });
   };
 
   // Enterprise name functions
@@ -363,369 +409,298 @@ const SettingsPage: React.FC = () => {
   };
 
   const colorOptions = [
-    '#EF4444', '#F97316', '#F59E0B', '#10B981', '#14B8A6', 
-    '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#6B7280',
+    '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', 
+    '#14B8A6', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6',
+    '#A855F7', '#D946EF', '#EC4899', '#F43F5E', '#6B7280'
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-3 py-4 space-y-4 min-h-[calc(100vh-8rem)] overflow-hidden">
-      {/* Compact Header */}
-      <div className="text-center mb-4">
-        <div className="inline-flex items-center justify-center w-10 h-10 bg-gradient-to-r from-sky-500 to-purple-500 rounded-xl mb-2 shadow-lg">
-          <Settings className="w-5 h-5 text-white" />
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-sky-500 to-purple-500 rounded-2xl mb-4 shadow-xl">
+          <Settings className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent mb-1">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent mb-2">
           {intl.formatMessage({ id: 'nav.settings' })}
         </h1>
-        <p className="text-xs text-gray-600 dark:text-gray-400">
-          Personnalisez votre expérience et gérez vos données
+        <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          Gérez vos préférences, configurez vos données et personnalisez votre expérience HKM Cash
         </p>
       </div>
 
-      {/* Compact Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-2 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-3 h-3 text-blue-500" />
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <Building2 className="w-4 h-4 text-white" />
+            </div>
             <div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Entreprise</p>
-              <p className="text-xs text-blue-500 dark:text-blue-300 truncate max-w-16">
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Entreprise</p>
+              <p className="text-xs text-blue-500 dark:text-blue-300 truncate">
                 {enterpriseName || 'Non défini'}
               </p>
             </div>
           </div>
         </div>
         
-        <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-2 border border-purple-200 dark:border-purple-800">
-          <div className="flex items-center gap-2">
-            <Palette className="w-3 h-3 text-purple-500" />
+        <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-500 rounded-lg">
+              <Palette className="w-4 h-4 text-white" />
+            </div>
             <div>
-              <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Catégories</p>
+              <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Catégories</p>
               <p className="text-xs text-purple-500 dark:text-purple-300">{categories.length} total</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-2 border border-orange-200 dark:border-orange-800">
-          <div className="flex items-center gap-2">
-            <Users className="w-3 h-3 text-orange-500" />
+        <div className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-500 rounded-lg">
+              <Users className="w-4 h-4 text-white" />
+            </div>
             <div>
-              <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Clients</p>
+              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Clients</p>
               <p className="text-xs text-orange-500 dark:text-orange-300">{clients.length} total</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-2 border border-green-200 dark:border-green-800">
-          <div className="flex items-center gap-2">
-            <Euro className="w-3 h-3 text-green-500" />
+        <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-500 rounded-lg">
+              <Euro className="w-4 h-4 text-white" />
+            </div>
             <div>
-              <p className="text-xs text-green-600 dark:text-green-400 font-medium">Devise</p>
+              <p className="text-sm font-medium text-green-600 dark:text-green-400">Devise</p>
               <p className="text-xs text-green-500 dark:text-green-300">{getCurrentCurrencyInfo().code}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content Grid - Fixed Height with Scroll */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 h-[calc(100vh-16rem)] overflow-hidden">
+      {/* Main Settings Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         
-        {/* Left Column - Company & Currency */}
-        <div className="space-y-4 overflow-y-auto pr-2">
-          {/* Company Settings */}
-          <Card className="group hover:shadow-xl transition-all duration-300 !p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md">
-                <Building2 className="w-3 h-3 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-800 dark:text-white">Entreprise</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Nom sur les reçus</p>
-              </div>
-            </div>
+        {/* Company Settings Card */}
+        <Card className="hover:shadow-xl transition-all duration-300">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Company Settings
+          </h2>
+          
+          {/* Enterprise Name Section */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Enterprise Name
+            </label>
             
             {!isEditingEnterprise ? (
-              <div className="space-y-2">
-                <div className="p-2 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border-l-4 border-blue-500">
-                  <p className="text-xs font-semibold text-gray-800 dark:text-white">
-                    {enterpriseName || 'Aucun nom défini'}
-                  </p>
+              // Display Mode
+              <div className="space-y-3">
+                <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-5 h-5 text-gray-500" />
+                    <span className="text-gray-800 dark:text-white font-medium">
+                      {enterpriseName || 'No company name set'}
+                    </span>
+                  </div>
                 </div>
-                <Button
-                  type="primary"
-                  onClick={handleStartEditingEnterprise}
-                  className="w-full !py-1.5 text-xs"
-                >
-                  <Edit3 size={12} />
-                  Modifier
-                </Button>
+                
+                <div>
+                  <Button
+                    type="secondary"
+                    onClick={handleStartEditingEnterprise}
+                    className="w-full"
+                  >
+                    <Edit3 size={16} />
+                    Modifier
+                  </Button>
+                </div>
+                
                 {saveSuccess && (
-                  <div className="p-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1">
-                      <Check size={10} />
-                      Sauvegardé !
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                      <Check size={16} />
+                      Company name saved successfully!
                     </p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={tempEnterpriseName}
-                  onChange={(e) => setTempEnterpriseName(e.target.value)}
-                  placeholder="Nom de l'entreprise"
-                  className="w-full px-2 py-1.5 text-xs border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                  disabled={isSavingEnterprise}
-                  autoFocus
-                />
-                <div className="flex gap-1">
+              // Edit Mode
+              <div className="space-y-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={tempEnterpriseName}
+                    onChange={(e) => setTempEnterpriseName(e.target.value)}
+                    placeholder="Enter enterprise name"
+                    className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                    disabled={isSavingEnterprise}
+                    autoFocus
+                  />
+                  {isSavingEnterprise && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
                   <Button
                     type="primary"
                     onClick={handleSaveEnterpriseName}
                     disabled={isSavingEnterprise || !tempEnterpriseName.trim()}
-                    className="flex-1 !py-1.5 text-xs"
+                    className="flex-1"
                   >
-                    <Save size={10} />
-                    {isSavingEnterprise ? 'Sauvegarde...' : 'Sauvegarder'}
+                    <Save size={16} />
+                    {isSavingEnterprise ? 'Saving...' : 'Save'}
                   </Button>
                   <Button
                     type="secondary"
                     onClick={handleCancelEditingEnterprise}
                     disabled={isSavingEnterprise}
-                    className="flex-1 !py-1.5 text-xs"
+                    className="flex-1"
                   >
-                    <X size={10} />
-                    Annuler
+                    <X size={16} />
+                    Cancel
                   </Button>
                 </div>
               </div>
             )}
-          </Card>
-
-          {/* Currency Settings */}
-          <Card className="group hover:shadow-xl transition-all duration-300 !p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md">
-                <Euro className="w-3 h-3 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-800 dark:text-white">Devise</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Affichage des montants</p>
-              </div>
+            
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                💡 This name will appear on your PDF receipts and Excel exports
+              </p>
             </div>
+          </div>
+
+          {/* Currency Settings Section */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Preferred Currency
+            </label>
             
             {!isEditingCurrency ? (
-              <div className="space-y-2">
-                <div className="p-2 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border-l-4 border-green-500">
-                  <p className="text-xs font-semibold text-gray-800 dark:text-white">
-                    {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
-                  </p>
+              // Display Mode
+              <div className="space-y-3">
+                <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center gap-3">
+                    <Euro className="w-5 h-5 text-gray-500" />
+                    <span className="text-gray-800 dark:text-white font-medium">
+                      {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
+                    </span>
+                  </div>
                 </div>
-                <Button
-                  type="primary"
-                  onClick={handleStartEditingCurrency}
-                  className="w-full !py-1.5 text-xs"
-                >
-                  <Edit3 size={12} />
-                  Modifier
-                </Button>
+                
+                <div>
+                  <Button
+                    type="secondary"
+                    onClick={handleStartEditingCurrency}
+                    className="w-full"
+                  >
+                    <Edit3 size={16} />
+                    Modifier
+                  </Button>
+                </div>
+                
                 {currencySaveSuccess && (
-                  <div className="p-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1">
-                      <Check size={10} />
-                      Devise sauvegardée !
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                      <Check size={16} />
+                      Currency saved successfully!
                     </p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="space-y-2">
-                <select
-                  value={tempCurrency}
-                  onChange={(e) => setTempCurrency(e.target.value)}
-                  className="w-full px-2 py-1.5 text-xs border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                  disabled={isSavingCurrency}
-                  autoFocus
-                >
-                  {SUPPORTED_CURRENCIES.map((currency) => (
-                    <option key={currency.code} value={currency.code}>
-                      {currency.name} ({currency.symbol})
-                    </option>
-                  ))}
-                </select>
-                <div className="flex gap-1">
+              // Edit Mode
+              <div className="space-y-3">
+                <div className="relative">
+                  <select
+                    value={tempCurrency}
+                    onChange={(e) => setTempCurrency(e.target.value)}
+                    className="w-full px-4 py-3 border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                    disabled={isSavingCurrency}
+                    autoFocus
+                  >
+                    {SUPPORTED_CURRENCIES.map((currency) => (
+                      <option key={currency.code} value={currency.code}>
+                        {currency.name} ({currency.symbol})
+                      </option>
+                    ))}
+                  </select>
+                  {isSavingCurrency && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
                   <Button
                     type="primary"
                     onClick={handleSaveCurrency}
                     disabled={isSavingCurrency}
-                    className="flex-1 !py-1.5 text-xs"
+                    className="flex-1"
                   >
-                    <Save size={10} />
-                    {isSavingCurrency ? 'Sauvegarde...' : 'Sauvegarder'}
+                    <Save size={16} />
+                    {isSavingCurrency ? 'Saving...' : 'Save'}
                   </Button>
                   <Button
                     type="secondary"
                     onClick={handleCancelEditingCurrency}
                     disabled={isSavingCurrency}
-                    className="flex-1 !py-1.5 text-xs"
+                    className="flex-1"
                   >
-                    <X size={10} />
-                    Annuler
+                    <X size={16} />
+                    Cancel
                   </Button>
                 </div>
               </div>
             )}
-          </Card>
-
-          {/* Data Management */}
-          <Card className="hover:shadow-xl transition-all duration-300 !p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow-md">
-                <Database className="w-3 h-3 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-800 dark:text-white">Données</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Export/Import</p>
-              </div>
-            </div>
             
-            <div className="grid grid-cols-2 gap-1 mb-3">
-              <Button 
-                type="primary" 
-                className="w-full justify-center !py-1.5 text-xs"
-                onClick={handleExportData}
-              >
-                {isPremium ? (
-                  <>
-                    <Download size={10} />
-                    JSON
-                  </>
-                ) : (
-                  <>
-                    <Crown size={10} />
-                    Premium
-                  </>
-                )}
-              </Button>
-
-              <Button 
-                type="primary" 
-                className="w-full justify-center !py-1.5 text-xs"
-                onClick={handleExportExcel}
-              >
-                {isPremium ? (
-                  <>
-                    <FileSpreadsheet size={10} />
-                    Excel
-                  </>
-                ) : (
-                  <>
-                    <Crown size={10} />
-                    Premium
-                  </>
-                )}
-              </Button>
-              
-              <label className="block">
-                <Button 
-                  type="secondary" 
-                  className="w-full justify-center !py-1.5 text-xs"
-                  onClick={() => {
-                    if (!isPremium) {
-                      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-                        redirectToCheckout('premium_access');
-                      }
-                      return;
-                    }
-                    document.getElementById('file-input')?.click();
-                  }}
-                >
-                  {isPremium ? (
-                    <>
-                      <Upload size={10} />
-                      Import
-                    </>
-                  ) : (
-                    <>
-                      <Crown size={10} />
-                      Premium
-                    </>
-                  )}
-                </Button>
-                <input 
-                  id="file-input"
-                  type="file" 
-                  accept=".json" 
-                  className="hidden" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleImportData(file);
-                    }
-                  }}
-                />
-              </label>
-
-              <Button 
-                type="danger" 
-                className="w-full justify-center !py-1.5 text-xs"
-                onClick={handleClearData}
-              >
-                <AlertTriangle size={10} />
-                Supprimer
-              </Button>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                💡 This currency will be used throughout the application
+              </p>
             </div>
-            
-            {!isPremium && (
-              <div className="p-2 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center gap-1 mb-1">
-                  <Crown size={12} className="text-yellow-600" />
-                  <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200">
-                    Premium requis
-                  </p>
-                </div>
-                <Button
-                  type="primary"
-                  onClick={() => redirectToCheckout('premium_access')}
-                  className="w-full !py-1.5 text-xs bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-                >
-                  <Crown size={10} />
-                  Passer à Premium
-                </Button>
-              </div>
-            )}
-          </Card>
-        </div>
+          </div>
+        </Card>
 
-        {/* Middle Column - Categories */}
-        <Card className="hover:shadow-xl transition-all duration-300 !p-4 overflow-hidden flex flex-col">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md">
-              <Palette className="w-3 h-3 text-white" />
+        {/* Categories Management Card */}
+        <Card className="hover:shadow-xl transition-all duration-300 lg:col-span-2 xl:col-span-1">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg">
+              <Palette className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-gray-800 dark:text-white">Catégories</h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{categories.length} configurées</p>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Catégories</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{categories.length} configurées</p>
             </div>
           </div>
           
           {/* Add Category Form */}
-          <div className="mb-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
-            <div className="space-y-2">
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800">
+            <div className="space-y-3">
               <input
                 type="text"
                 placeholder="Nom de la catégorie"
                 value={newCategory.name}
                 onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                className="w-full px-2 py-1.5 text-xs border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+                className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
               />
               
-              <div className="flex gap-1">
+              <div className="flex gap-2">
                 <select
                   value={newCategory.type}
                   onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
-                  className="flex-1 px-2 py-1.5 text-xs border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+                  className="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
                 >
                   <option value="expense">💸 Dépense</option>
                   <option value="income">💰 Revenu</option>
@@ -733,18 +708,18 @@ const SettingsPage: React.FC = () => {
                 
                 <div className="relative">
                   <button 
-                    className="w-8 h-8 rounded-lg border border-purple-300 dark:border-purple-500 focus:outline-none hover:scale-110 transition-all shadow-md"
+                    className="w-10 h-10 rounded-lg border border-purple-300 dark:border-purple-500 focus:outline-none hover:scale-110 transition-all shadow-md"
                     style={{ backgroundColor: newCategory.color }}
                     onClick={() => setShowColorPicker(!showColorPicker)}
                   ></button>
                   
                   {showColorPicker && (
-                    <div className="absolute right-0 mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700 w-40">
-                      <div className="grid grid-cols-5 gap-1">
+                    <div className="absolute right-0 mt-2 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-20 border border-gray-200 dark:border-gray-700 w-64">
+                      <div className="grid grid-cols-5 gap-2">
                         {colorOptions.map((color) => (
                           <button
                             key={color}
-                            className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-all shadow-sm"
+                            className="w-8 h-8 rounded-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-all shadow-sm"
                             style={{ backgroundColor: color }}
                             onClick={() => {
                               setNewCategory({ ...newCategory, color });
@@ -761,53 +736,116 @@ const SettingsPage: React.FC = () => {
                   type="primary" 
                   onClick={handleAddCategory}
                   disabled={!newCategory.name.trim()}
-                  className="!px-2 !py-1.5"
+                  className="!px-3"
                 >
-                  <Plus size={10} />
+                  <Plus size={16} />
                 </Button>
               </div>
             </div>
           </div>
           
-          {/* Categories List - Scrollable */}
-          <div className="flex-1 overflow-y-auto space-y-3">
+          {/* Categories List */}
+          <div className="space-y-4 max-h-80 overflow-y-auto">
             {/* Income Categories */}
             <div>
-              <div className="flex items-center gap-1 mb-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <h4 className="text-xs font-semibold text-gray-800 dark:text-white">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <h4 className="text-sm font-bold text-gray-800 dark:text-white">
                   Revenus ({categories.filter(c => c.type === 'income').length})
                 </h4>
               </div>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
+              <div className="space-y-2">
                 {categories
                   .filter((category) => category.type === 'income')
                   .map((category) => (
                     <div 
                       key={category.id} 
-                      className="flex items-center justify-between p-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group"
+                      className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group"
                     >
-                      <div className="flex items-center gap-1">
-                        <div 
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                          {category.name}
-                        </span>
-                      </div>
-                      <Button 
-                        type="danger" 
-                        className="!p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteCategory(category.id)}
-                      >
-                        <Trash2 size={8} />
-                      </Button>
+                      {editingCategory === category.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="relative">
+                            <button 
+                              className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600"
+                              style={{ backgroundColor: editCategoryData.color }}
+                              onClick={() => setShowEditColorPicker(!showEditColorPicker)}
+                            ></button>
+                            {showEditColorPicker && (
+                              <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
+                                <div className="grid grid-cols-5 gap-1">
+                                  {colorOptions.map((color) => (
+                                    <button
+                                      key={color}
+                                      className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600"
+                                      style={{ backgroundColor: color }}
+                                      onClick={() => {
+                                        setEditCategoryData({ ...editCategoryData, color });
+                                        setShowEditColorPicker(false);
+                                      }}
+                                    ></button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={editCategoryData.name}
+                            onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                            className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button 
+                              type="primary" 
+                              className="!p-1"
+                              onClick={() => handleSaveCategory(category.id, 'income')}
+                            >
+                              <Check size={12} />
+                            </Button>
+                            <Button 
+                              type="secondary" 
+                              className="!p-1"
+                              onClick={handleCancelEditCategory}
+                            >
+                              <X size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full shadow-md"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                              {category.name}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              type="secondary" 
+                              className="!p-1.5"
+                              onClick={() => handleStartEditCategory(category)}
+                            >
+                              <Edit3 size={12} />
+                            </Button>
+                            <Button 
+                              type="danger" 
+                              className="!p-1.5"
+                              onClick={() => deleteCategory(category.id)}
+                            >
+                              <Trash2 size={12} />
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 {categories.filter(c => c.type === 'income').length === 0 && (
-                  <div className="text-center py-2 text-gray-500 dark:text-gray-400">
-                    <p className="text-xs">Aucune catégorie de revenu</p>
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <p className="text-sm">Aucune catégorie de revenu</p>
                   </div>
                 )}
               </div>
@@ -815,41 +853,104 @@ const SettingsPage: React.FC = () => {
             
             {/* Expense Categories */}
             <div>
-              <div className="flex items-center gap-1 mb-1">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <h4 className="text-xs font-semibold text-gray-800 dark:text-white">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <h4 className="text-sm font-bold text-gray-800 dark:text-white">
                   Dépenses ({categories.filter(c => c.type === 'expense').length})
                 </h4>
               </div>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
+              <div className="space-y-2">
                 {categories
                   .filter((category) => category.type === 'expense')
                   .map((category) => (
                     <div 
                       key={category.id} 
-                      className="flex items-center justify-between p-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all group"
+                      className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all group"
                     >
-                      <div className="flex items-center gap-1">
-                        <div 
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                          {category.name}
-                        </span>
-                      </div>
-                      <Button 
-                        type="danger" 
-                        className="!p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteCategory(category.id)}
-                      >
-                        <Trash2 size={8} />
-                      </Button>
+                      {editingCategory === category.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="relative">
+                            <button 
+                              className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600"
+                              style={{ backgroundColor: editCategoryData.color }}
+                              onClick={() => setShowEditColorPicker(!showEditColorPicker)}
+                            ></button>
+                            {showEditColorPicker && (
+                              <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
+                                <div className="grid grid-cols-5 gap-1">
+                                  {colorOptions.map((color) => (
+                                    <button
+                                      key={color}
+                                      className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600"
+                                      style={{ backgroundColor: color }}
+                                      onClick={() => {
+                                        setEditCategoryData({ ...editCategoryData, color });
+                                        setShowEditColorPicker(false);
+                                      }}
+                                    ></button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={editCategoryData.name}
+                            onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                            className="flex-1 px-2 py-1 text-sm border border-red-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button 
+                              type="primary" 
+                              className="!p-1"
+                              onClick={() => handleSaveCategory(category.id, 'expense')}
+                            >
+                              <Check size={12} />
+                            </Button>
+                            <Button 
+                              type="secondary" 
+                              className="!p-1"
+                              onClick={handleCancelEditCategory}
+                            >
+                              <X size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full shadow-md"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                              {category.name}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              type="secondary" 
+                              className="!p-1.5"
+                              onClick={() => handleStartEditCategory(category)}
+                            >
+                              <Edit3 size={12} />
+                            </Button>
+                            <Button 
+                              type="danger" 
+                              className="!p-1.5"
+                              onClick={() => deleteCategory(category.id)}
+                            >
+                              <Trash2 size={12} />
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 {categories.filter(c => c.type === 'expense').length === 0 && (
-                  <div className="text-center py-2 text-gray-500 dark:text-gray-400">
-                    <p className="text-xs">Aucune catégorie de dépense</p>
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <p className="text-sm">Aucune catégorie de dépense</p>
                   </div>
                 )}
               </div>
@@ -857,44 +958,41 @@ const SettingsPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Right Column - Clients (Collapsible) */}
-        <Card className="hover:shadow-xl transition-all duration-300 !p-4 overflow-hidden flex flex-col">
-          {/* Header with Toggle Button */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-md">
-                <Users className="w-3 h-3 text-white" />
+        {/* Client Management Card */}
+        <Card className="hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg">
+                <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-800 dark:text-white">Clients</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{clients.length} enregistrés</p>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Clients</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{clients.length} enregistrés</p>
               </div>
             </div>
             
-            {/* Toggle Button */}
             <Button
               type="secondary"
               onClick={() => setIsClientListOpen(!isClientListOpen)}
-              className="!p-1.5 !min-h-0 hover:bg-orange-100 dark:hover:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+              className="!p-2 hover:bg-orange-100 dark:hover:bg-orange-900/20 border-orange-200 dark:border-orange-800"
             >
               {isClientListOpen ? (
-                <ChevronUp size={14} className="text-orange-600" />
+                <ChevronUp size={16} className="text-orange-600" />
               ) : (
-                <ChevronDown size={14} className="text-orange-600" />
+                <ChevronDown size={16} className="text-orange-600" />
               )}
             </Button>
           </div>
           
-          {/* Summary when collapsed */}
           {!isClientListOpen && (
-            <div className="p-3 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 bg-orange-500 rounded-lg">
-                    <Users className="w-3 h-3 text-white" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-500 rounded-lg">
+                    <Users className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-orange-800 dark:text-orange-200">
+                    <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">
                       {clients.length} clients configurés
                     </p>
                     <p className="text-xs text-orange-600 dark:text-orange-300">
@@ -902,66 +1000,63 @@ const SettingsPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-orange-500" />
+                <ChevronRight size={18} className="text-orange-500" />
               </div>
             </div>
           )}
           
-          {/* Expanded Content */}
           {isClientListOpen && (
             <>
-              {/* Add Client Form */}
-              <div className="mb-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                <div className="flex gap-1">
+              <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="Nom du client"
                     value={newClient}
                     onChange={(e) => setNewClient(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
-                    className="flex-1 px-2 py-1.5 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+                    className="flex-1 px-3 py-2 text-sm border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
                   />
                   <Button 
                     type="primary" 
                     onClick={handleAddClient}
                     disabled={!newClient.trim()}
-                    className="!px-2 !py-1.5"
+                    className="!px-3 !py-2"
                   >
-                    <Plus size={10} />
+                    <Plus size={16} />
                   </Button>
                 </div>
               </div>
               
-              {/* Clients List - Scrollable */}
-              <div className="flex-1 overflow-y-auto space-y-1">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {clients.map((client) => (
                   <div 
                     key={client.id} 
-                    className="flex items-center justify-between p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all group"
+                    className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all group"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="p-0.5 bg-orange-500 rounded-lg">
-                        <Users className="w-2 h-2 text-white" />
+                      <div className="p-1 bg-orange-500 rounded-lg">
+                        <Users className="w-3 h-3 text-white" />
                       </div>
-                      <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {client.name}
                       </span>
                     </div>
                     <Button 
                       type="danger" 
-                      className="!p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="!p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => deleteClient(client.id)}
                     >
-                      <Trash2 size={8} />
+                      <Trash2 size={12} />
                     </Button>
                   </div>
                 ))}
                 {clients.length === 0 && (
-                  <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                    <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Users className="w-4 h-4 text-orange-400" />
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Users className="w-6 h-6 text-orange-400" />
                     </div>
-                    <p className="text-xs font-medium mb-1">Aucun client</p>
+                    <p className="text-sm font-medium mb-1">Aucun client</p>
                     <p className="text-xs">Ajoutez des clients pour les sélectionner rapidement</p>
                   </div>
                 )}
@@ -969,6 +1064,138 @@ const SettingsPage: React.FC = () => {
             </>
           )}
         </Card>
+        
+        {/* Data Management Card */}
+        <Card className="hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl shadow-lg">
+              <Database className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Gestion des Données</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Export, Import & Sauvegarde</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <Button 
+              type="primary" 
+              className="w-full justify-center"
+              onClick={handleExportData}
+            >
+              {isPremium ? (
+                <>
+                  <Download size={16} />
+                  JSON
+                </>
+              ) : (
+                <>
+                  <Crown size={16} />
+                  Premium
+                </>
+              )}
+            </Button>
+
+            <Button 
+              type="primary" 
+              className="w-full justify-center"
+              onClick={handleExportExcel}
+            >
+              {isPremium ? (
+                <>
+                  <FileSpreadsheet size={16} />
+                  Excel
+                </>
+              ) : (
+                <>
+                  <Crown size={16} />
+                  Premium
+                </>
+              )}
+            </Button>
+            
+            <label className="block">
+              <Button 
+                type="secondary" 
+                className="w-full justify-center"
+                onClick={() => {
+                  if (!isPremium) {
+                    if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
+                      redirectToCheckout('premium_access');
+                    }
+                    return;
+                  }
+                  document.getElementById('file-input')?.click();
+                }}
+              >
+                {isPremium ? (
+                  <>
+                    <Upload size={16} />
+                    Import
+                  </>
+                ) : (
+                  <>
+                    <Crown size={16} />
+                    Premium
+                  </>
+                )}
+              </Button>
+              <input 
+                id="file-input"
+                type="file" 
+                accept=".json" 
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleImportData(file);
+                  }
+                }}
+              />
+            </label>
+
+            <Button 
+              type="danger" 
+              className="w-full justify-center"
+              onClick={handleClearData}
+            >
+              <AlertTriangle size={16} />
+              Supprimer
+            </Button>
+          </div>
+          
+          {!isPremium && (
+            <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown size={18} className="text-yellow-600" />
+                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                  Fonctionnalités Premium
+                </p>
+              </div>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+                Débloquez l'export/import de données avec Premium
+              </p>
+              <Button
+                type="primary"
+                onClick={() => redirectToCheckout('premium_access')}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+              >
+                <Crown size={16} />
+                Passer à Premium
+              </Button>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Bottom Info */}
+      <div className="mt-12 text-center">
+        <div className="inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Tous les changements sont automatiquement sauvegardés dans le cloud
+          </span>
+        </div>
       </div>
     </div>
   );
