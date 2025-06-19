@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro, DollarSign } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -66,6 +66,10 @@ const SettingsPage: React.FC = () => {
     localStorage.setItem('preferredCurrency', currency);
     // Force a page refresh to update all currency displays
     window.location.reload();
+  };
+
+  const getCurrentCurrencyInfo = () => {
+    return SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency) || SUPPORTED_CURRENCIES[0];
   };
 
   const handleAddCategory = () => {
@@ -341,31 +345,97 @@ const SettingsPage: React.FC = () => {
       </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* General Settings Card */}
+        {/* Currency Settings Card */}
         <Card>
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
-            <Euro className="w-5 h-5" />
-            {intl.formatMessage({ id: 'settings.general' })}
+            <DollarSign className="w-5 h-5" />
+            Currency Settings
           </h2>
           
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {intl.formatMessage({ id: 'settings.currency' })}
-            </label>
-            <select
-              value={selectedCurrency}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px]"
-            >
-              {SUPPORTED_CURRENCIES.map((currency) => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.symbol} {currency.name} ({currency.code})
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {intl.formatMessage({ id: 'settings.currency.description' })}
-            </p>
+          <div className="space-y-4">
+            {/* Current Currency Display */}
+            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900 rounded-full flex items-center justify-center">
+                    <span className="text-lg font-bold text-teal-600 dark:text-teal-400">
+                      {getCurrentCurrencyInfo().symbol}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {getCurrentCurrencyInfo().name}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {getCurrentCurrencyInfo().code}
+                    </p>
+                  </div>
+                </div>
+                <Badge type="neutral" className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
+                  Current
+                </Badge>
+              </div>
+            </div>
+
+            {/* Currency Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {intl.formatMessage({ id: 'settings.currency' })}
+              </label>
+              <select
+                value={selectedCurrency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px] text-base"
+              >
+                {SUPPORTED_CURRENCIES.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.symbol} {currency.name} ({currency.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Currency Info */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">ℹ</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                    Currency Information
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {intl.formatMessage({ id: 'settings.currency.description' })}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                    Note: Changing currency will refresh the page to update all displays.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Supported Currencies Preview */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Supported Currencies ({SUPPORTED_CURRENCIES.length})
+              </p>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {SUPPORTED_CURRENCIES.map((currency) => (
+                  <div 
+                    key={currency.code}
+                    className={`flex items-center gap-2 p-2 rounded-md text-sm ${
+                      currency.code === selectedCurrency 
+                        ? 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200' 
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <span className="font-medium">{currency.symbol}</span>
+                    <span className="truncate">{currency.code}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </Card>
 
