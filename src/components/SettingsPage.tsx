@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro, Settings, Palette, Database, ChevronRight, Info } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileSpreadsheet, AlertTriangle, Crown, Building2, Users, Save, Edit3, Check, X, Euro, Settings, Palette, Database, ChevronRight, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -41,6 +41,7 @@ const SettingsPage: React.FC = () => {
   const [newClient, setNewClient] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('EUR');
+  const [isClientListOpen, setIsClientListOpen] = useState(false); // New state for client list visibility
   
   // Enterprise name state management
   const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
@@ -856,74 +857,117 @@ const SettingsPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Right Column - Clients */}
+        {/* Right Column - Clients (Collapsible) */}
         <Card className="hover:shadow-xl transition-all duration-300 !p-4 overflow-hidden flex flex-col">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-md">
-              <Users className="w-3 h-3 text-white" />
+          {/* Header with Toggle Button */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-md">
+                <Users className="w-3 h-3 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-white">Clients</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{clients.length} enregistrés</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-gray-800 dark:text-white">Clients</h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{clients.length} enregistrés</p>
-            </div>
+            
+            {/* Toggle Button */}
+            <Button
+              type="secondary"
+              onClick={() => setIsClientListOpen(!isClientListOpen)}
+              className="!p-1.5 !min-h-0 hover:bg-orange-100 dark:hover:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+            >
+              {isClientListOpen ? (
+                <ChevronUp size={14} className="text-orange-600" />
+              ) : (
+                <ChevronDown size={14} className="text-orange-600" />
+              )}
+            </Button>
           </div>
           
-          {/* Add Client Form */}
-          <div className="mb-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800">
-            <div className="flex gap-1">
-              <input
-                type="text"
-                placeholder="Nom du client"
-                value={newClient}
-                onChange={(e) => setNewClient(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
-                className="flex-1 px-2 py-1.5 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
-              />
-              <Button 
-                type="primary" 
-                onClick={handleAddClient}
-                disabled={!newClient.trim()}
-                className="!px-2 !py-1.5"
-              >
-                <Plus size={10} />
-              </Button>
-            </div>
-          </div>
-          
-          {/* Clients List - Scrollable */}
-          <div className="flex-1 overflow-y-auto space-y-1">
-            {clients.map((client) => (
-              <div 
-                key={client.id} 
-                className="flex items-center justify-between p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all group"
-              >
+          {/* Summary when collapsed */}
+          {!isClientListOpen && (
+            <div className="p-3 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="p-0.5 bg-orange-500 rounded-lg">
-                    <Users className="w-2 h-2 text-white" />
+                  <div className="p-1 bg-orange-500 rounded-lg">
+                    <Users className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                    {client.name}
-                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-orange-800 dark:text-orange-200">
+                      {clients.length} clients configurés
+                    </p>
+                    <p className="text-xs text-orange-600 dark:text-orange-300">
+                      Cliquez pour gérer
+                    </p>
+                  </div>
                 </div>
-                <Button 
-                  type="danger" 
-                  className="!p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => deleteClient(client.id)}
-                >
-                  <Trash2 size={8} />
-                </Button>
+                <ChevronRight size={16} className="text-orange-500" />
               </div>
-            ))}
-            {clients.length === 0 && (
-              <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Users className="w-4 h-4 text-orange-400" />
+            </div>
+          )}
+          
+          {/* Expanded Content */}
+          {isClientListOpen && (
+            <>
+              {/* Add Client Form */}
+              <div className="mb-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    placeholder="Nom du client"
+                    value={newClient}
+                    onChange={(e) => setNewClient(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
+                    className="flex-1 px-2 py-1.5 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+                  />
+                  <Button 
+                    type="primary" 
+                    onClick={handleAddClient}
+                    disabled={!newClient.trim()}
+                    className="!px-2 !py-1.5"
+                  >
+                    <Plus size={10} />
+                  </Button>
                 </div>
-                <p className="text-xs font-medium mb-1">Aucun client</p>
-                <p className="text-xs">Ajoutez des clients pour les sélectionner rapidement</p>
               </div>
-            )}
-          </div>
+              
+              {/* Clients List - Scrollable */}
+              <div className="flex-1 overflow-y-auto space-y-1">
+                {clients.map((client) => (
+                  <div 
+                    key={client.id} 
+                    className="flex items-center justify-between p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="p-0.5 bg-orange-500 rounded-lg">
+                        <Users className="w-2 h-2 text-white" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                        {client.name}
+                      </span>
+                    </div>
+                    <Button 
+                      type="danger" 
+                      className="!p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => deleteClient(client.id)}
+                    >
+                      <Trash2 size={8} />
+                    </Button>
+                  </div>
+                ))}
+                {clients.length === 0 && (
+                  <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                    <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-4 h-4 text-orange-400" />
+                    </div>
+                    <p className="text-xs font-medium mb-1">Aucun client</p>
+                    <p className="text-xs">Ajoutez des clients pour les sélectionner rapidement</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </Card>
       </div>
     </div>
