@@ -398,23 +398,22 @@ const SettingsPage: React.FC = () => {
               // Display Mode
               <div className="space-y-3">
                 <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-gray-500" />
-                    <span className="text-gray-800 dark:text-white font-medium">
-                      {enterpriseName || 'No company name set'}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-800 dark:text-white font-medium">
+                        {enterpriseName || 'No company name set'}
+                      </span>
+                    </div>
+                    <Button
+                      type="secondary"
+                      onClick={handleStartEditingEnterprise}
+                      className="!p-2"
+                    >
+                      <Edit3 size={16} />
+                      Modifier
+                    </Button>
                   </div>
-                </div>
-                
-                <div>
-                  <Button
-                    type="secondary"
-                    onClick={handleStartEditingEnterprise}
-                    className="w-full"
-                  >
-                    <Edit3 size={16} />
-                    Modifier
-                  </Button>
                 </div>
                 
                 {saveSuccess && (
@@ -486,23 +485,22 @@ const SettingsPage: React.FC = () => {
               // Display Mode
               <div className="space-y-3">
                 <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center gap-3">
-                    <Euro className="w-5 h-5 text-gray-500" />
-                    <span className="text-gray-800 dark:text-white font-medium">
-                      {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Euro className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-800 dark:text-white font-medium">
+                        {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
+                      </span>
+                    </div>
+                    <Button
+                      type="secondary"
+                      onClick={handleStartEditingCurrency}
+                      className="!p-2"
+                    >
+                      <Edit3 size={16} />
+                      Modifier
+                    </Button>
                   </div>
-                </div>
-                
-                <div>
-                  <Button
-                    type="secondary"
-                    onClick={handleStartEditingCurrency}
-                    className="w-full"
-                  >
-                    <Edit3 size={16} />
-                    Modifier
-                  </Button>
                 </div>
                 
                 {currencySaveSuccess && (
