@@ -396,24 +396,22 @@ const SettingsPage: React.FC = () => {
               // Display Mode
               <div className="space-y-3">
                 <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-gray-500" />
-                      <span className="text-gray-800 dark:text-white font-medium">
-                        {enterpriseName || 'No company name set'}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-5 h-5 text-gray-500" />
+                    <span className="text-gray-800 dark:text-white font-medium">
+                      {enterpriseName || 'No company name set'}
+                    </span>
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div>
                   <Button
                     type="secondary"
                     onClick={handleStartEditingEnterprise}
-                    className="flex-1"
+                    className="w-full"
                   >
                     <Edit3 size={16} />
-                    Modify
+                    Modifier
                   </Button>
                 </div>
                 
@@ -486,24 +484,22 @@ const SettingsPage: React.FC = () => {
               // Display Mode
               <div className="space-y-3">
                 <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Euro className="w-5 h-5 text-gray-500" />
-                      <span className="text-gray-800 dark:text-white font-medium">
-                        {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <Euro className="w-5 h-5 text-gray-500" />
+                    <span className="text-gray-800 dark:text-white font-medium">
+                      {getCurrentCurrencyInfo().name} ({getCurrentCurrencyInfo().symbol})
+                    </span>
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div>
                   <Button
                     type="secondary"
                     onClick={handleStartEditingCurrency}
-                    className="flex-1"
+                    className="w-full"
                   >
                     <Edit3 size={16} />
-                    Modify
+                    Modifier
                   </Button>
                 </div>
                 
