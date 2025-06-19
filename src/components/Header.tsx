@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Moon, Sun, LogOut, Languages, Crown } from 'lucide-react';
+import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useIntl } from 'react-intl';
@@ -13,10 +13,12 @@ const Header: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { signOut, isPremium } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { signOut, isPremium, user } = useAuth();
   const { language, setLanguage } = useLanguage();
   const intl = useIntl();
   const navigate = useNavigate();
+  const profileRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -26,6 +28,20 @@ const Header: React.FC = () => {
       setDarkMode(true);
       document.documentElement.classList.add('dark');
     }
+  }, []);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
   
   const toggleTheme = () => {
@@ -47,6 +63,7 @@ const Header: React.FC = () => {
     if (isLoggingOut) return; // Prevent multiple clicks
     
     setIsLoggingOut(true);
+    setIsProfileOpen(false); // Close dropdown
     try {
       await signOut();
       // Navigation will be handled by AuthContext since user will become null
@@ -54,6 +71,13 @@ const Header: React.FC = () => {
       console.error('Error logging out:', error);
       setIsLoggingOut(false);
     }
+  };
+
+  const getDisplayName = () => {
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
   };
 
   return (
@@ -120,14 +144,35 @@ const Header: React.FC = () => {
               <Plus size={16} />
               {intl.formatMessage({ id: 'action.addTransaction' })}
             </Button>
-            <Button 
-              type="secondary"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="!px-2"
-            >
-              <LogOut size={16} />
-            </Button>
+            
+            {/* Mobile Profile Dropdown */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center space-x-1 px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <User size={16} className="text-gray-600 dark:text-gray-300" />
+              </button>
+              
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                  <div className="py-1">
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 disabled:opacity-50"
+                    >
+                      <LogOut size={16} />
+                      <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -192,14 +237,39 @@ const Header: React.FC = () => {
               {intl.formatMessage({ id: 'action.addTransaction' })}
             </Button>
 
-            <Button 
-              type="secondary"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-            >
-              <LogOut size={18} />
-              {intl.formatMessage({ id: 'action.logout' })}
-            </Button>
+            {/* Desktop Profile Dropdown */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <User size={18} className="text-gray-600 dark:text-gray-300" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Account</span>
+                <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                  <div className="py-1">
+                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {isPremium ? 'Premium Member' : 'Free Account'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 disabled:opacity-50"
+                    >
+                      <LogOut size={16} />
+                      <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
