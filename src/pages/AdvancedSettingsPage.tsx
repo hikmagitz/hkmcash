@@ -14,7 +14,9 @@ import {
   Sparkles,
   Globe,
   Briefcase,
-  Tag
+  Tag,
+  Zap,
+  Star
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIntl } from 'react-intl';
@@ -34,17 +36,18 @@ const AdvancedSettingsPage: React.FC = () => {
     setEnterpriseName 
   } = useTransactions();
 
+  // Loading states
+  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+
   // Enterprise name state
   const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
   const [tempEnterpriseName, setTempEnterpriseName] = useState('');
-  const [isSavingEnterprise, setIsSavingEnterprise] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Currency state
   const [selectedCurrency, setSelectedCurrency] = useState('EUR');
   const [isEditingCurrency, setIsEditingCurrency] = useState(false);
   const [tempCurrency, setTempCurrency] = useState('EUR');
-  const [isSavingCurrency, setIsSavingCurrency] = useState(false);
   const [currencySaveSuccess, setCurrencySaveSuccess] = useState(false);
 
   // Category state
@@ -67,6 +70,10 @@ const AdvancedSettingsPage: React.FC = () => {
     return SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency) || SUPPORTED_CURRENCIES[0];
   };
 
+  const setLoading = (key: string, value: boolean) => {
+    setIsLoading(prev => ({ ...prev, [key]: value }));
+  };
+
   // Enterprise functions
   const handleStartEditingEnterprise = () => {
     setIsEditingEnterprise(true);
@@ -81,7 +88,7 @@ const AdvancedSettingsPage: React.FC = () => {
   };
 
   const handleSaveEnterpriseName = async () => {
-    setIsSavingEnterprise(true);
+    setLoading('saveEnterprise', true);
     setSaveSuccess(false);
     
     try {
@@ -96,7 +103,7 @@ const AdvancedSettingsPage: React.FC = () => {
       console.error('Error saving enterprise name:', error);
       alert('Failed to save company name. Please try again.');
     } finally {
-      setIsSavingEnterprise(false);
+      setLoading('saveEnterprise', false);
     }
   };
 
@@ -114,7 +121,7 @@ const AdvancedSettingsPage: React.FC = () => {
   };
 
   const handleSaveCurrency = async () => {
-    setIsSavingCurrency(true);
+    setLoading('saveCurrency', true);
     setCurrencySaveSuccess(false);
     
     try {
@@ -131,14 +138,17 @@ const AdvancedSettingsPage: React.FC = () => {
       console.error('Error saving currency:', error);
       alert('Failed to save currency. Please try again.');
     } finally {
-      setIsSavingCurrency(false);
+      setLoading('saveCurrency', false);
     }
   };
 
   // Category functions
-  const handleAddCategory = () => {
-    if (newCategory.name.trim()) {
-      addCategory({
+  const handleAddCategory = async () => {
+    if (!newCategory.name.trim()) return;
+    
+    setLoading('addCategory', true);
+    try {
+      await addCategory({
         name: newCategory.name.trim(),
         type: newCategory.type as 'income' | 'expense',
         color: newCategory.color,
@@ -149,6 +159,25 @@ const AdvancedSettingsPage: React.FC = () => {
         type: 'expense',
         color: '#6366F1',
       });
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Failed to add category. Please try again.');
+    } finally {
+      setLoading('addCategory', false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    
+    setLoading(`deleteCategory-${id}`, true);
+    try {
+      await deleteCategory(id);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category. Please try again.');
+    } finally {
+      setLoading(`deleteCategory-${id}`, false);
     }
   };
 
@@ -175,10 +204,10 @@ const AdvancedSettingsPage: React.FC = () => {
               
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110">
                     <Settings className="w-6 h-6 text-white" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center animate-pulse">
                     <Sparkles className="w-2 h-2 text-white" />
                   </div>
                 </div>
@@ -194,7 +223,7 @@ const AdvancedSettingsPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Synchronisé
@@ -214,7 +243,7 @@ const AdvancedSettingsPage: React.FC = () => {
             
             <div className="relative">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all hover:scale-110">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -229,7 +258,7 @@ const AdvancedSettingsPage: React.FC = () => {
 
               {!isEditingEnterprise ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border-l-4 border-blue-500">
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border-l-4 border-blue-500 hover:shadow-md transition-all">
                     <div className="flex items-center gap-2 mb-2">
                       <Briefcase className="w-4 h-4 text-blue-600" />
                       <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
@@ -270,32 +299,29 @@ const AdvancedSettingsPage: React.FC = () => {
                       type="text"
                       value={tempEnterpriseName}
                       onChange={(e) => setTempEnterpriseName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveEnterpriseName()}
                       placeholder="Entrez le nom de votre entreprise"
-                      className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
-                      disabled={isSavingEnterprise}
+                      className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all hover:border-blue-400"
+                      disabled={isLoading.saveEnterprise}
                       autoFocus
                     />
-                    {isSavingEnterprise && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                      </div>
-                    )}
                   </div>
                   
                   <div className="flex gap-3">
                     <Button
                       type="primary"
                       onClick={handleSaveEnterpriseName}
-                      disabled={isSavingEnterprise || !tempEnterpriseName.trim()}
+                      disabled={!tempEnterpriseName.trim()}
+                      loading={isLoading.saveEnterprise}
                       className="flex-1"
                     >
                       <Save size={18} />
-                      {isSavingEnterprise ? 'Sauvegarde...' : 'Sauvegarder'}
+                      Sauvegarder
                     </Button>
                     <Button
                       type="secondary"
                       onClick={handleCancelEditingEnterprise}
-                      disabled={isSavingEnterprise}
+                      disabled={isLoading.saveEnterprise}
                       className="flex-1"
                     >
                       <X size={18} />
@@ -305,7 +331,7 @@ const AdvancedSettingsPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="mt-6 p-3 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+              <div className="mt-6 p-3 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/50 dark:border-blue-800/50 hover:shadow-sm transition-all">
                 <div className="flex items-start gap-2">
                   <div className="p-1 bg-blue-500 rounded-full mt-0.5">
                     <Check size={10} className="text-white" />
@@ -331,7 +357,7 @@ const AdvancedSettingsPage: React.FC = () => {
             
             <div className="relative">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+                <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all hover:scale-110">
                   <Euro className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -346,7 +372,7 @@ const AdvancedSettingsPage: React.FC = () => {
 
               {!isEditingCurrency ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 rounded-xl border-l-4 border-green-500">
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 rounded-xl border-l-4 border-green-500 hover:shadow-md transition-all">
                     <div className="flex items-center gap-2 mb-2">
                       <Globe className="w-4 h-4 text-green-600" />
                       <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">
@@ -396,8 +422,8 @@ const AdvancedSettingsPage: React.FC = () => {
                     <select
                       value={tempCurrency}
                       onChange={(e) => setTempCurrency(e.target.value)}
-                      className="w-full px-4 py-3 text-lg border-2 border-green-300 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all appearance-none"
-                      disabled={isSavingCurrency}
+                      className="w-full px-4 py-3 text-lg border-2 border-green-300 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all appearance-none hover:border-green-400"
+                      disabled={isLoading.saveCurrency}
                       autoFocus
                     >
                       {SUPPORTED_CURRENCIES.map((currency) => (
@@ -406,27 +432,22 @@ const AdvancedSettingsPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                    {isSavingCurrency && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-500"></div>
-                      </div>
-                    )}
                   </div>
                   
                   <div className="flex gap-3">
                     <Button
                       type="primary"
                       onClick={handleSaveCurrency}
-                      disabled={isSavingCurrency}
+                      loading={isLoading.saveCurrency}
                       className="flex-1"
                     >
                       <Save size={18} />
-                      {isSavingCurrency ? 'Sauvegarde...' : 'Sauvegarder'}
+                      Sauvegarder
                     </Button>
                     <Button
                       type="secondary"
                       onClick={handleCancelEditingCurrency}
-                      disabled={isSavingCurrency}
+                      disabled={isLoading.saveCurrency}
                       className="flex-1"
                     >
                       <X size={18} />
@@ -436,7 +457,7 @@ const AdvancedSettingsPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="mt-6 p-3 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-900/10 dark:to-emerald-900/10 rounded-lg border border-green-200/50 dark:border-green-800/50">
+              <div className="mt-6 p-3 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-900/10 dark:to-emerald-900/10 rounded-lg border border-green-200/50 dark:border-green-800/50 hover:shadow-sm transition-all">
                 <div className="flex items-start gap-2">
                   <div className="p-1 bg-green-500 rounded-full mt-0.5">
                     <Check size={10} className="text-white" />
@@ -462,7 +483,7 @@ const AdvancedSettingsPage: React.FC = () => {
             
             <div className="relative">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all hover:scale-110">
                   <Palette className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -476,7 +497,7 @@ const AdvancedSettingsPage: React.FC = () => {
               </div>
 
               {/* Add Category Form */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
+              <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 hover:shadow-md transition-all">
                 <div className="flex items-center gap-2 mb-3">
                   <Tag className="w-4 h-4 text-purple-600" />
                   <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
@@ -490,14 +511,15 @@ const AdvancedSettingsPage: React.FC = () => {
                     placeholder="Nom de la catégorie"
                     value={newCategory.name}
                     onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                    className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-purple-400"
                   />
                   
                   <div className="flex gap-2">
                     <select
                       value={newCategory.type}
                       onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+                      className="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-purple-400"
                     >
                       <option value="expense">💸 Dépense</option>
                       <option value="income">💰 Revenu</option>
@@ -505,7 +527,7 @@ const AdvancedSettingsPage: React.FC = () => {
                     
                     <div className="relative">
                       <button 
-                        className="w-10 h-10 rounded-lg border-2 border-purple-300 dark:border-purple-500 focus:outline-none hover:scale-110 transition-all shadow-md"
+                        className="w-10 h-10 rounded-lg border-2 border-purple-300 dark:border-purple-500 focus:outline-none hover:scale-110 transition-all shadow-md hover:shadow-lg"
                         style={{ backgroundColor: newCategory.color }}
                         onClick={() => setShowColorPicker(!showColorPicker)}
                       ></button>
@@ -533,6 +555,7 @@ const AdvancedSettingsPage: React.FC = () => {
                       type="primary" 
                       onClick={handleAddCategory}
                       disabled={!newCategory.name.trim()}
+                      loading={isLoading.addCategory}
                       className="!px-3"
                     >
                       <Plus size={18} />
@@ -546,7 +569,7 @@ const AdvancedSettingsPage: React.FC = () => {
                 {/* Income Categories */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                     <h4 className="text-sm font-bold text-gray-800 dark:text-white">
                       Revenus ({categories.filter(c => c.type === 'income').length})
                     </h4>
@@ -557,11 +580,11 @@ const AdvancedSettingsPage: React.FC = () => {
                       .map((category) => (
                         <div 
                           key={category.id} 
-                          className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group"
+                          className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group hover:shadow-md"
                         >
                           <div className="flex items-center gap-3">
                             <div 
-                              className="w-4 h-4 rounded-full shadow-md"
+                              className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
                               style={{ backgroundColor: category.color }}
                             ></div>
                             <span className="font-medium text-gray-800 dark:text-gray-200">
@@ -570,8 +593,10 @@ const AdvancedSettingsPage: React.FC = () => {
                           </div>
                           <Button 
                             type="danger" 
+                            size="sm"
                             className="!p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => deleteCategory(category.id)}
+                            onClick={() => handleDeleteCategory(category.id)}
+                            loading={isLoading[`deleteCategory-${category.id}`]}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -588,7 +613,7 @@ const AdvancedSettingsPage: React.FC = () => {
                 {/* Expense Categories */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                     <h4 className="text-sm font-bold text-gray-800 dark:text-white">
                       Dépenses ({categories.filter(c => c.type === 'expense').length})
                     </h4>
@@ -599,11 +624,11 @@ const AdvancedSettingsPage: React.FC = () => {
                       .map((category) => (
                         <div 
                           key={category.id} 
-                          className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all group"
+                          className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all group hover:shadow-md"
                         >
                           <div className="flex items-center gap-3">
                             <div 
-                              className="w-4 h-4 rounded-full shadow-md"
+                              className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
                               style={{ backgroundColor: category.color }}
                             ></div>
                             <span className="font-medium text-gray-800 dark:text-gray-200">
@@ -612,8 +637,10 @@ const AdvancedSettingsPage: React.FC = () => {
                           </div>
                           <Button 
                             type="danger" 
+                            size="sm"
                             className="!p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => deleteCategory(category.id)}
+                            onClick={() => handleDeleteCategory(category.id)}
+                            loading={isLoading[`deleteCategory-${category.id}`]}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -633,7 +660,7 @@ const AdvancedSettingsPage: React.FC = () => {
 
         {/* Bottom Info Section */}
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800">
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all cursor-pointer">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Tous les changements sont automatiquement sauvegardés
