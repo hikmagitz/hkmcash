@@ -81,23 +81,21 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 py-4 px-4 md:px-6 shadow-sm sticky top-0 z-10 transition-colors">
+    <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md py-4 px-4 md:px-6 shadow-lg border-b border-white/20 dark:border-gray-700/50 sticky top-0 z-10 transition-all">
       <div className="max-w-6xl mx-auto">
         {/* Mobile Layout */}
         <div className="md:hidden">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
-              <img 
-                src="https://raw.githubusercontent.com/hikmagitz/hkmcash/refs/heads/main/ChatGPT%20Image%2027%20mai%202025%2C%2019_24_21.png" 
-                alt="Hikma Cash Logo"
-                className="h-8 w-8 mr-2"
-              />
+              <div className="w-8 h-8 bg-gradient-to-r from-sky-500 to-purple-500 rounded-lg flex items-center justify-center mr-2">
+                <span className="text-white font-bold text-sm">H</span>
+              </div>
               <div className="flex items-center">
-                <h1 className="text-lg font-bold text-gray-800 dark:text-white">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
                   {intl.formatMessage({ id: 'app.title' })}
                 </h1>
                 {isPremium && (
-                  <Badge type="neutral" className="ml-2 bg-yellow-100 text-yellow-800">
+                  <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
                     <Crown size={12} className="mr-1" />
                     {STRIPE_PRODUCTS.premium_access.name}
                   </Badge>
@@ -107,14 +105,14 @@ const Header: React.FC = () => {
             <div className="flex items-center space-x-2">
               <button 
                 onClick={toggleLanguage}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-1.5 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
                 aria-label={intl.formatMessage({ id: 'common.language' })}
               >
                 <Languages className="h-4 w-4 text-gray-600 dark:text-gray-300" />
               </button>
               <button 
                 onClick={toggleTheme}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-1.5 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
                 aria-label="Toggle theme"
               >
                 {darkMode ? (
@@ -130,7 +128,7 @@ const Header: React.FC = () => {
               <Button 
                 type="secondary"
                 onClick={() => navigate('/premium')}
-                className="flex-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                className="flex-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
               >
                 <Crown size={16} />
                 {intl.formatMessage({ id: 'premium.upgrade' })}
@@ -149,22 +147,22 @@ const Header: React.FC = () => {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-1 px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center space-x-1 px-2 py-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
               >
                 <User size={16} className="text-gray-600 dark:text-gray-300" />
               </button>
               
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                <div className="absolute right-0 mt-2 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-20">
                   <div className="py-1">
-                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                    <div className="px-4 py-2 border-b border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                     </div>
                     <button
                       onClick={handleLogout}
                       disabled={isLoggingOut}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 disabled:opacity-50"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
                     >
                       <LogOut size={16} />
                       <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
@@ -179,17 +177,15 @@ const Header: React.FC = () => {
         {/* Desktop Layout */}
         <div className="hidden md:flex justify-between items-center">
           <div className="flex items-center">
-            <img 
-              src="https://raw.githubusercontent.com/hikmagitz/hkmcash/refs/heads/main/ChatGPT%20Image%2027%20mai%202025%2C%2019_24_21.png" 
-              alt="Hikma Cash Logo"
-              className="h-10 w-10 mr-3"
-            />
+            <div className="w-10 h-10 bg-gradient-to-r from-sky-500 to-purple-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+              <span className="text-white font-bold text-lg">H</span>
+            </div>
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
                 {intl.formatMessage({ id: 'app.title' })}
               </h1>
               {isPremium && (
-                <Badge type="neutral" className="ml-2 bg-yellow-100 text-yellow-800">
+                <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0 shadow-md">
                   <Crown size={14} className="mr-1" />
                   {STRIPE_PRODUCTS.premium_access.name}
                 </Badge>
@@ -200,7 +196,7 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             <button 
               onClick={toggleLanguage}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
               aria-label={intl.formatMessage({ id: 'common.language' })}
             >
               <Languages className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -208,7 +204,7 @@ const Header: React.FC = () => {
             
             <button 
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
               aria-label="Toggle theme"
             >
               {darkMode ? (
@@ -222,7 +218,7 @@ const Header: React.FC = () => {
               <Button 
                 type="secondary"
                 onClick={() => navigate('/premium')}
-                className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
               >
                 <Crown size={18} />
                 {intl.formatMessage({ id: 'premium.upgrade' })}
@@ -241,7 +237,7 @@ const Header: React.FC = () => {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
               >
                 <User size={18} className="text-gray-600 dark:text-gray-300" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Account</span>
@@ -249,9 +245,9 @@ const Header: React.FC = () => {
               </button>
               
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                <div className="absolute right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-20">
                   <div className="py-1">
-                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -261,7 +257,7 @@ const Header: React.FC = () => {
                     <button
                       onClick={handleLogout}
                       disabled={isLoggingOut}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 disabled:opacity-50"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
                     >
                       <LogOut size={16} />
                       <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>

@@ -16,7 +16,7 @@ const MainLayout: React.FC = () => {
   const showNavigation = !location.pathname.includes('/success');
 
   return (
-    <div className="flex flex-col min-h-[100dvh] w-full bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="flex flex-col min-h-[100dvh] w-full transition-colors">
       {showNavigation && <Header />}
       
       <main className="flex-1 w-full pb-24 px-4 md:px-6">
@@ -24,42 +24,42 @@ const MainLayout: React.FC = () => {
       </main>
       
       {showNavigation && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 safe-area-inset z-10">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-2xl border-t border-white/20 dark:border-gray-700/50 safe-area-inset z-10">
           <div className="grid grid-cols-3 h-16">
             <button
-              className={`flex flex-col items-center justify-center ${
+              className={`flex flex-col items-center justify-center transition-all duration-200 ${
                 currentPage === 'dashboard'
-                  ? 'text-teal-600 dark:text-teal-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-sky-600 dark:text-sky-400 bg-gradient-to-t from-sky-50 to-transparent dark:from-sky-900/20'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-sky-500 dark:hover:text-sky-400'
               }`}
               onClick={() => handleNavigate('dashboard')}
             >
               <LayoutDashboard size={20} className="mb-1" />
-              <span className="text-xs">Dashboard</span>
+              <span className="text-xs font-medium">Dashboard</span>
             </button>
             
             <button
-              className={`flex flex-col items-center justify-center ${
+              className={`flex flex-col items-center justify-center transition-all duration-200 ${
                 currentPage === 'transactions'
-                  ? 'text-teal-600 dark:text-teal-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-sky-600 dark:text-sky-400 bg-gradient-to-t from-sky-50 to-transparent dark:from-sky-900/20'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-sky-500 dark:hover:text-sky-400'
               }`}
               onClick={() => handleNavigate('transactions')}
             >
               <ListOrdered size={20} className="mb-1" />
-              <span className="text-xs">Transactions</span>
+              <span className="text-xs font-medium">Transactions</span>
             </button>
             
             <button
-              className={`flex flex-col items-center justify-center ${
+              className={`flex flex-col items-center justify-center transition-all duration-200 ${
                 currentPage === 'settings'
-                  ? 'text-teal-600 dark:text-teal-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-sky-600 dark:text-sky-400 bg-gradient-to-t from-sky-50 to-transparent dark:from-sky-900/20'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-sky-500 dark:hover:text-sky-400'
               }`}
               onClick={() => handleNavigate('settings')}
             >
               <Settings size={20} className="mb-1" />
-              <span className="text-xs">Settings</span>
+              <span className="text-xs font-medium">Settings</span>
             </button>
           </div>
         </nav>
