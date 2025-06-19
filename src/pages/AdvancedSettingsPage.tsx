@@ -16,7 +16,8 @@ import {
   Briefcase,
   Tag,
   Zap,
-  Star
+  Star,
+  Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIntl } from 'react-intl';
@@ -32,6 +33,9 @@ const AdvancedSettingsPage: React.FC = () => {
     categories, 
     addCategory, 
     deleteCategory,
+    clients,
+    addClient,
+    deleteClient,
     enterpriseName,
     setEnterpriseName 
   } = useTransactions();
@@ -57,6 +61,17 @@ const AdvancedSettingsPage: React.FC = () => {
     color: '#6366F1',
   });
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryData, setEditCategoryData] = useState({
+    name: '',
+    color: '#6366F1'
+  });
+  const [showEditColorPicker, setShowEditColorPicker] = useState(false);
+
+  // Client state
+  const [newClient, setNewClient] = useState('');
+  const [editingClient, setEditingClient] = useState<string | null>(null);
+  const [editClientName, setEditClientName] = useState('');
 
   // Initialize states
   useEffect(() => {
@@ -167,6 +182,41 @@ const AdvancedSettingsPage: React.FC = () => {
     }
   };
 
+  const handleStartEditCategory = (category: any) => {
+    setEditingCategory(category.id);
+    setEditCategoryData({
+      name: category.name,
+      color: category.color
+    });
+  };
+
+  const handleSaveCategory = async (categoryId: string, type: 'income' | 'expense') => {
+    if (!editCategoryData.name.trim()) return;
+
+    setLoading(`saveCategory-${categoryId}`, true);
+    try {
+      await deleteCategory(categoryId);
+      await addCategory({
+        name: editCategoryData.name.trim(),
+        type: type,
+        color: editCategoryData.color,
+      });
+      
+      setEditingCategory(null);
+      setEditCategoryData({ name: '', color: '#6366F1' });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Failed to update category. Please try again.');
+    } finally {
+      setLoading(`saveCategory-${categoryId}`, false);
+    }
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategory(null);
+    setEditCategoryData({ name: '', color: '#6366F1' });
+  };
+
   const handleDeleteCategory = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
     
@@ -178,6 +228,64 @@ const AdvancedSettingsPage: React.FC = () => {
       alert('Failed to delete category. Please try again.');
     } finally {
       setLoading(`deleteCategory-${id}`, false);
+    }
+  };
+
+  // Client functions
+  const handleAddClient = async () => {
+    if (!newClient.trim()) return;
+    
+    setLoading('addClient', true);
+    try {
+      await addClient({ name: newClient.trim() });
+      setNewClient('');
+    } catch (error) {
+      console.error('Error adding client:', error);
+      alert('Failed to add client. Please try again.');
+    } finally {
+      setLoading('addClient', false);
+    }
+  };
+
+  const handleStartEditClient = (client: any) => {
+    setEditingClient(client.id);
+    setEditClientName(client.name);
+  };
+
+  const handleSaveClient = async (clientId: string) => {
+    if (!editClientName.trim()) return;
+
+    setLoading(`saveClient-${clientId}`, true);
+    try {
+      await deleteClient(clientId);
+      await addClient({ name: editClientName.trim() });
+      
+      setEditingClient(null);
+      setEditClientName('');
+    } catch (error) {
+      console.error('Error updating client:', error);
+      alert('Failed to update client. Please try again.');
+    } finally {
+      setLoading(`saveClient-${clientId}`, false);
+    }
+  };
+
+  const handleCancelEditClient = () => {
+    setEditingClient(null);
+    setEditClientName('');
+  };
+
+  const handleDeleteClient = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this client?')) return;
+    
+    setLoading(`deleteClient-${id}`, true);
+    try {
+      await deleteClient(id);
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      alert('Failed to delete client. Please try again.');
+    } finally {
+      setLoading(`deleteClient-${id}`, false);
     }
   };
 
@@ -235,7 +343,7 @@ const AdvancedSettingsPage: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Enterprise Settings */}
           <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
@@ -478,7 +586,7 @@ const AdvancedSettingsPage: React.FC = () => {
           </Card>
 
           {/* Categories Settings */}
-          <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden lg:col-span-2 xl:col-span-1">
+          <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             
             <div className="relative">
@@ -582,24 +690,92 @@ const AdvancedSettingsPage: React.FC = () => {
                           key={category.id} 
                           className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group hover:shadow-md"
                         >
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
-                              style={{ backgroundColor: category.color }}
-                            ></div>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">
-                              {category.name}
-                            </span>
-                          </div>
-                          <Button 
-                            type="danger" 
-                            size="sm"
-                            className="!p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteCategory(category.id)}
-                            loading={isLoading[`deleteCategory-${category.id}`]}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
+                          {editingCategory === category.id ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <div className="relative">
+                                <button 
+                                  className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
+                                  style={{ backgroundColor: editCategoryData.color }}
+                                  onClick={() => setShowEditColorPicker(!showEditColorPicker)}
+                                ></button>
+                                {showEditColorPicker && (
+                                  <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
+                                    <div className="grid grid-cols-5 gap-1">
+                                      {colorOptions.map((color) => (
+                                        <button
+                                          key={color}
+                                          className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
+                                          style={{ backgroundColor: color }}
+                                          onClick={() => {
+                                            setEditCategoryData({ ...editCategoryData, color });
+                                            setShowEditColorPicker(false);
+                                          }}
+                                        ></button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <input
+                                type="text"
+                                value={editCategoryData.name}
+                                onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveCategory(category.id, 'income')}
+                                className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                autoFocus
+                              />
+                              <div className="flex gap-1">
+                                <Button 
+                                  type="success" 
+                                  size="sm"
+                                  onClick={() => handleSaveCategory(category.id, 'income')}
+                                  loading={isLoading[`saveCategory-${category.id}`]}
+                                  className="!p-1"
+                                >
+                                  <Check size={12} />
+                                </Button>
+                                <Button 
+                                  type="secondary" 
+                                  size="sm"
+                                  onClick={handleCancelEditCategory}
+                                  className="!p-1"
+                                >
+                                  <X size={12} />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-3">
+                                <div 
+                                  className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
+                                  style={{ backgroundColor: category.color }}
+                                ></div>
+                                <span className="font-medium text-gray-800 dark:text-gray-200">
+                                  {category.name}
+                                </span>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  type="secondary" 
+                                  size="sm"
+                                  onClick={() => handleStartEditCategory(category)}
+                                  className="!p-1.5"
+                                >
+                                  <Edit3 size={12} />
+                                </Button>
+                                <Button 
+                                  type="danger" 
+                                  size="sm"
+                                  onClick={() => handleDeleteCategory(category.id)}
+                                  loading={isLoading[`deleteCategory-${category.id}`]}
+                                  className="!p-1.5"
+                                >
+                                  <Trash2 size={12} />
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       ))}
                     {categories.filter(c => c.type === 'income').length === 0 && (
@@ -626,24 +802,92 @@ const AdvancedSettingsPage: React.FC = () => {
                           key={category.id} 
                           className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all group hover:shadow-md"
                         >
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
-                              style={{ backgroundColor: category.color }}
-                            ></div>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">
-                              {category.name}
-                            </span>
-                          </div>
-                          <Button 
-                            type="danger" 
-                            size="sm"
-                            className="!p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteCategory(category.id)}
-                            loading={isLoading[`deleteCategory-${category.id}`]}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
+                          {editingCategory === category.id ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <div className="relative">
+                                <button 
+                                  className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
+                                  style={{ backgroundColor: editCategoryData.color }}
+                                  onClick={() => setShowEditColorPicker(!showEditColorPicker)}
+                                ></button>
+                                {showEditColorPicker && (
+                                  <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
+                                    <div className="grid grid-cols-5 gap-1">
+                                      {colorOptions.map((color) => (
+                                        <button
+                                          key={color}
+                                          className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
+                                          style={{ backgroundColor: color }}
+                                          onClick={() => {
+                                            setEditCategoryData({ ...editCategoryData, color });
+                                            setShowEditColorPicker(false);
+                                          }}
+                                        ></button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <input
+                                type="text"
+                                value={editCategoryData.name}
+                                onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveCategory(category.id, 'expense')}
+                                className="flex-1 px-2 py-1 text-sm border border-red-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                autoFocus
+                              />
+                              <div className="flex gap-1">
+                                <Button 
+                                  type="success" 
+                                  size="sm"
+                                  onClick={() => handleSaveCategory(category.id, 'expense')}
+                                  loading={isLoading[`saveCategory-${category.id}`]}
+                                  className="!p-1"
+                                >
+                                  <Check size={12} />
+                                </Button>
+                                <Button 
+                                  type="secondary" 
+                                  size="sm"
+                                  onClick={handleCancelEditCategory}
+                                  className="!p-1"
+                                >
+                                  <X size={12} />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-3">
+                                <div 
+                                  className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
+                                  style={{ backgroundColor: category.color }}
+                                ></div>
+                                <span className="font-medium text-gray-800 dark:text-gray-200">
+                                  {category.name}
+                                </span>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  type="secondary" 
+                                  size="sm"
+                                  onClick={() => handleStartEditCategory(category)}
+                                  className="!p-1.5"
+                                >
+                                  <Edit3 size={12} />
+                                </Button>
+                                <Button 
+                                  type="danger" 
+                                  size="sm"
+                                  onClick={() => handleDeleteCategory(category.id)}
+                                  loading={isLoading[`deleteCategory-${category.id}`]}
+                                  className="!p-1.5"
+                                >
+                                  <Trash2 size={12} />
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       ))}
                     {categories.filter(c => c.type === 'expense').length === 0 && (
@@ -653,6 +897,138 @@ const AdvancedSettingsPage: React.FC = () => {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Clients Settings */}
+          <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl shadow-lg group-hover:shadow-xl transition-all hover:scale-110">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                    Clients
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {clients.length} clients configurés
+                  </p>
+                </div>
+              </div>
+
+              {/* Add Client Form */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800 hover:shadow-md transition-all">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                    Nouveau client
+                  </span>
+                </div>
+                
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nom du client"
+                    value={newClient}
+                    onChange={(e) => setNewClient(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
+                    className="flex-1 px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-orange-400"
+                  />
+                  <Button 
+                    type="primary" 
+                    onClick={handleAddClient}
+                    disabled={!newClient.trim()}
+                    loading={isLoading.addClient}
+                    className="!px-3"
+                  >
+                    <Plus size={18} />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Clients List */}
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {clients.map((client) => (
+                  <div 
+                    key={client.id} 
+                    className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all group hover:shadow-md"
+                  >
+                    {editingClient === client.id ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <input
+                          type="text"
+                          value={editClientName}
+                          onChange={(e) => setEditClientName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveClient(client.id)}
+                          className="flex-1 px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                          autoFocus
+                        />
+                        <div className="flex gap-1">
+                          <Button 
+                            type="success" 
+                            size="sm"
+                            onClick={() => handleSaveClient(client.id)}
+                            loading={isLoading[`saveClient-${client.id}`]}
+                            className="!p-1"
+                          >
+                            <Check size={12} />
+                          </Button>
+                          <Button 
+                            type="secondary" 
+                            size="sm"
+                            onClick={handleCancelEditClient}
+                            className="!p-1"
+                          >
+                            <X size={12} />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <div className="p-1 bg-orange-500 rounded-lg">
+                            <Users className="w-3 h-3 text-white" />
+                          </div>
+                          <span className="font-medium text-gray-800 dark:text-gray-200">
+                            {client.name}
+                          </span>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            type="secondary" 
+                            size="sm"
+                            onClick={() => handleStartEditClient(client)}
+                            className="!p-1.5"
+                          >
+                            <Edit3 size={12} />
+                          </Button>
+                          <Button 
+                            type="danger" 
+                            size="sm"
+                            onClick={() => handleDeleteClient(client.id)}
+                            loading={isLoading[`deleteClient-${client.id}`]}
+                            className="!p-1.5"
+                          >
+                            <Trash2 size={12} />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {clients.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
+                      <Users className="w-6 h-6 text-orange-400" />
+                    </div>
+                    <p className="text-sm font-medium mb-1">Aucun client</p>
+                    <p className="text-xs">Ajoutez des clients pour les sélectionner rapidement</p>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
