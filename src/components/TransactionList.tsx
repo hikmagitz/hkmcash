@@ -137,10 +137,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: 
                   <div className="flex flex-wrap gap-2">
                     <Button 
                       type="secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadReceipt(transaction);
-                      }}
+                      onClick={() => handleDownloadReceipt(transaction)}
                       disabled={isLoading}
                       className="flex-1 min-w-[120px]"
                     >
@@ -160,10 +157,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: 
                     </Button>
                     <Button 
                       type="secondary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(transaction.id);
-                      }}
+                      onClick={() => handleEdit(transaction.id)}
                       className="flex-1 min-w-[120px]"
                     >
                       <Edit size={16} />
@@ -171,10 +165,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: 
                     </Button>
                     <Button 
                       type="danger" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(transaction.id);
-                      }}
+                      onClick={() => handleDelete(transaction.id)}
                       className="flex-1 min-w-[120px]"
                     >
                       <Trash2 size={16} />
