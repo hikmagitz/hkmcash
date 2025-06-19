@@ -143,8 +143,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     try {
       const { error } = await supabase
         .from('enterprise_settings')
-        .upsert({ user_id: user.id, name })
-        .eq('user_id', user.id);
+        .upsert(
+          { user_id: user.id, name },
+          { onConflict: 'user_id' }
+        );
 
       if (error) throw error;
       setEnterpriseNameState(name);
