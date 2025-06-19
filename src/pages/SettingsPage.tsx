@@ -69,6 +69,14 @@ const SettingsPage: React.FC = () => {
     setIsLoading(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleNavigateToAdvanced = () => {
+    navigate('/advanced-settings');
+  };
+
+  const handleNavigateToCompany = () => {
+    navigate('/company-settings');
+  };
+
   const handleAddClient = async () => {
     if (!newClient.trim()) return;
     
@@ -473,8 +481,8 @@ const SettingsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* Company & Currency Settings Card */}
-        <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer" onClick={() => navigate('/company-settings')}>
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+        <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer" onClick={handleNavigateToCompany}>
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none"></div>
           
           <div className="relative">
             <div className="flex items-center justify-between mb-6">
@@ -492,7 +500,7 @@ const SettingsPage: React.FC = () => {
                     Entreprise & Devise
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Configuration de base
+                    Configuration principale
                   </p>
                 </div>
               </div>
@@ -503,7 +511,7 @@ const SettingsPage: React.FC = () => {
               <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-lg border border-indigo-200 dark:border-indigo-800 hover:shadow-md transition-all">
                 <Building2 className="w-4 h-4 text-indigo-500" />
                 <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
-                  {enterpriseName || 'Nom d\'entreprise'}
+                  Nom d'entreprise
                 </span>
                 <Zap className="w-3 h-3 text-indigo-400 ml-auto" />
               </div>
@@ -511,7 +519,7 @@ const SettingsPage: React.FC = () => {
               <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800 hover:shadow-md transition-all">
                 <Euro className="w-4 h-4 text-green-500" />
                 <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  {getCurrentCurrencyInfo().name}
+                  Devise préférée
                 </span>
                 <Star className="w-3 h-3 text-green-400 ml-auto" />
               </div>
@@ -521,7 +529,7 @@ const SettingsPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Configuration rapide et sécurisée
+                  Interface simplifiée pour configuration rapide
                 </span>
               </div>
             </div>
@@ -529,8 +537,8 @@ const SettingsPage: React.FC = () => {
         </Card>
 
         {/* Advanced Settings Card */}
-        <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer" onClick={() => navigate('/advanced-settings')}>
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+        <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer" onClick={handleNavigateToAdvanced}>
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none"></div>
           
           <div className="relative">
             <div className="flex items-center justify-between mb-6">
@@ -577,7 +585,7 @@ const SettingsPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Interface optimisée pour une configuration rapide
+                  Interface optimisée pour une configuration avancée
                 </span>
               </div>
             </div>
