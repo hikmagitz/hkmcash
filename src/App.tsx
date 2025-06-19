@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import PersonalizationPage from './pages/PersonalizationPage';
 import AccountPage from './pages/AccountPage';
+import AccountSettingsPage from './pages/AccountSettingsPage';
 import PremiumPage from './pages/PremiumPage';
 import SuccessPage from './pages/SuccessPage';
 import AuthPage from './pages/AuthPage';
@@ -45,6 +46,7 @@ const AppContent = () => {
             <Route path="premium" element={<PremiumPage />} />
             <Route path="success" element={<SuccessPage />} />
           </Route>
+          <Route path="/account-settings" element={<AccountSettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
