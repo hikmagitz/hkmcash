@@ -669,12 +669,12 @@ const SettingsPage: React.FC = () => {
                   ></button>
                   
                   {showColorPicker && (
-                    <div className="absolute right-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                      <div className="grid grid-cols-5 gap-2">
+                    <div className="absolute right-0 mt-2 p-4 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700 w-48">
+                      <div className="grid grid-cols-5 gap-3">
                         {colorOptions.map((color) => (
                           <button
                             key={color}
-                            className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600"
+                            className="w-10 h-10 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
                             style={{ backgroundColor: color }}
                             onClick={() => {
                               setNewCategory({ ...newCategory, color });
