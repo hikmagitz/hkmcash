@@ -38,6 +38,22 @@ const SettingsPage: React.FC = () => {
   const [selectedCurrency, setSelectedCurrency] = useState('EUR');
   const [isClientListOpen, setIsClientListOpen] = useState(false);
 
+  // Category editing state
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryData, setEditCategoryData] = useState({
+    name: '',
+    color: '#6B7280'
+  });
+
+  // New category state
+  const [newCategory, setNewCategory] = useState({
+    name: '',
+    type: 'expense',
+    color: '#6B7280',
+  });
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showEditColorPicker, setShowEditColorPicker] = useState(false);
+
   // Load saved currency preference
   useEffect(() => {
     const savedCurrency = localStorage.getItem('preferredCurrency') || 'EUR';
@@ -53,6 +69,57 @@ const SettingsPage: React.FC = () => {
       addClient({ name: newClient.trim() });
       setNewClient('');
     }
+  };
+
+  const handleAddCategory = () => {
+    if (newCategory.name.trim()) {
+      addCategory({
+        name: newCategory.name.trim(),
+        type: newCategory.type as 'income' | 'expense',
+        color: newCategory.color,
+      });
+      
+      setNewCategory({
+        name: '',
+        type: 'expense',
+        color: '#6B7280',
+      });
+    }
+  };
+
+  const handleStartEditCategory = (category: any) => {
+    setEditingCategory(category.id);
+    setEditCategoryData({
+      name: category.name,
+      color: category.color
+    });
+  };
+
+  const handleSaveCategory = async (categoryId: string, type: 'income' | 'expense') => {
+    if (!editCategoryData.name.trim()) return;
+
+    try {
+      // Delete the old category
+      await deleteCategory(categoryId);
+      
+      // Add the updated category
+      await addCategory({
+        name: editCategoryData.name.trim(),
+        type: type,
+        color: editCategoryData.color,
+      });
+      
+      setEditingCategory(null);
+      setEditCategoryData({ name: '', color: '#6B7280' });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Failed to update category. Please try again.');
+    }
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategory(null);
+    setEditCategoryData({ name: '', color: '#6B7280' });
   };
 
   const handleExportData = async () => {
@@ -252,6 +319,12 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const colorOptions = [
+    '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', 
+    '#14B8A6', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6',
+    '#A855F7', '#D946EF', '#EC4899', '#F43F5E', '#6B7280'
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
@@ -379,6 +452,291 @@ const SettingsPage: React.FC = () => {
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Interface optimisée pour une configuration rapide
                 </span>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Categories Management Card */}
+        <Card className="hover:shadow-xl transition-all duration-300 lg:col-span-2 xl:col-span-1">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg">
+              <Palette className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Catégories</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{categories.length} configurées</p>
+            </div>
+          </div>
+          
+          {/* Add Category Form */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800">
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Nom de la catégorie"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+              />
+              
+              <div className="flex gap-2">
+                <select
+                  value={newCategory.type}
+                  onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all"
+                >
+                  <option value="expense">💸 Dépense</option>
+                  <option value="income">💰 Revenu</option>
+                </select>
+                
+                <div className="relative">
+                  <button 
+                    className="w-10 h-10 rounded-lg border border-purple-300 dark:border-purple-500 focus:outline-none hover:scale-110 transition-all shadow-md"
+                    style={{ backgroundColor: newCategory.color }}
+                    onClick={() => setShowColorPicker(!showColorPicker)}
+                  ></button>
+                  
+                  {showColorPicker && (
+                    <div className="absolute right-0 mt-2 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-20 border border-gray-200 dark:border-gray-700 w-64">
+                      <div className="grid grid-cols-5 gap-2">
+                        {colorOptions.map((color) => (
+                          <button
+                            key={color}
+                            className="w-8 h-8 rounded-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-all shadow-sm"
+                            style={{ backgroundColor: color }}
+                            onClick={() => {
+                              setNewCategory({ ...newCategory, color });
+                              setShowColorPicker(false);
+                            }}
+                          ></button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <Button 
+                  type="primary" 
+                  onClick={handleAddCategory}
+                  disabled={!newCategory.name.trim()}
+                  className="!px-3"
+                >
+                  <Plus size={16} />
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Categories List */}
+          <div className="space-y-4 max-h-80 overflow-y-auto">
+            {/* Income Categories */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <h4 className="text-sm font-bold text-gray-800 dark:text-white">
+                  Revenus ({categories.filter(c => c.type === 'income').length})
+                </h4>
+              </div>
+              <div className="space-y-2">
+                {categories
+                  .filter((category) => category.type === 'income')
+                  .map((category) => (
+                    <div 
+                      key={category.id} 
+                      className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group"
+                    >
+                      {editingCategory === category.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="relative">
+                            <button 
+                              className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600"
+                              style={{ backgroundColor: editCategoryData.color }}
+                              onClick={() => setShowEditColorPicker(!showEditColorPicker)}
+                            ></button>
+                            {showEditColorPicker && (
+                              <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
+                                <div className="grid grid-cols-5 gap-1">
+                                  {colorOptions.map((color) => (
+                                    <button
+                                      key={color}
+                                      className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600"
+                                      style={{ backgroundColor: color }}
+                                      onClick={() => {
+                                        setEditCategoryData({ ...editCategoryData, color });
+                                        setShowEditColorPicker(false);
+                                      }}
+                                    ></button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={editCategoryData.name}
+                            onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                            className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button 
+                              type="primary" 
+                              className="!p-1"
+                              onClick={() => handleSaveCategory(category.id, 'income')}
+                            >
+                              <Check size={12} />
+                            </Button>
+                            <Button 
+                              type="secondary" 
+                              className="!p-1"
+                              onClick={handleCancelEditCategory}
+                            >
+                              <X size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full shadow-md"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                              {category.name}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              type="secondary" 
+                              className="!p-1.5"
+                              onClick={() => handleStartEditCategory(category)}
+                            >
+                              <Edit3 size={12} />
+                            </Button>
+                            <Button 
+                              type="danger" 
+                              className="!p-1.5"
+                              onClick={() => deleteCategory(category.id)}
+                            >
+                              <Trash2 size={12} />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                {categories.filter(c => c.type === 'income').length === 0 && (
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <p className="text-sm">Aucune catégorie de revenu</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Expense Categories */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <h4 className="text-sm font-bold text-gray-800 dark:text-white">
+                  Dépenses ({categories.filter(c => c.type === 'expense').length})
+                </h4>
+              </div>
+              <div className="space-y-2">
+                {categories
+                  .filter((category) => category.type === 'expense')
+                  .map((category) => (
+                    <div 
+                      key={category.id} 
+                      className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all group"
+                    >
+                      {editingCategory === category.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="relative">
+                            <button 
+                              className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600"
+                              style={{ backgroundColor: editCategoryData.color }}
+                              onClick={() => setShowEditColorPicker(!showEditColorPicker)}
+                            ></button>
+                            {showEditColorPicker && (
+                              <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
+                                <div className="grid grid-cols-5 gap-1">
+                                  {colorOptions.map((color) => (
+                                    <button
+                                      key={color}
+                                      className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600"
+                                      style={{ backgroundColor: color }}
+                                      onClick={() => {
+                                        setEditCategoryData({ ...editCategoryData, color });
+                                        setShowEditColorPicker(false);
+                                      }}
+                                    ></button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={editCategoryData.name}
+                            onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                            className="flex-1 px-2 py-1 text-sm border border-red-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button 
+                              type="primary" 
+                              className="!p-1"
+                              onClick={() => handleSaveCategory(category.id, 'expense')}
+                            >
+                              <Check size={12} />
+                            </Button>
+                            <Button 
+                              type="secondary" 
+                              className="!p-1"
+                              onClick={handleCancelEditCategory}
+                            >
+                              <X size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full shadow-md"
+                              style={{ backgroundColor: category.color }}
+                            ></div>
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                              {category.name}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              type="secondary" 
+                              className="!p-1.5"
+                              onClick={() => handleStartEditCategory(category)}
+                            >
+                              <Edit3 size={12} />
+                            </Button>
+                            <Button 
+                              type="danger" 
+                              className="!p-1.5"
+                              onClick={() => deleteCategory(category.id)}
+                            >
+                              <Trash2 size={12} />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                {categories.filter(c => c.type === 'expense').length === 0 && (
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <p className="text-sm">Aucune catégorie de dépense</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
