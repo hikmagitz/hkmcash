@@ -4,6 +4,7 @@ import MainLayout from './layout/MainLayout';
 import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import PersonalizationPage from './pages/PersonalizationPage';
+import AccountPage from './pages/AccountPage';
 import PremiumPage from './pages/PremiumPage';
 import SuccessPage from './pages/SuccessPage';
 import AuthPage from './pages/AuthPage';
@@ -40,6 +41,7 @@ const AppContent = () => {
             <Route index element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="settings" element={<PersonalizationPage />} />
+            <Route path="account" element={<AccountPage />} />
             <Route path="premium" element={<PremiumPage />} />
             <Route path="success" element={<SuccessPage />} />
           </Route>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListOrdered, Settings } from 'lucide-react';
+import { LayoutDashboard, ListOrdered, Settings, User } from 'lucide-react';
 import Header from '../components/Header';
 
 const MainLayout: React.FC = () => {
@@ -25,7 +25,7 @@ const MainLayout: React.FC = () => {
       
       {showNavigation && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-2xl border-t border-white/20 dark:border-gray-700/50 safe-area-inset z-10">
-          <div className="grid grid-cols-3 h-16">
+          <div className="grid grid-cols-4 h-16">
             <button
               className={`flex flex-col items-center justify-center transition-all duration-200 ${
                 currentPage === 'dashboard'
@@ -60,6 +60,18 @@ const MainLayout: React.FC = () => {
             >
               <Settings size={20} className="mb-1" />
               <span className="text-xs font-medium">Settings</span>
+            </button>
+            
+            <button
+              className={`flex flex-col items-center justify-center transition-all duration-200 ${
+                currentPage === 'account'
+                  ? 'text-sky-600 dark:text-sky-400 bg-gradient-to-t from-sky-50 to-transparent dark:from-sky-900/20'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-sky-500 dark:hover:text-sky-400'
+              }`}
+              onClick={() => handleNavigate('account')}
+            >
+              <User size={20} className="mb-1" />
+              <span className="text-xs font-medium">Account</span>
             </button>
           </div>
         </nav>
