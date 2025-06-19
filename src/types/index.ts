@@ -30,3 +30,27 @@ export interface TransactionSummary {
 export interface UserSettings {
   enterpriseName: string;
 }
+
+export interface Product {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  category: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductCategory {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface InventorySummary {
+  totalProducts: number;
+  totalValue: number;
+  lowStockCount: number;
+  categories: number;
+}

@@ -1,5 +1,20 @@
 import { Transaction, TransactionSummary } from '../types';
 
+// Supported currencies with their symbols and names
+export const SUPPORTED_CURRENCIES = [
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'MAD', symbol: 'MAD', name: 'Moroccan Dirham' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+] as const;
+
 // Format currency based on user's locale and preferred currency
 export const formatCurrency = (amount: number): string => {
   const currency = localStorage.getItem('preferredCurrency') || 'EUR';
@@ -17,7 +32,19 @@ export const formatCurrency = (amount: number): string => {
     options.maximumFractionDigits = 0;
   }
 
-  return new Intl.NumberFormat(locale, options).format(amount);
+  // MAD formatting
+  if (currency === 'MAD') {
+    return `${amount.toFixed(2)} MAD`;
+  }
+
+  try {
+    return new Intl.NumberFormat(locale, options).format(amount);
+  } catch (error) {
+    // Fallback for unsupported currencies
+    const currencyInfo = SUPPORTED_CURRENCIES.find(c => c.code === currency);
+    const symbol = currencyInfo?.symbol || currency;
+    return `${symbol}${amount.toFixed(2)}`;
+  }
 };
 
 // Format date based on user's locale
@@ -97,16 +124,3 @@ export const calculateCategoryTotals = (transactions: Transaction[]) => {
     total,
   })).sort((a, b) => b.total - a.total);
 };
-
-export const SUPPORTED_CURRENCIES = [
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
-  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
-  { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-] as const;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListOrdered, Settings } from 'lucide-react';
+import { LayoutDashboard, ListOrdered, Package, Settings } from 'lucide-react';
 import Header from '../components/Header';
 
 const MainLayout: React.FC = () => {
@@ -25,7 +25,7 @@ const MainLayout: React.FC = () => {
       
       {showNavigation && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 safe-area-inset z-10">
-          <div className="grid grid-cols-3 h-16">
+          <div className="grid grid-cols-4 h-16">
             <button
               className={`flex flex-col items-center justify-center ${
                 currentPage === 'dashboard'
@@ -48,6 +48,18 @@ const MainLayout: React.FC = () => {
             >
               <ListOrdered size={20} className="mb-1" />
               <span className="text-xs">Transactions</span>
+            </button>
+            
+            <button
+              className={`flex flex-col items-center justify-center ${
+                currentPage === 'inventory'
+                  ? 'text-teal-600 dark:text-teal-400'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+              onClick={() => handleNavigate('inventory')}
+            >
+              <Package size={20} className="mb-1" />
+              <span className="text-xs">Inventory</span>
             </button>
             
             <button
