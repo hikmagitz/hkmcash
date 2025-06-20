@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown } from 'lucide-react';
+import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown, X, PlusCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTransactions } from '../context/TransactionContext';
 import { useIntl } from 'react-intl';
 import Button from './UI/Button';
 import Badge from './UI/Badge';
@@ -13,11 +14,25 @@ const Header: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { signOut, isPremium, user } = useAuth();
   const { language, setLanguage } = useLanguage();
+  const { addTransaction, categories, clients, hasReachedLimit } = useTransactions();
   const intl = useIntl();
   const navigate = useNavigate();
   const profileRef = useRef<HTMLDivElement>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    amount: '',
+    description: '',
+    category: '',
+    type: 'expense',
+    date: new Date().toISOString().slice(0, 10),
+    client: '',
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -78,6 +93,87 @@ const Header: React.FC = () => {
     }
     return 'User';
   };
+
+  // Form handlers
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
+  };
+
+  const handleTypeChange = (type: 'income' | 'expense') => {
+    setFormData({ ...formData, type, category: '' });
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.amount || isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
+      newErrors.amount = 'Please enter a valid amount';
+    }
+    
+    if (!formData.description.trim()) {
+      newErrors.description = 'Please enter a description';
+    }
+    
+    if (!formData.category) {
+      newErrors.category = 'Please select a category';
+    }
+    
+    if (!formData.date) {
+      newErrors.date = 'Please select a date';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      try {
+        setIsLoading(true);
+        await addTransaction({
+          amount: Number(formData.amount),
+          description: formData.description,
+          category: formData.category,
+          type: formData.type as 'income' | 'expense',
+          date: formData.date,
+          client: formData.client || undefined,
+        });
+        
+        setFormData({
+          amount: '',
+          description: '',
+          category: '',
+          type: 'expense',
+          date: new Date().toISOString().slice(0, 10),
+          client: '',
+        });
+        
+        setIsModalOpen(false);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('limit reached')) {
+          alert('You have reached the transaction limit. Please upgrade to premium for unlimited transactions.');
+        } else {
+          console.error('Error adding transaction:', error);
+          alert('Failed to add transaction. Please try again.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const filteredCategories = categories.filter(
+    category => category.type === formData.type
+  );
 
   return (
     <>
@@ -271,7 +367,7 @@ const Header: React.FC = () => {
         </div>
       </header>
       
-      {/* Modal rendered outside header at the footer level */}
+      {/* Modal rendered at footer level */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-t-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border-t border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-out">
@@ -282,90 +378,167 @@ const Header: React.FC = () => {
                   onClick={() => setIsModalOpen(false)} 
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  <Plus className="w-6 h-6 rotate-45" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
               
-              <form className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <button
-                    type="button"
-                    className="py-2 rounded-md transition-all bg-red-500 text-white"
+              {hasReachedLimit ? (
+                <div className="p-6 text-center">
+                  <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Transaction Limit Reached</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    You've reached the limit of 50 transactions. Upgrade to {STRIPE_PRODUCTS.premium_access.name} for unlimited transactions!
+                  </p>
+                  <Button 
+                    type="primary"
+                    onClick={() => navigate('/premium')}
                   >
-                    Expense
-                  </button>
-                  <button
-                    type="button"
-                    className="py-2 rounded-md transition-all bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                  >
-                    Income
-                  </button>
+                    <Crown size={18} />
+                    Upgrade to {STRIPE_PRODUCTS.premium_access.name}
+                  </Button>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Amount
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
-                      €
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="w-full pl-8 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-                      placeholder="0.00"
-                    />
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <button
+                      type="button"
+                      className={`py-2 rounded-md transition-all ${
+                        formData.type === 'expense'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                      }`}
+                      onClick={() => handleTypeChange('expense')}
+                    >
+                      Expense
+                    </button>
+                    <button
+                      type="button"
+                      className={`py-2 rounded-md transition-all ${
+                        formData.type === 'income'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                      }`}
+                      onClick={() => handleTypeChange('income')}
+                    >
+                      Income
+                    </button>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-                    placeholder="What was this transaction for?"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Amount
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
+                        €
+                      </span>
+                      <input
+                        type="number"
+                        name="amount"
+                        step="0.01"
+                        value={formData.amount}
+                        onChange={handleChange}
+                        className={`w-full pl-8 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                          errors.amount ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    {errors.amount && (
+                      <p className="mt-1 text-sm text-red-500">{errors.amount}</p>
+                    )}
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Client
-                  </label>
-                  <select className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300">
-                    <option value="">Select Client</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Description
+                    </label>
+                    <input
+                      type="text"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.description ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="What was this transaction for?"
+                    />
+                    {errors.description && (
+                      <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+                    )}
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Category
-                  </label>
-                  <select className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300">
-                    <option value="">Select Category</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Client
+                    </label>
+                    <select
+                      name="client"
+                      value={formData.client}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+                    >
+                      <option value="">Select Client</option>
+                      {clients.map((client) => (
+                        <option key={client.id} value={client.name}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Category
+                    </label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.category ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">Select Category</option>
+                      {filteredCategories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.category && (
+                      <p className="mt-1 text-sm text-red-500">{errors.category}</p>
+                    )}
+                  </div>
 
-                <Button 
-                  type="primary" 
-                  className="w-full mt-6"
-                >
-                  <Plus size={18} />
-                  Add Transaction
-                </Button>
-              </form>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.date ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.date && (
+                      <p className="mt-1 text-sm text-red-500">{errors.date}</p>
+                    )}
+                  </div>
+
+                  <Button 
+                    type="primary" 
+                    className="w-full mt-6"
+                    disabled={isLoading}
+                  >
+                    <PlusCircle size={18} />
+                    {isLoading ? 'Adding...' : 'Add Transaction'}
+                  </Button>
+                </form>
+              )}
             </div>
           </div>
         </div>
