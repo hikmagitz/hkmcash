@@ -562,7 +562,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
             Sign In
           </button>
         </p>
-      </div>
+      </motion.div>
 
       {/* Security Notice */}
       <motion.div
