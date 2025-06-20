@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, UserPlus, AlertCircle, CheckCircle, Loader, User } from 'lucide-react';
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  UserPlus, 
+  AlertCircle, 
+  CheckCircle, 
+  Loader, 
+  User,
+  Shield,
+  Zap,
+  WifiOff
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AuthMode } from './AuthContainer';
 import Button from '../UI/Button';
@@ -24,7 +37,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, isOfflineMode } = useAuth();
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,18 +50,20 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
     if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
     if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
     if (!/[0-9]/.test(password)) errors.push('One number');
+    if (!/[^A-Za-z0-9]/.test(password)) errors.push('One special character');
     return errors;
   };
 
   const getPasswordStrength = (password: string) => {
     const validations = validatePassword(password);
-    const strength = 4 - validations.length;
+    const strength = 5 - validations.length;
     
-    if (strength === 0) return { level: 'Very Weak', color: 'bg-red-500', width: '20%' };
-    if (strength === 1) return { level: 'Weak', color: 'bg-orange-500', width: '40%' };
-    if (strength === 2) return { level: 'Fair', color: 'bg-yellow-500', width: '60%' };
-    if (strength === 3) return { level: 'Good', color: 'bg-blue-500', width: '80%' };
-    return { level: 'Strong', color: 'bg-green-500', width: '100%' };
+    if (strength === 0) return { level: 'Very Weak', color: 'bg-red-500', width: '20%', textColor: 'text-red-600' };
+    if (strength === 1) return { level: 'Weak', color: 'bg-orange-500', width: '40%', textColor: 'text-orange-600' };
+    if (strength === 2) return { level: 'Fair', color: 'bg-yellow-500', width: '60%', textColor: 'text-yellow-600' };
+    if (strength === 3) return { level: 'Good', color: 'bg-blue-500', width: '80%', textColor: 'text-blue-600' };
+    if (strength === 4) return { level: 'Strong', color: 'bg-green-500', width: '100%', textColor: 'text-green-600' };
+    return { level: 'Very Strong', color: 'bg-emerald-500', width: '100%', textColor: 'text-emerald-600' };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,7 +107,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
         throw new Error('Please agree to the Terms of Service and Privacy Policy');
       }
 
-      await signUp(formData.email, formData.password);
+      await signUp(formData.email, formData.password, formData.firstName, formData.lastName);
       setSuccess('Account created successfully! Please check your email to verify your account.');
       
       // Auto switch to signin after 3 seconds
@@ -124,15 +139,105 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
            formData.agreeToTerms;
   };
 
+  // If offline mode, show message
+  if (isOfflineMode) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+          >
+            <WifiOff className="w-8 h-8 text-white" />
+          </motion.div>
+          
+          <motion.h2 
+            className="text-3xl font-bold text-gray-900 dark:text-white mb-2"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            Sign Up Unavailable
+          </motion.h2>
+          <motion.p 
+            className="text-gray-600 dark:text-gray-400 mb-6"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            Account creation requires an online connection
+          </motion.p>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="p-6 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border border-orange-200 dark:border-orange-800"
+        >
+          <div className="text-center">
+            <WifiOff className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200 mb-2">
+              Offline Mode Active
+            </h3>
+            <p className="text-orange-700 dark:text-orange-300 mb-4">
+              Sign up requires an internet connection and Supabase configuration. 
+              You can use demo accounts to explore the application.
+            </p>
+            <div className="space-y-2">
+              <Button
+                type="secondary"
+                onClick={() => onSwitchMode('signin')}
+                className="w-full bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Try Demo Accounts
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center pt-4 border-t border-gray-200 dark:border-gray-700"
+        >
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Already have an account?{' '}
+            <button
+              type="button"
+              onClick={() => onSwitchMode('signin')}
+              className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-semibold transition-colors hover:underline"
+            >
+              Sign In
+            </button>
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="w-16 h-16 bg-gradient-to-r from-pink-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+        >
+          <UserPlus className="w-8 h-8 text-white" />
+        </motion.div>
+        
         <motion.h2 
           className="text-3xl font-bold text-gray-900 dark:text-white mb-2"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
         >
           Create Account
         </motion.h2>
@@ -140,7 +245,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
           className="text-gray-600 dark:text-gray-400"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
         >
           Join HKM Cash to start tracking your finances
         </motion.p>
@@ -156,7 +261,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-red-800 dark:text-red-200">Error</p>
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">Registration Error</p>
               <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
             </div>
           </div>
@@ -201,7 +306,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
           >
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               First Name
@@ -211,7 +316,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
+                className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-pink-500/20 focus:border-pink-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
                 placeholder="First name"
                 required
                 disabled={isLoading}
@@ -224,7 +329,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
           >
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Last Name
@@ -234,7 +339,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
+                className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-pink-500/20 focus:border-pink-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
                 placeholder="Last name"
                 required
                 disabled={isLoading}
@@ -249,7 +354,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Email Address
@@ -259,10 +364,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className={`w-full px-4 py-3 pl-11 border-2 rounded-xl focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 dark:bg-gray-700 dark:text-white ${
+              className={`w-full px-4 py-3 pl-11 border-2 rounded-xl focus:ring-4 focus:ring-pink-500/20 transition-all duration-200 dark:bg-gray-700 dark:text-white ${
                 formData.email && !validateEmail(formData.email) 
                   ? 'border-red-300 focus:border-red-500' 
-                  : 'border-gray-300 focus:border-blue-500 dark:border-gray-600'
+                  : 'border-gray-300 focus:border-pink-500 dark:border-gray-600'
               }`}
               placeholder="Enter your email address"
               required
@@ -280,7 +385,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
         >
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Password
@@ -290,7 +395,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
-              className="w-full px-4 py-3 pl-11 pr-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
+              className="w-full px-4 py-3 pl-11 pr-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-pink-500/20 focus:border-pink-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
               placeholder="Create a strong password"
               required
               disabled={isLoading}
@@ -314,12 +419,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                   Password strength:
                 </span>
-                <span className={`text-xs font-bold ${
-                  getPasswordStrength(formData.password).level === 'Strong' ? 'text-green-600' :
-                  getPasswordStrength(formData.password).level === 'Good' ? 'text-blue-600' :
-                  getPasswordStrength(formData.password).level === 'Fair' ? 'text-yellow-600' :
-                  'text-red-600'
-                }`}>
+                <span className={`text-xs font-bold ${getPasswordStrength(formData.password).textColor}`}>
                   {getPasswordStrength(formData.password).level}
                 </span>
               </div>
@@ -329,6 +429,21 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
                   style={{ width: getPasswordStrength(formData.password).width }}
                 />
               </div>
+              
+              {/* Password Requirements */}
+              {validatePassword(formData.password).length > 0 && (
+                <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                  <p className="mb-1">Password must include:</p>
+                  <ul className="space-y-1">
+                    {validatePassword(formData.password).map((req, index) => (
+                      <li key={index} className="flex items-center gap-1">
+                        <span className="text-red-500">•</span>
+                        {req}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </motion.div>
@@ -337,7 +452,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.7 }}
         >
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Confirm Password
@@ -347,10 +462,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
               type={showConfirmPassword ? 'text' : 'password'}
               value={formData.confirmPassword}
               onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-              className={`w-full px-4 py-3 pl-11 pr-11 border-2 rounded-xl focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 dark:bg-gray-700 dark:text-white ${
+              className={`w-full px-4 py-3 pl-11 pr-11 border-2 rounded-xl focus:ring-4 focus:ring-pink-500/20 transition-all duration-200 dark:bg-gray-700 dark:text-white ${
                 formData.confirmPassword && formData.password !== formData.confirmPassword
                   ? 'border-red-300 focus:border-red-500'
-                  : 'border-gray-300 focus:border-blue-500 dark:border-gray-600'
+                  : 'border-gray-300 focus:border-pink-500 dark:border-gray-600'
               }`}
               placeholder="Confirm your password"
               required
@@ -370,30 +485,33 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
               <CheckCircle className="absolute right-12 top-1/2 transform -translate-y-1/2 text-green-500 w-5 h-5" />
             )}
           </div>
+          {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+            <p className="mt-1 text-sm text-red-500">Passwords do not match</p>
+          )}
         </motion.div>
 
         {/* Terms Agreement */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.8 }}
           className="flex items-start"
         >
           <input
             type="checkbox"
             checked={formData.agreeToTerms}
             onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 mt-1"
+            className="rounded border-gray-300 text-pink-600 focus:ring-pink-500 focus:ring-2 mt-1"
             disabled={isLoading}
             required
           />
           <span className="ml-3 text-sm text-gray-600 dark:text-gray-400">
             I agree to the{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:underline">
+            <a href="#" className="text-pink-600 hover:text-pink-500 dark:text-pink-400 hover:underline font-medium">
               Terms of Service
             </a>{' '}
             and{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:underline">
+            <a href="#" className="text-pink-600 hover:text-pink-500 dark:text-pink-400 hover:underline font-medium">
               Privacy Policy
             </a>
           </span>
@@ -403,7 +521,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.9 }}
         >
           <Button 
             type="primary" 
@@ -430,7 +548,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.9 }}
+        transition={{ delay: 1.0 }}
         className="text-center pt-4 border-t border-gray-200 dark:border-gray-700"
       >
         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -438,12 +556,37 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
           <button
             type="button"
             onClick={() => onSwitchMode('signin')}
-            className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-semibold transition-colors hover:underline"
+            className="text-pink-600 hover:text-pink-500 dark:text-pink-400 font-semibold transition-colors hover:underline"
             disabled={isLoading}
           >
             Sign In
           </button>
         </p>
+      </div>
+
+      {/* Security Notice */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.1 }}
+        className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800"
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-1 bg-blue-500 rounded-full mt-0.5">
+            <Shield size={12} className="text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+              🔒 Your data is secure
+            </p>
+            <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+              <p>• End-to-end encryption</p>
+              <p>• GDPR compliant</p>
+              <p>• No data sharing with third parties</p>
+              <p>• Regular security audits</p>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </div>
   );

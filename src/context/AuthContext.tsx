@@ -14,13 +14,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   isPremium: boolean;
   isOfflineMode: boolean;
+  connectionStatus: 'online' | 'offline' | 'checking';
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -38,19 +39,69 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+
+  // Demo users for offline mode
+  const demoUsers = [
+    { email: 'demo@example.com', password: 'demo123', firstName: 'Demo', lastName: 'User', isPremium: true },
+    { email: 'admin@hkmcash.com', password: 'admin123', firstName: 'Admin', lastName: 'User', isPremium: true },
+    { email: 'user@test.com', password: 'test123', firstName: 'Test', lastName: 'User', isPremium: false },
+  ];
+
+  // Check connection status
+  const checkConnectionStatus = async () => {
+    if (!supabase) {
+      setConnectionStatus('offline');
+      setIsOfflineMode(true);
+      return false;
+    }
+
+    try {
+      setConnectionStatus('checking');
+      // Try to make a simple request to check connectivity
+      const { error } = await supabase.from('profiles').select('count').limit(1);
+      
+      if (error && error.message.includes('JWT')) {
+        // JWT error means we're connected but not authenticated
+        setConnectionStatus('online');
+        setIsOfflineMode(false);
+        return true;
+      } else if (error) {
+        // Other errors might indicate connection issues
+        setConnectionStatus('offline');
+        setIsOfflineMode(true);
+        return false;
+      } else {
+        setConnectionStatus('online');
+        setIsOfflineMode(false);
+        return true;
+      }
+    } catch (error) {
+      console.log('🔧 Connection check failed, switching to offline mode');
+      setConnectionStatus('offline');
+      setIsOfflineMode(true);
+      return false;
+    }
+  };
 
   // Check if we're in offline mode (no Supabase config)
   const checkOfflineMode = () => {
     if (!supabase) {
       console.log('🔧 Running in offline mode - Supabase not configured');
       setIsOfflineMode(true);
+      setConnectionStatus('offline');
       
       // Check for stored offline user
       const offlineUser = localStorage.getItem('offline_user');
       if (offlineUser) {
-        const userData = JSON.parse(offlineUser);
-        setUser(userData);
-        setIsPremium(userData.isPremium || false);
+        try {
+          const userData = JSON.parse(offlineUser);
+          setUser(userData);
+          setIsPremium(userData.isPremium || false);
+        } catch (error) {
+          console.error('Error parsing offline user data:', error);
+          localStorage.removeItem('offline_user');
+        }
       }
       
       setLoading(false);
@@ -90,6 +141,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = async () => {
       try {
         console.log('🔍 Initializing authentication...');
+        
+        // Check connection first
+        const isOnline = await checkConnectionStatus();
+        if (!isOnline || !mounted) {
+          setLoading(false);
+          return;
+        }
         
         // Get current session
         const { data: { session }, error } = await supabase!.auth.getSession();
@@ -170,8 +228,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // In offline mode, check localStorage for premium status
         const offlineUser = localStorage.getItem('offline_user');
         if (offlineUser) {
-          const userData = JSON.parse(offlineUser);
-          setIsPremium(userData.isPremium || false);
+          try {
+            const userData = JSON.parse(offlineUser);
+            setIsPremium(userData.isPremium || false);
+          } catch (error) {
+            console.error('Error parsing offline user premium status:', error);
+            setIsPremium(false);
+          }
         }
       } else {
         setIsPremium(false);
@@ -258,21 +321,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (isOfflineMode) {
       console.log('🔧 Offline sign in attempt');
       
-      // Simple offline authentication (for demo purposes)
-      if (email === 'demo@example.com' && password === 'demo123') {
+      // Check against demo users
+      const demoUser = demoUsers.find(u => 
+        u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      );
+      
+      if (demoUser) {
         const offlineUser = {
-          id: 'offline-user-id',
-          email: 'demo@example.com',
-          isPremium: true
+          id: `offline-${demoUser.email}`,
+          email: demoUser.email,
+          user_metadata: {
+            firstName: demoUser.firstName,
+            lastName: demoUser.lastName
+          },
+          isPremium: demoUser.isPremium
         };
         
         localStorage.setItem('offline_user', JSON.stringify(offlineUser));
         setUser(offlineUser as any);
-        setIsPremium(true);
+        setIsPremium(demoUser.isPremium);
         console.log('✅ Offline sign in successful');
         return;
       } else {
-        throw new Error('Invalid credentials. Use demo@example.com / demo123 for offline mode.');
+        throw new Error('Invalid credentials. Try demo@example.com / demo123 or admin@hkmcash.com / admin123');
       }
     }
 
@@ -310,7 +381,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
     if (!email?.trim() || !password?.trim()) {
       throw new Error('Please enter both email and password');
     }
@@ -322,7 +393,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Offline mode fallback
     if (isOfflineMode) {
       console.log('🔧 Offline sign up attempt');
-      throw new Error('Sign up is not available in offline mode. Use demo@example.com / demo123 to sign in.');
+      throw new Error('Sign up is not available in offline mode. Use demo credentials to sign in.');
     }
 
     if (!supabase) {
@@ -341,6 +412,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
+            firstName: firstName?.trim() || '',
+            lastName: lastName?.trim() || '',
             email_confirm: true
           }
         }
@@ -514,7 +587,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updatePassword,
     resetPassword,
     isPremium,
-    isOfflineMode
+    isOfflineMode,
+    connectionStatus
   };
 
   return (
