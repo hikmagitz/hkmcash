@@ -1,10 +1,14 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient, User, AuthError } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+// Check if environment variables are available
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Create Supabase client only if environment variables are available
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +20,7 @@ interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   isPremium: boolean;
+  isOfflineMode: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -32,19 +37,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+
+  // Check if we're in offline mode (no Supabase config)
+  const checkOfflineMode = () => {
+    if (!supabase) {
+      console.log('🔧 Running in offline mode - Supabase not configured');
+      setIsOfflineMode(true);
+      
+      // Check for stored offline user
+      const offlineUser = localStorage.getItem('offline_user');
+      if (offlineUser) {
+        const userData = JSON.parse(offlineUser);
+        setUser(userData);
+        setIsPremium(userData.isPremium || false);
+      }
+      
+      setLoading(false);
+      return true;
+    }
+    return false;
+  };
 
   // Debug function to check environment variables
   const checkEnvironment = () => {
     console.log('🔍 Environment Check:');
-    console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing');
-    console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
+    console.log('VITE_SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
+    console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ Set' : '❌ Missing');
     
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       console.error('❌ Missing Supabase environment variables!');
       console.log('Please check your .env file contains:');
       console.log('VITE_SUPABASE_URL=your_supabase_url');
       console.log('VITE_SUPABASE_ANON_KEY=your_supabase_anon_key');
+      return false;
     }
+    return true;
   };
 
   // Initialize auth state
@@ -52,14 +80,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let mounted = true;
     
     // Check environment variables first
-    checkEnvironment();
+    const hasValidConfig = checkEnvironment();
+    
+    // If no valid config, switch to offline mode
+    if (!hasValidConfig || checkOfflineMode()) {
+      return;
+    }
 
     const initializeAuth = async () => {
       try {
         console.log('🔍 Initializing authentication...');
         
         // Get current session
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase!.auth.getSession();
         
         if (error) {
           console.error('❌ Session error:', error.message);
@@ -82,7 +115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initializeAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       console.log('🔄 Auth state change:', event);
@@ -130,10 +163,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Check premium status when user changes
+  // Check premium status when user changes (only in online mode)
   useEffect(() => {
-    if (!user) {
-      setIsPremium(false);
+    if (isOfflineMode || !user || !supabase) {
+      if (isOfflineMode && user) {
+        // In offline mode, check localStorage for premium status
+        const offlineUser = localStorage.getItem('offline_user');
+        if (offlineUser) {
+          const userData = JSON.parse(offlineUser);
+          setIsPremium(userData.isPremium || false);
+        }
+      } else {
+        setIsPremium(false);
+      }
       return;
     }
 
@@ -176,7 +218,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     checkPremiumStatus();
-  }, [user]);
+  }, [user, isOfflineMode]);
 
   const handleAuthError = (error: AuthError): string => {
     console.error('🚨 Auth error details:', error);
@@ -210,6 +252,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     if (!email?.trim() || !password?.trim()) {
       throw new Error('Please enter both email and password');
+    }
+
+    // Offline mode fallback
+    if (isOfflineMode) {
+      console.log('🔧 Offline sign in attempt');
+      
+      // Simple offline authentication (for demo purposes)
+      if (email === 'demo@example.com' && password === 'demo123') {
+        const offlineUser = {
+          id: 'offline-user-id',
+          email: 'demo@example.com',
+          isPremium: true
+        };
+        
+        localStorage.setItem('offline_user', JSON.stringify(offlineUser));
+        setUser(offlineUser as any);
+        setIsPremium(true);
+        console.log('✅ Offline sign in successful');
+        return;
+      } else {
+        throw new Error('Invalid credentials. Use demo@example.com / demo123 for offline mode.');
+      }
+    }
+
+    if (!supabase) {
+      throw new Error('Authentication service not available');
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -249,6 +317,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (password.length < 8) {
       throw new Error('Password must be at least 8 characters long');
+    }
+
+    // Offline mode fallback
+    if (isOfflineMode) {
+      console.log('🔧 Offline sign up attempt');
+      throw new Error('Sign up is not available in offline mode. Use demo@example.com / demo123 to sign in.');
+    }
+
+    if (!supabase) {
+      throw new Error('Authentication service not available');
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -293,6 +371,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
+    if (isOfflineMode) {
+      throw new Error('Google sign in is not available in offline mode.');
+    }
+
+    if (!supabase) {
+      throw new Error('Authentication service not available');
+    }
+
     try {
       console.log('🔐 Attempting Google sign in...');
       setLoading(true);
@@ -324,6 +410,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🚪 Signing out user...');
       setLoading(true);
       
+      if (isOfflineMode) {
+        localStorage.removeItem('offline_user');
+        setUser(null);
+        setIsPremium(false);
+        console.log('✅ Offline sign out successful');
+        return;
+      }
+
+      if (!supabase) {
+        throw new Error('Authentication service not available');
+      }
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -341,6 +439,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updatePassword = async (newPassword: string) => {
+    if (isOfflineMode) {
+      throw new Error('Password update is not available in offline mode.');
+    }
+
+    if (!supabase) {
+      throw new Error('Authentication service not available');
+    }
+
     if (!newPassword || newPassword.length < 8) {
       throw new Error('Password must be at least 8 characters long');
     }
@@ -365,6 +471,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const resetPassword = async (email: string) => {
+    if (isOfflineMode) {
+      throw new Error('Password reset is not available in offline mode.');
+    }
+
+    if (!supabase) {
+      throw new Error('Authentication service not available');
+    }
+
     if (!email?.trim()) {
       throw new Error('Please enter your email address');
     }
@@ -399,7 +513,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     updatePassword,
     resetPassword,
-    isPremium
+    isPremium,
+    isOfflineMode
   };
 
   return (

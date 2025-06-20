@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, CheckCircle, Loader, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AuthMode } from './AuthContainer';
 import Button from '../UI/Button';
@@ -20,7 +20,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, isOfflineMode } = useAuth();
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -65,12 +65,12 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
 
   const isFormValid = formData.email.trim() && formData.password.trim() && validateEmail(formData.email);
 
-  // Test credentials for development
-  const fillTestCredentials = () => {
+  // Fill demo credentials for offline mode
+  const fillDemoCredentials = () => {
     setFormData(prev => ({
       ...prev,
-      email: 'test@example.com',
-      password: 'password123'
+      email: 'demo@example.com',
+      password: 'demo123'
     }));
   };
 
@@ -94,6 +94,21 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
         >
           Sign in to access your financial dashboard
         </motion.p>
+        
+        {/* Connection Status */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mt-2 ${
+            isOfflineMode 
+              ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300'
+              : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+          }`}
+        >
+          {isOfflineMode ? <WifiOff size={12} /> : <Wifi size={12} />}
+          {isOfflineMode ? 'Offline Mode' : 'Online'}
+        </motion.div>
       </div>
 
       {/* Alerts */}
@@ -129,8 +144,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
         </motion.div>
       )}
 
-      {/* Social Auth */}
-      <SocialAuth mode="signin" />
+      {/* Social Auth - Only show in online mode */}
+      {!isOfflineMode && <SocialAuth mode="signin" />}
 
       {/* Divider */}
       <div className="relative">
@@ -139,7 +154,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
         </div>
         <div className="relative flex justify-center text-sm">
           <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-            Or continue with email
+            {isOfflineMode ? 'Demo Login' : 'Or continue with email'}
           </span>
         </div>
       </div>
@@ -165,7 +180,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
                   ? 'border-red-300 focus:border-red-500' 
                   : 'border-gray-300 focus:border-blue-500 dark:border-gray-600'
               }`}
-              placeholder="Enter your email address"
+              placeholder={isOfflineMode ? 'demo@example.com' : 'Enter your email address'}
               required
               disabled={isLoading}
               autoComplete="email"
@@ -192,7 +207,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               className="w-full px-4 py-3 pl-11 pr-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
-              placeholder="Enter your password"
+              placeholder={isOfflineMode ? 'demo123' : 'Enter your password'}
               required
               disabled={isLoading}
               autoComplete="current-password"
@@ -226,14 +241,16 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
             />
             <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
           </label>
-          <button
-            type="button"
-            onClick={() => onSwitchMode('forgot')}
-            className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium transition-colors hover:underline"
-            disabled={isLoading}
-          >
-            Forgot password?
-          </button>
+          {!isOfflineMode && (
+            <button
+              type="button"
+              onClick={() => onSwitchMode('forgot')}
+              className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium transition-colors hover:underline"
+              disabled={isLoading}
+            >
+              Forgot password?
+            </button>
+          )}
         </motion.div>
 
         {/* Submit Button */}
@@ -276,36 +293,56 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
             type="button"
             onClick={() => onSwitchMode('signup')}
             className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-semibold transition-colors hover:underline"
-            disabled={isLoading}
+            disabled={isLoading || isOfflineMode}
           >
-            Sign Up
+            {isOfflineMode ? 'Sign Up (Online Only)' : 'Sign Up'}
           </button>
         </p>
       </motion.div>
 
-      {/* Development Helper */}
-      {import.meta.env.DEV && (
+      {/* Demo Helper for Offline Mode */}
+      {isOfflineMode && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800"
         >
-          <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-semibold">🧪 Development Mode:</p>
+          <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-semibold">🔧 Offline Demo Mode:</p>
           <div className="space-y-2">
             <button
               type="button"
-              onClick={fillTestCredentials}
+              onClick={fillDemoCredentials}
               className="text-xs text-blue-600 dark:text-blue-400 hover:underline block"
               disabled={isLoading}
             >
-              📝 Fill test credentials
+              📝 Fill demo credentials (demo@example.com / demo123)
             </button>
             <div className="text-xs text-gray-600 dark:text-gray-400">
-              <p>Environment status:</p>
-              <p>• Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? '✅' : '❌'}</p>
-              <p>• Supabase Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅' : '❌'}</p>
+              <p>Offline mode features:</p>
+              <p>• ✅ Local data storage</p>
+              <p>• ✅ All app features available</p>
+              <p>• ❌ No cloud sync</p>
+              <p>• ❌ No real authentication</p>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Environment Status for Development */}
+      {import.meta.env.DEV && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9 }}
+          className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 rounded-xl border border-gray-200 dark:border-gray-700"
+        >
+          <p className="text-xs text-gray-700 dark:text-gray-300 mb-2 font-semibold">🧪 Development Status:</p>
+          <div className="text-xs text-gray-600 dark:text-gray-400">
+            <p>Environment status:</p>
+            <p>• Supabase URL: {import.meta.env.VITE_SUPABASE_URL ? '✅' : '❌'}</p>
+            <p>• Supabase Key: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅' : '❌'}</p>
+            <p>• Mode: {isOfflineMode ? 'Offline' : 'Online'}</p>
           </div>
         </motion.div>
       )}

@@ -11,9 +11,14 @@ interface SocialAuthProps {
 const SocialAuth: React.FC<SocialAuthProps> = ({ mode }) => {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, isOfflineMode } = useAuth();
 
   const handleGoogleAuth = async () => {
+    if (isOfflineMode) {
+      setError('Google authentication is not available in offline mode');
+      return;
+    }
+
     setIsLoading('google');
     setError('');
     
@@ -27,10 +32,19 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ mode }) => {
   };
 
   const handleOtherProvider = (provider: string) => {
+    if (isOfflineMode) {
+      setError(`${provider} authentication is not available in offline mode`);
+      return;
+    }
     alert(`${provider} authentication will be available soon!`);
   };
 
   const buttonText = mode === 'signin' ? 'Sign in' : 'Sign up';
+
+  // Don't render social auth in offline mode
+  if (isOfflineMode) {
+    return null;
+  }
 
   return (
     <div className="space-y-3">
