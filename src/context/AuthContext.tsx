@@ -22,6 +22,7 @@ interface AuthContextType {
   isPremium: boolean;
   isOfflineMode: boolean;
   connectionStatus: 'online' | 'offline' | 'checking';
+  switchToOfflineMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -48,6 +49,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     { email: 'user@test.com', password: 'test123', firstName: 'Test', lastName: 'User', isPremium: false },
   ];
 
+  // Function to manually switch to offline mode
+  const switchToOfflineMode = () => {
+    console.log('🔧 Manually switching to offline mode');
+    setIsOfflineMode(true);
+    setConnectionStatus('offline');
+    setUser(null);
+    setIsPremium(false);
+    localStorage.removeItem('offline_user');
+  };
+
   // Check connection status
   const checkConnectionStatus = async () => {
     if (!supabase) {
@@ -68,6 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return true;
       } else if (error) {
         // Other errors might indicate connection issues
+        console.log('🔧 Database connection error, switching to offline mode:', error.message);
         setConnectionStatus('offline');
         setIsOfflineMode(true);
         return false;
@@ -317,13 +329,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error('Please enter both email and password');
     }
 
-    // Offline mode fallback
-    if (isOfflineMode) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if this is a demo user credential
+    const isDemoCredential = demoUsers.some(u => 
+      u.email.toLowerCase() === cleanEmail && u.password === password
+    );
+
+    // If offline mode OR demo credentials are being used, handle offline sign in
+    if (isOfflineMode || isDemoCredential) {
       console.log('🔧 Offline sign in attempt');
       
       // Check against demo users
       const demoUser = demoUsers.find(u => 
-        u.email.toLowerCase() === email.toLowerCase() && u.password === password
+        u.email.toLowerCase() === cleanEmail && u.password === password
       );
       
       if (demoUser) {
@@ -340,19 +359,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('offline_user', JSON.stringify(offlineUser));
         setUser(offlineUser as any);
         setIsPremium(demoUser.isPremium);
+        
+        // If we weren't in offline mode before, switch to it
+        if (!isOfflineMode) {
+          setIsOfflineMode(true);
+          setConnectionStatus('offline');
+        }
+        
         console.log('✅ Offline sign in successful');
         return;
-      } else {
+      } else if (isOfflineMode) {
         throw new Error('Invalid credentials. Try demo@example.com / demo123 or admin@hkmcash.com / admin123');
       }
+    }
+
+    // If we have demo credentials but we're in online mode, suggest switching to offline
+    if (!isOfflineMode && isDemoCredential && supabase) {
+      console.log('🔧 Demo credentials detected, attempting online auth first...');
     }
 
     if (!supabase) {
       throw new Error('Authentication service not available');
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    
     try {
       console.log('🔐 Attempting sign in for:', cleanEmail);
       setLoading(true);
@@ -364,6 +393,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('❌ Sign in error:', error);
+        
+        // If this is an invalid credentials error and the user is trying demo credentials,
+        // suggest switching to offline mode
+        if (error.message === 'Invalid login credentials' && isDemoCredential) {
+          throw new Error('These appear to be demo credentials. The account doesn\'t exist in the database. Would you like to try offline mode instead?');
+        }
+        
         throw new Error(handleAuthError(error));
       }
 
@@ -588,7 +624,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resetPassword,
     isPremium,
     isOfflineMode,
-    connectionStatus
+    connectionStatus,
+    switchToOfflineMode
   };
 
   return (

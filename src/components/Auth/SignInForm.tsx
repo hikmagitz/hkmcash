@@ -15,7 +15,8 @@ import {
   Shield,
   Zap,
   Clock,
-  RefreshCw
+  RefreshCw,
+  ToggleLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AuthMode } from './AuthContainer';
@@ -37,7 +38,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showDemoUsers, setShowDemoUsers] = useState(false);
-  const { signIn, isOfflineMode, connectionStatus } = useAuth();
+  const [showOfflineSuggestion, setShowOfflineSuggestion] = useState(false);
+  const { signIn, isOfflineMode, connectionStatus, switchToOfflineMode } = useAuth();
 
   // Demo users for offline mode
   const demoUsers = [
@@ -73,6 +75,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setShowOfflineSuggestion(false);
     setIsLoading(true);
 
     try {
@@ -99,7 +102,20 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
       
     } catch (err: any) {
       console.error('❌ Sign in error:', err);
-      setError(err.message || 'Sign in failed. Please try again.');
+      
+      // Check if this is a demo credential issue
+      const isDemoCredential = demoUsers.some(u => 
+        u.email.toLowerCase() === formData.email.trim().toLowerCase() && 
+        u.password === formData.password
+      );
+      
+      if (err.message.includes('demo credentials') || 
+          (err.message.includes('Invalid') && isDemoCredential)) {
+        setShowOfflineSuggestion(true);
+        setError('These demo credentials don\'t exist in the database. You can switch to offline mode to use them.');
+      } else {
+        setError(err.message || 'Sign in failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +124,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError('');
+    setShowOfflineSuggestion(false);
   };
 
   const isFormValid = formData.email.trim() && formData.password.trim() && validateEmail(formData.email);
@@ -120,11 +137,21 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
       password: demoUser.password
     }));
     setShowDemoUsers(false);
+    setError('');
+    setShowOfflineSuggestion(false);
   };
 
   // Quick fill for first demo user
   const quickFillDemo = () => {
     fillDemoCredentials(demoUsers[0]);
+  };
+
+  // Handle switching to offline mode
+  const handleSwitchToOffline = () => {
+    switchToOfflineMode();
+    setShowOfflineSuggestion(false);
+    setError('');
+    setSuccess('Switched to offline mode. You can now use demo credentials.');
   };
 
   // Connection status indicator
@@ -190,8 +217,35 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
         </motion.div>
       </div>
 
+      {/* Offline Mode Suggestion */}
+      {showOfflineSuggestion && !isOfflineMode && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-lg"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-start">
+              <ToggleLeft className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Switch to Offline Mode?</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Use demo credentials without requiring a database connection.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleSwitchToOffline}
+              className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Switch
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Alerts */}
-      {error && (
+      {error && !showOfflineSuggestion && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
