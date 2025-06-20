@@ -121,8 +121,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
 
   if (mode === 'add') {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm md:items-center">
-        <div className="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-out translate-y-0">
+      <div className="fixed inset-0 z-[9999] flex items-end justify-center pt-2 pb-4 px-4 bg-black/50 backdrop-blur-sm md:items-center md:pt-4">
+        <div className="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl w-full max-w-md max-h-[80vh] md:max-h-[85vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-out translate-y-0">
           <TransactionForm onClose={onClose} isModal={true} />
         </div>
       </div>
@@ -136,8 +136,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm md:items-center">
-      <div className="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-out translate-y-0">
+    <div className="fixed inset-0 z-[9999] flex items-end justify-center pt-2 pb-4 px-4 bg-black/50 backdrop-blur-sm md:items-center md:pt-4">
+      <div className="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl w-full max-w-md max-h-[80vh] md:max-h-[85vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-out translate-y-0">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Edit Transaction</h2>
