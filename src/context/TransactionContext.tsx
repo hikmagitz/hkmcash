@@ -61,67 +61,121 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const FREE_TRANSACTION_LIMIT = 50;
   const hasReachedLimit = !isPremium && transactions.length >= FREE_TRANSACTION_LIMIT;
 
-  // Load data from Supabase
+  // Check if we're in offline mode (user ID is not a valid UUID)
+  const isOfflineMode = user?.id && !isValidUUID(user.id);
+
+  function isValidUUID(str: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  }
+
+  // Local storage helpers for offline mode
+  const getLocalStorageKey = (type: string) => `financeApp_${user?.id}_${type}`;
+
+  const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  const saveToLocalStorage = <T,>(key: string, data: T): void => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  };
+
+  // Load data from Supabase or localStorage
   useEffect(() => {
     const loadData = async () => {
       if (!user) return;
 
       setIsLoading(true);
       try {
-        // Load transactions
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
+        if (isOfflineMode) {
+          // Load from localStorage for offline mode
+          const transactionsData = loadFromLocalStorage(getLocalStorageKey('transactions'), []);
+          const categoriesData = loadFromLocalStorage(getLocalStorageKey('categories'), []);
+          const clientsData = loadFromLocalStorage(getLocalStorageKey('clients'), []);
+          const enterpriseData = loadFromLocalStorage(getLocalStorageKey('enterprise'), '');
 
-        if (transactionsError) throw transactionsError;
-        setTransactions(transactionsData || []);
-
-        // Load categories
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (categoriesError) throw categoriesError;
-        
-        // If no categories exist for the user, create default ones
-        if (!categoriesData?.length) {
-          const defaultCategories = getDefaultCategories().map(cat => ({
-            ...cat,
-            user_id: user.id
-          }));
+          setTransactions(transactionsData);
           
-          const { error: insertError } = await supabase
-            .from('categories')
-            .insert(defaultCategories);
-            
-          if (insertError) throw insertError;
-          setCategories(defaultCategories);
+          // If no categories exist, create default ones
+          if (!categoriesData.length) {
+            const defaultCategories = getDefaultCategories().map(cat => ({
+              ...cat,
+              id: generateId(),
+              user_id: user.id
+            }));
+            setCategories(defaultCategories);
+            saveToLocalStorage(getLocalStorageKey('categories'), defaultCategories);
+          } else {
+            setCategories(categoriesData);
+          }
+
+          setClients(clientsData);
+          setEnterpriseNameState(enterpriseData);
         } else {
-          setCategories(categoriesData);
+          // Load from Supabase for authenticated users
+          // Load transactions
+          const { data: transactionsData, error: transactionsError } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
+
+          if (transactionsError) throw transactionsError;
+          setTransactions(transactionsData || []);
+
+          // Load categories
+          const { data: categoriesData, error: categoriesError } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('user_id', user.id);
+
+          if (categoriesError) throw categoriesError;
+          
+          // If no categories exist for the user, create default ones
+          if (!categoriesData?.length) {
+            const defaultCategories = getDefaultCategories().map(cat => ({
+              ...cat,
+              user_id: user.id
+            }));
+            
+            const { error: insertError } = await supabase
+              .from('categories')
+              .insert(defaultCategories);
+              
+            if (insertError) throw insertError;
+            setCategories(defaultCategories);
+          } else {
+            setCategories(categoriesData);
+          }
+
+          // Load clients
+          const { data: clientsData, error: clientsError } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('user_id', user.id);
+
+          if (clientsError) throw clientsError;
+          setClients(clientsData || []);
+
+          // Load enterprise settings
+          const { data: settingsData, error: settingsError } = await supabase
+            .from('enterprise_settings')
+            .select('name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (settingsError) throw settingsError;
+          setEnterpriseNameState(settingsData?.name || '');
         }
-
-        // Load clients
-        const { data: clientsData, error: clientsError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (clientsError) throw clientsError;
-        setClients(clientsData || []);
-
-        // Load enterprise settings
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('enterprise_settings')
-          .select('name')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (settingsError) throw settingsError;
-        setEnterpriseNameState(settingsData?.name || '');
-
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -130,7 +184,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     loadData();
-  }, [user]);
+  }, [user, isOfflineMode]);
 
   // Update summary when transactions change
   useEffect(() => {
@@ -141,15 +195,20 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('enterprise_settings')
-        .upsert(
-          { user_id: user.id, name },
-          { onConflict: 'user_id' }
-        );
+      if (isOfflineMode) {
+        saveToLocalStorage(getLocalStorageKey('enterprise'), name);
+        setEnterpriseNameState(name);
+      } else {
+        const { error } = await supabase
+          .from('enterprise_settings')
+          .upsert(
+            { user_id: user.id, name },
+            { onConflict: 'user_id' }
+          );
 
-      if (error) throw error;
-      setEnterpriseNameState(name);
+        if (error) throw error;
+        setEnterpriseNameState(name);
+      }
     } catch (error) {
       console.error('Error updating enterprise name:', error);
       throw error;
@@ -163,16 +222,30 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
 
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([{ ...transaction, user_id: user.id }])
-        .select()
-        .single();
+      if (isOfflineMode) {
+        const newTransaction = {
+          ...transaction,
+          id: generateId(),
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const updatedTransactions = [newTransaction, ...transactions];
+        setTransactions(updatedTransactions);
+        saveToLocalStorage(getLocalStorageKey('transactions'), updatedTransactions);
+      } else {
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert([{ ...transaction, user_id: user.id }])
+          .select()
+          .single();
 
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
+        if (error) throw error;
+        if (!data) throw new Error('No data returned from insert');
 
-      setTransactions(prev => [data, ...prev]);
+        setTransactions(prev => [data, ...prev]);
+      }
     } catch (error) {
       console.error('Error adding transaction:', error);
       throw error;
@@ -183,15 +256,21 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      if (isOfflineMode) {
+        const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
+        setTransactions(updatedTransactions);
+        saveToLocalStorage(getLocalStorageKey('transactions'), updatedTransactions);
+      } else {
+        const { error } = await supabase
+          .from('transactions')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+        setTransactions(prev => prev.filter(transaction => transaction.id !== id));
+      }
     } catch (error) {
       console.error('Error deleting transaction:', error);
       throw error;
@@ -202,26 +281,37 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          amount: updatedTransaction.amount,
-          description: updatedTransaction.description,
-          category: updatedTransaction.category,
-          type: updatedTransaction.type,
-          date: updatedTransaction.date,
-          client: updatedTransaction.client,
-        })
-        .eq('id', updatedTransaction.id)
-        .eq('user_id', user.id);
+      if (isOfflineMode) {
+        const updatedTransactions = transactions.map(transaction =>
+          transaction.id === updatedTransaction.id ? {
+            ...updatedTransaction,
+            updated_at: new Date().toISOString()
+          } : transaction
+        );
+        setTransactions(updatedTransactions);
+        saveToLocalStorage(getLocalStorageKey('transactions'), updatedTransactions);
+      } else {
+        const { error } = await supabase
+          .from('transactions')
+          .update({
+            amount: updatedTransaction.amount,
+            description: updatedTransaction.description,
+            category: updatedTransaction.category,
+            type: updatedTransaction.type,
+            date: updatedTransaction.date,
+            client: updatedTransaction.client,
+          })
+          .eq('id', updatedTransaction.id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setTransactions(prev =>
-        prev.map(transaction =>
-          transaction.id === updatedTransaction.id ? updatedTransaction : transaction
-        )
-      );
+        setTransactions(prev =>
+          prev.map(transaction =>
+            transaction.id === updatedTransaction.id ? updatedTransaction : transaction
+          )
+        );
+      }
     } catch (error) {
       console.error('Error updating transaction:', error);
       throw error;
@@ -232,16 +322,30 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{ ...category, user_id: user.id }])
-        .select()
-        .single();
+      if (isOfflineMode) {
+        const newCategory = {
+          ...category,
+          id: generateId(),
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const updatedCategories = [...categories, newCategory];
+        setCategories(updatedCategories);
+        saveToLocalStorage(getLocalStorageKey('categories'), updatedCategories);
+      } else {
+        const { data, error } = await supabase
+          .from('categories')
+          .insert([{ ...category, user_id: user.id }])
+          .select()
+          .single();
 
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
+        if (error) throw error;
+        if (!data) throw new Error('No data returned from insert');
 
-      setCategories(prev => [...prev, data]);
+        setCategories(prev => [...prev, data]);
+      }
     } catch (error) {
       console.error('Error adding category:', error);
       throw error;
@@ -251,22 +355,30 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const deleteCategory = async (id: string) => {
     if (!user) throw new Error('User must be authenticated');
     
-    // Validate UUID format before making the request
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      throw new Error('Invalid category ID format');
+    // Validate UUID format before making the request (only for non-offline mode)
+    if (!isOfflineMode) {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        throw new Error('Invalid category ID format');
+      }
     }
 
     try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      if (isOfflineMode) {
+        const updatedCategories = categories.filter(category => category.id !== id);
+        setCategories(updatedCategories);
+        saveToLocalStorage(getLocalStorageKey('categories'), updatedCategories);
+      } else {
+        const { error } = await supabase
+          .from('categories')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setCategories(prev => prev.filter(category => category.id !== id));
+        setCategories(prev => prev.filter(category => category.id !== id));
+      }
     } catch (error) {
       console.error('Error deleting category:', error);
       throw error;
@@ -277,16 +389,30 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .insert([{ ...client, user_id: user.id }])
-        .select()
-        .single();
+      if (isOfflineMode) {
+        const newClient = {
+          ...client,
+          id: generateId(),
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const updatedClients = [...clients, newClient];
+        setClients(updatedClients);
+        saveToLocalStorage(getLocalStorageKey('clients'), updatedClients);
+      } else {
+        const { data, error } = await supabase
+          .from('clients')
+          .insert([{ ...client, user_id: user.id }])
+          .select()
+          .single();
 
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
+        if (error) throw error;
+        if (!data) throw new Error('No data returned from insert');
 
-      setClients(prev => [...prev, data]);
+        setClients(prev => [...prev, data]);
+      }
     } catch (error) {
       console.error('Error adding client:', error);
       throw error;
@@ -297,15 +423,21 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (!user) throw new Error('User must be authenticated');
 
     try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      if (isOfflineMode) {
+        const updatedClients = clients.filter(client => client.id !== id);
+        setClients(updatedClients);
+        saveToLocalStorage(getLocalStorageKey('clients'), updatedClients);
+      } else {
+        const { error } = await supabase
+          .from('clients')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setClients(prev => prev.filter(client => client.id !== id));
+        setClients(prev => prev.filter(client => client.id !== id));
+      }
     } catch (error) {
       console.error('Error deleting client:', error);
       throw error;
