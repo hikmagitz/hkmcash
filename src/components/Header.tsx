@@ -4,7 +4,6 @@ import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown } from 'lu
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useIntl } from 'react-intl';
-import TransactionModal from './TransactionModal';
 import Button from './UI/Button';
 import Badge from './UI/Badge';
 import { STRIPE_PRODUCTS } from '../stripe-config';
@@ -81,200 +80,297 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md py-4 px-4 md:px-6 shadow-lg border-b border-white/20 dark:border-gray-700/50 sticky top-0 z-40 transition-all">
-      <div className="max-w-6xl mx-auto">
-        {/* Mobile Layout */}
-        <div className="md:hidden">
-          <div className="flex items-center justify-between mb-2">
+    <>
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md py-4 px-4 md:px-6 shadow-lg border-b border-white/20 dark:border-gray-700/50 sticky top-0 z-40 transition-all">
+        <div className="max-w-6xl mx-auto">
+          {/* Mobile Layout */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-sky-500 to-purple-500 rounded-lg flex items-center justify-center mr-2">
+                  <span className="text-white font-bold text-sm">H</span>
+                </div>
+                <div className="flex items-center">
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
+                    {intl.formatMessage({ id: 'app.title' })}
+                  </h1>
+                  {isPremium && (
+                    <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
+                      <Crown size={12} className="mr-1" />
+                      {STRIPE_PRODUCTS.premium_access.name}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={toggleLanguage}
+                  className="p-1.5 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
+                  aria-label={intl.formatMessage({ id: 'common.language' })}
+                >
+                  <Languages className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                </button>
+                <button 
+                  onClick={toggleTheme}
+                  className="p-1.5 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
+                  aria-label="Toggle theme"
+                >
+                  {darkMode ? (
+                    <Sun className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                  ) : (
+                    <Moon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              {!isPremium && (
+                <Button 
+                  type="secondary"
+                  onClick={() => navigate('/premium')}
+                  className="flex-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
+                >
+                  <Crown size={16} />
+                  {intl.formatMessage({ id: 'premium.upgrade' })}
+                </Button>
+              )}
+              <Button 
+                type="primary" 
+                onClick={() => setIsModalOpen(true)}
+                className="flex-1"
+              >
+                <Plus size={16} />
+                {intl.formatMessage({ id: 'action.addTransaction' })}
+              </Button>
+              
+              {/* Mobile Profile Dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center space-x-1 px-2 py-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
+                >
+                  <User size={16} className="text-gray-600 dark:text-gray-300" />
+                </button>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
+                    <div className="py-1">
+                      <div className="px-4 py-2 border-b border-gray-200/50 dark:border-gray-700/50">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
+                      >
+                        <LogOut size={16} />
+                        <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:flex justify-between items-center">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-sky-500 to-purple-500 rounded-lg flex items-center justify-center mr-2">
-                <span className="text-white font-bold text-sm">H</span>
+              <div className="w-10 h-10 bg-gradient-to-r from-sky-500 to-purple-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                <span className="text-white font-bold text-lg">H</span>
               </div>
               <div className="flex items-center">
-                <h1 className="text-lg font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
                   {intl.formatMessage({ id: 'app.title' })}
                 </h1>
                 {isPremium && (
-                  <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
-                    <Crown size={12} className="mr-1" />
+                  <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0 shadow-md">
+                    <Crown size={14} className="mr-1" />
                     {STRIPE_PRODUCTS.premium_access.name}
                   </Badge>
                 )}
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            
+            <div className="flex items-center space-x-4">
               <button 
                 onClick={toggleLanguage}
-                className="p-1.5 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
+                className="p-2 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
                 aria-label={intl.formatMessage({ id: 'common.language' })}
               >
-                <Languages className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                <Languages className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </button>
+              
               <button 
                 onClick={toggleTheme}
-                className="p-1.5 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
+                className="p-2 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
                 aria-label="Toggle theme"
               >
                 {darkMode ? (
-                  <Sun className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                  <Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                 ) : (
-                  <Moon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                  <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                 )}
               </button>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            {!isPremium && (
-              <Button 
-                type="secondary"
-                onClick={() => navigate('/premium')}
-                className="flex-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
-              >
-                <Crown size={16} />
-                {intl.formatMessage({ id: 'premium.upgrade' })}
-              </Button>
-            )}
-            <Button 
-              type="primary" 
-              onClick={() => setIsModalOpen(true)}
-              className="flex-1"
-            >
-              <Plus size={16} />
-              {intl.formatMessage({ id: 'action.addTransaction' })}
-            </Button>
-            
-            {/* Mobile Profile Dropdown */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-1 px-2 py-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
-              >
-                <User size={16} className="text-gray-600 dark:text-gray-300" />
-              </button>
-              
-              {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
-                  <div className="py-1">
-                    <div className="px-4 py-2 border-b border-gray-200/50 dark:border-gray-700/50">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      disabled={isLoggingOut}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
-                    >
-                      <LogOut size={16} />
-                      <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
-                    </button>
-                  </div>
-                </div>
+
+              {!isPremium && (
+                <Button 
+                  type="secondary"
+                  onClick={() => navigate('/premium')}
+                  className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
+                >
+                  <Crown size={18} />
+                  {intl.formatMessage({ id: 'premium.upgrade' })}
+                </Button>
               )}
+              
+              <Button 
+                type="primary" 
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus size={18} />
+                {intl.formatMessage({ id: 'action.addTransaction' })}
+              </Button>
+
+              {/* Desktop Profile Dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
+                >
+                  <User size={18} className="text-gray-600 dark:text-gray-300" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Account</span>
+                  <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
+                    <div className="py-1">
+                      <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {isPremium ? 'Premium Member' : 'Free Account'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
+                      >
+                        <LogOut size={16} />
+                        <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden md:flex justify-between items-center">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-gradient-to-r from-sky-500 to-purple-500 rounded-xl flex items-center justify-center mr-3 shadow-lg">
-              <span className="text-white font-bold text-lg">H</span>
-            </div>
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
-                {intl.formatMessage({ id: 'app.title' })}
-              </h1>
-              {isPremium && (
-                <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0 shadow-md">
-                  <Crown size={14} className="mr-1" />
-                  {STRIPE_PRODUCTS.premium_access.name}
-                </Badge>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={toggleLanguage}
-              className="p-2 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
-              aria-label={intl.formatMessage({ id: 'common.language' })}
-            >
-              <Languages className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            </button>
-            
-            <button 
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
-              aria-label="Toggle theme"
-            >
-              {darkMode ? (
-                <Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-              ) : (
-                <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-              )}
-            </button>
-
-            {!isPremium && (
-              <Button 
-                type="secondary"
-                onClick={() => navigate('/premium')}
-                className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
-              >
-                <Crown size={18} />
-                {intl.formatMessage({ id: 'premium.upgrade' })}
-              </Button>
-            )}
-            
-            <Button 
-              type="primary" 
-              onClick={() => setIsModalOpen(true)}
-            >
-              <Plus size={18} />
-              {intl.formatMessage({ id: 'action.addTransaction' })}
-            </Button>
-
-            {/* Desktop Profile Dropdown */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
-              >
-                <User size={18} className="text-gray-600 dark:text-gray-300" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Account</span>
-                <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
-                  <div className="py-1">
-                    <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {isPremium ? 'Premium Member' : 'Free Account'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      disabled={isLoggingOut}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
-                    >
-                      <LogOut size={16} />
-                      <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      </header>
       
-      <TransactionModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
-    </header>
+      {/* Modal rendered outside header at the footer level */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-t-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border-t border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-out">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Add Transaction</h2>
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <Plus className="w-6 h-6 rotate-45" />
+                </button>
+              </div>
+              
+              <form className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <button
+                    type="button"
+                    className="py-2 rounded-md transition-all bg-red-500 text-white"
+                  >
+                    Expense
+                  </button>
+                  <button
+                    type="button"
+                    className="py-2 rounded-md transition-all bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                  >
+                    Income
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Amount
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
+                      €
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full pl-8 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+                    placeholder="What was this transaction for?"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Client
+                  </label>
+                  <select className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300">
+                    <option value="">Select Client</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <select className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300">
+                    <option value="">Select Category</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+                  />
+                </div>
+
+                <Button 
+                  type="primary" 
+                  className="w-full mt-6"
+                >
+                  <Plus size={18} />
+                  Add Transaction
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
