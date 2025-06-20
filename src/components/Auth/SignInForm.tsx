@@ -338,24 +338,27 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
-          <Button 
-            type="primary" 
-            className="w-full py-3 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-200"
+          <button
+            type="submit"
             disabled={isLoading || !isFormValid}
-            loading={isLoading}
+            className={`w-full py-3 text-lg font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 min-h-[52px] ${
+              isLoading || !isFormValid
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-500/30'
+            }`}
           >
             {isLoading ? (
-              <div className="flex items-center justify-center">
-                <Loader className="w-5 h-5 animate-spin mr-2" />
+              <>
+                <Loader className="w-5 h-5 animate-spin" />
                 Signing In...
-              </div>
+              </>
             ) : (
-              <div className="flex items-center justify-center">
-                <LogIn className="w-5 h-5 mr-2" />
+              <>
+                <LogIn className="w-5 h-5" />
                 Sign In
-              </div>
+              </>
             )}
-          </Button>
+          </button>
         </motion.div>
       </form>
 
