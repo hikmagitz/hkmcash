@@ -8,21 +8,13 @@ import AccountPage from './pages/AccountPage';
 import AccountSettingsPage from './pages/AccountSettingsPage';
 import PremiumPage from './pages/PremiumPage';
 import SuccessPage from './pages/SuccessPage';
+import AuthPage from './pages/AuthPage';
 import { TransactionProvider } from './context/TransactionContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 
 const AppContent = () => {
-  const [loading, setLoading] = useState(true);
-  
-  // Simulate a brief loading period
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+  const { user, loading } = useAuth();
   
   if (loading) {
     return (
@@ -38,12 +30,13 @@ const AppContent = () => {
           <div className="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mx-auto">
             <div className="bg-gradient-to-r from-sky-500 to-purple-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-            🎉 Demo Mode - No login required!
-          </p>
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return <AuthPage />;
   }
   
   return (

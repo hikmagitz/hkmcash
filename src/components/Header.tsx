@@ -12,8 +12,9 @@ import { STRIPE_PRODUCTS } from '../stripe-config';
 const Header: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { isPremium, user } = useAuth();
+  const { signOut, isPremium, user } = useAuth();
   const { language, setLanguage } = useLanguage();
   const intl = useIntl();
   const navigate = useNavigate();
@@ -58,17 +59,25 @@ const Header: React.FC = () => {
     setLanguage(language === 'en' ? 'ar' : 'en');
   };
 
-  const handleLogout = () => {
-    // In demo mode, just show a message
-    alert('This is demo mode - logout is disabled. All data is stored locally in your browser.');
-    setIsProfileOpen(false);
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+    
+    setIsLoggingOut(true);
+    setIsProfileOpen(false); // Close dropdown
+    try {
+      await signOut();
+      // Navigation will be handled by AuthContext since user will become null
+    } catch (error) {
+      console.error('Error logging out:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   const getDisplayName = () => {
     if (user?.email) {
       return user.email.split('@')[0];
     }
-    return 'Demo User';
+    return 'User';
   };
 
   return (
@@ -85,11 +94,8 @@ const Header: React.FC = () => {
                 <h1 className="text-lg font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
                   {intl.formatMessage({ id: 'app.title' })}
                 </h1>
-                <Badge type="neutral" className="ml-2 bg-gradient-to-r from-green-400 to-emerald-400 text-white border-0">
-                  <span className="text-xs">DEMO</span>
-                </Badge>
                 {isPremium && (
-                  <Badge type="neutral" className="ml-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
+                  <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
                     <Crown size={12} className="mr-1" />
                     {STRIPE_PRODUCTS.premium_access.name}
                   </Badge>
@@ -118,6 +124,16 @@ const Header: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            {!isPremium && (
+              <Button 
+                type="secondary"
+                onClick={() => navigate('/premium')}
+                className="flex-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
+              >
+                <Crown size={16} />
+                {intl.formatMessage({ id: 'premium.upgrade' })}
+              </Button>
+            )}
             <Button 
               type="primary" 
               onClick={() => setIsModalOpen(true)}
@@ -140,15 +156,16 @@ const Header: React.FC = () => {
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
                   <div className="py-1">
                     <div className="px-4 py-2 border-b border-gray-200/50 dark:border-gray-700/50">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Demo Account</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 transition-colors"
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
                     >
                       <LogOut size={16} />
-                      <span>Demo Mode Info</span>
+                      <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
                     </button>
                   </div>
                 </div>
@@ -167,9 +184,6 @@ const Header: React.FC = () => {
               <h1 className="text-xl font-bold bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
                 {intl.formatMessage({ id: 'app.title' })}
               </h1>
-              <Badge type="neutral" className="ml-2 bg-gradient-to-r from-green-400 to-emerald-400 text-white border-0 shadow-md">
-                <span className="text-xs font-bold">DEMO</span>
-              </Badge>
               {isPremium && (
                 <Badge type="neutral" className="ml-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0 shadow-md">
                   <Crown size={14} className="mr-1" />
@@ -199,6 +213,17 @@ const Header: React.FC = () => {
                 <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               )}
             </button>
+
+            {!isPremium && (
+              <Button 
+                type="secondary"
+                onClick={() => navigate('/premium')}
+                className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
+              >
+                <Crown size={18} />
+                {intl.formatMessage({ id: 'premium.upgrade' })}
+              </Button>
+            )}
             
             <Button 
               type="primary" 
@@ -215,7 +240,7 @@ const Header: React.FC = () => {
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors backdrop-blur-sm"
               >
                 <User size={18} className="text-gray-600 dark:text-gray-300" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Demo Account</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Account</span>
                 <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
               
@@ -223,18 +248,19 @@ const Header: React.FC = () => {
                 <div className="absolute right-0 top-full mt-1 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
                   <div className="py-1">
                     <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Demo Account</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                        🎉 All Features Unlocked
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {isPremium ? 'Premium Member' : 'Free Account'}
                       </p>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 transition-colors"
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 disabled:opacity-50 transition-colors"
                     >
                       <LogOut size={16} />
-                      <span>Demo Mode Info</span>
+                      <span>{isLoggingOut ? 'Logging out...' : intl.formatMessage({ id: 'action.logout' })}</span>
                     </button>
                   </div>
                 </div>
