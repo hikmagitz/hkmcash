@@ -1,13 +1,16 @@
 import React from 'react';
-import { User, Settings, FileText, Download, Upload } from 'lucide-react';
+import { User, Settings, FileText, Download, Upload, Shield, Lock } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { useTransactions } from '../context/TransactionContext';
+import { useAuth } from '../context/AuthContext';
+import { ChangePasswordForm, ForgotPasswordForm } from '../components/Auth/PasswordManagement';
 
 const AccountPage: React.FC = () => {
   const intl = useIntl();
   const { transactions, categories, clients } = useTransactions();
+  const { user, isPremium, isOfflineMode } = useAuth();
 
   const handleExportData = () => {
     const data = {
@@ -70,11 +73,17 @@ const AccountPage: React.FC = () => {
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-          Account Settings
+          Account Management
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Manage your account preferences and data
+          Manage your account security, preferences, and data
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Password Management */}
+        <ChangePasswordForm />
+        <ForgotPasswordForm />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -89,24 +98,41 @@ const AccountPage: React.FC = () => {
             </h2>
           </div>
           
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Account Type
-              </label>
-              <p className="text-gray-800 dark:text-white">Local Account</p>
+          <div className="space-y-4">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border-l-4 border-blue-500">
+              <div className="flex items-center gap-2 mb-2">
+                <User className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                  Email Address
+                </span>
+              </div>
+              <p className="text-lg font-bold text-gray-800 dark:text-white">
+                {user?.email || 'Not available'}
+              </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Data Storage
-              </label>
-              <p className="text-gray-800 dark:text-white">Browser Local Storage</p>
+
+            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 rounded-xl border-l-4 border-green-500">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-4 h-4 text-green-600" />
+                <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">
+                  Account Type
+                </span>
+              </div>
+              <p className="text-lg font-bold text-gray-800 dark:text-white">
+                {isOfflineMode ? 'Demo Account' : isPremium ? 'Premium Account' : 'Free Account'}
+              </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Transactions
-              </label>
-              <p className="text-gray-800 dark:text-white">{transactions.length}</p>
+
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border-l-4 border-purple-500">
+              <div className="flex items-center gap-2 mb-2">
+                <Settings className="w-4 h-4 text-purple-600" />
+                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+                  Data Storage
+                </span>
+              </div>
+              <p className="text-lg font-bold text-gray-800 dark:text-white">
+                {isOfflineMode ? 'Local Storage' : 'Cloud Database'}
+              </p>
             </div>
           </div>
         </Card>
@@ -167,12 +193,12 @@ const AccountPage: React.FC = () => {
               <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-              Statistics
+              Account Statistics
             </h2>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
+            <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {transactions.length}
               </div>
@@ -180,7 +206,7 @@ const AccountPage: React.FC = () => {
                 Total Transactions
               </div>
             </div>
-            <div className="text-center">
+            <div className="text-center p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {categories.length}
               </div>
@@ -188,7 +214,7 @@ const AccountPage: React.FC = () => {
                 Categories
               </div>
             </div>
-            <div className="text-center">
+            <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {clients.length}
               </div>
@@ -196,7 +222,7 @@ const AccountPage: React.FC = () => {
                 Clients
               </div>
             </div>
-            <div className="text-center">
+            <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                 {transactions.filter(t => t.type === 'income').length}
               </div>
@@ -206,6 +232,19 @@ const AccountPage: React.FC = () => {
             </div>
           </div>
         </Card>
+      </div>
+
+      {/* Security Notice */}
+      <div className="mt-8 text-center">
+        <div className="inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all">
+          <Shield className="w-5 h-5 text-blue-500" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {isOfflineMode 
+              ? 'Demo mode - Your data is stored locally in your browser'
+              : 'Your data is protected with bank-level encryption'
+            }
+          </span>
+        </div>
       </div>
     </div>
   );
