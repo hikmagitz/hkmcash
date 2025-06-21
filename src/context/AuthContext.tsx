@@ -16,6 +16,7 @@ interface SavedAccount {
   name?: string;
   isPremium: boolean;
   lastUsed: string;
+  authData?: any; // Store auth tokens for quick switching
 }
 
 interface AuthContextType {
@@ -67,7 +68,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const saved = localStorage.getItem('savedAccounts');
       if (saved) {
-        setSavedAccounts(JSON.parse(saved));
+        const accounts = JSON.parse(saved);
+        setSavedAccounts(accounts);
+        console.log('📱 Loaded saved accounts:', accounts.length);
       }
     } catch (error) {
       console.error('Error loading saved accounts:', error);
@@ -78,20 +81,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     try {
       localStorage.setItem('savedAccounts', JSON.stringify(savedAccounts));
+      console.log('💾 Saved accounts to localStorage:', savedAccounts.length);
     } catch (error) {
       console.error('Error saving accounts:', error);
     }
   }, [savedAccounts]);
-
-  // Function to manually switch to offline mode
-  const switchToOfflineMode = () => {
-    console.log('🔧 Manually switching to offline mode');
-    setIsOfflineMode(true);
-    setConnectionStatus('offline');
-    setUser(null);
-    setIsPremium(false);
-    localStorage.removeItem('offline_user');
-  };
 
   // Add current account to saved accounts
   const saveCurrentAccount = (user: User, isPremium: boolean) => {
@@ -104,25 +98,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? `${user.user_metadata.firstName} ${user.user_metadata.lastName}`
         : user.email.split('@')[0],
       isPremium,
-      lastUsed: new Date().toISOString()
+      lastUsed: new Date().toISOString(),
+      authData: isOfflineMode ? {
+        isOffline: true,
+        userData: user
+      } : null
     };
 
     setSavedAccounts(prev => {
       const filtered = prev.filter(acc => acc.id !== user.id);
-      return [accountData, ...filtered].slice(0, 5); // Keep max 5 accounts
+      const updated = [accountData, ...filtered].slice(0, 10); // Keep max 10 accounts
+      console.log('💾 Saving current account:', accountData.email);
+      return updated;
     });
   };
 
   // Switch to a different account
   const switchAccount = async (accountId: string) => {
     const account = savedAccounts.find(acc => acc.id === accountId);
-    if (!account) return;
+    if (!account) {
+      console.error('❌ Account not found:', accountId);
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('🔄 Switching to account:', account.email);
       
-      if (isOfflineMode) {
-        // For offline mode, simulate switching
+      if (isOfflineMode || account.authData?.isOffline) {
+        // For offline mode accounts
         const mockUser = {
           id: account.id,
           email: account.email,
@@ -139,6 +143,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         setUser(mockUser as any);
         setIsPremium(account.isPremium);
+        setIsOfflineMode(true);
+        setConnectionStatus('offline');
         
         // Update last used
         setSavedAccounts(prev => 
@@ -148,13 +154,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               : acc
           )
         );
+        
+        console.log('✅ Switched to offline account:', account.email);
       } else {
-        // For online mode, you would implement actual account switching
-        // This might involve re-authenticating or using stored tokens
-        console.log('Online account switching not implemented yet');
+        // For online mode, sign out current user and redirect to sign in
+        console.log('🔄 Switching to online account, signing out current user...');
+        await signOut();
+        
+        // Store the target account email for auto-fill
+        localStorage.setItem('targetAccountEmail', account.email);
+        
+        console.log('✅ Signed out, ready for new account sign in');
       }
     } catch (error) {
-      console.error('Error switching account:', error);
+      console.error('❌ Error switching account:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -162,13 +176,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Remove an account from saved accounts
   const removeAccount = (accountId: string) => {
-    setSavedAccounts(prev => prev.filter(acc => acc.id !== accountId));
+    setSavedAccounts(prev => {
+      const updated = prev.filter(acc => acc.id !== accountId);
+      console.log('🗑️ Removed account:', accountId);
+      return updated;
+    });
   };
 
   // Add new account (redirect to sign in)
   const addAccount = () => {
-    // Sign out current user to allow signing in with a different account
+    console.log('➕ Adding new account, signing out current user...');
     signOut();
+  };
+
+  // Function to manually switch to offline mode
+  const switchToOfflineMode = () => {
+    console.log('🔧 Manually switching to offline mode');
+    setIsOfflineMode(true);
+    setConnectionStatus('offline');
+    setUser(null);
+    setIsPremium(false);
+    localStorage.removeItem('offline_user');
   };
 
   // Check connection status
