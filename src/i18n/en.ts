@@ -69,7 +69,7 @@ export default {
   'premium.features.pdf': 'PDF receipts for transactions',
   'premium.features.excel': 'Export to Excel',
   'premium.features.json': 'Export to JSON',
-  'premium.price': '€4.99/month',
+  'premium.price': '€12.00/month',
   'premium.upgrade': 'Upgrade to Premium',
   'premium.upgradePrompt': 'This is a premium feature. Would you like to upgrade to premium?',
   'premium.success': 'Welcome to Premium!',

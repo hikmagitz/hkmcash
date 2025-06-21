@@ -69,7 +69,7 @@ export default {
   'premium.features.pdf': 'إيصالات PDF للمعاملات',
   'premium.features.excel': 'تصدير إلى Excel',
   'premium.features.json': 'تصدير إلى JSON',
-  'premium.price': '€4.99/شهرياً',
+  'premium.price': '€12.00/شهرياً',
   'premium.upgrade': 'الترقية الآن',
   'premium.upgradePrompt': 'هذه ميزة متوفرة للمشتركين فقط. هل تريد الترقية إلى بريميوم؟',
   'premium.success': 'مرحباً بك في النسخة المميزة!',
