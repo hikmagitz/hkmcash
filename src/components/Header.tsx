@@ -136,9 +136,17 @@ const Header: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevent double submission
+    if (isLoading) return;
+    
+    console.log('🔄 Form submission started');
+    console.log('Form data:', formData);
+    
     if (validateForm()) {
       try {
         setIsLoading(true);
+        console.log('✅ Form validation passed, adding transaction...');
+        
         await addTransaction({
           amount: Number(formData.amount),
           description: formData.description,
@@ -148,6 +156,9 @@ const Header: React.FC = () => {
           client: formData.client || undefined,
         });
         
+        console.log('✅ Transaction added successfully');
+        
+        // Reset form
         setFormData({
           amount: '',
           description: '',
@@ -157,8 +168,17 @@ const Header: React.FC = () => {
           client: '',
         });
         
+        // Clear any errors
+        setErrors({});
+        
+        // Close modal
         setIsModalOpen(false);
+        
+        // Show success feedback
+        console.log('✅ Form reset and modal closed');
+        
       } catch (error) {
+        console.error('❌ Error adding transaction:', error);
         if (error instanceof Error && error.message.includes('limit reached')) {
           alert('You have reached the transaction limit. Please upgrade to premium for unlimited transactions.');
         } else {
@@ -168,6 +188,8 @@ const Header: React.FC = () => {
       } finally {
         setIsLoading(false);
       }
+    } else {
+      console.log('❌ Form validation failed:', errors);
     }
   };
 
@@ -442,6 +464,7 @@ const Header: React.FC = () => {
                           errors.amount ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="0.00"
+                        disabled={isLoading}
                       />
                     </div>
                     {errors.amount && (
@@ -462,6 +485,7 @@ const Header: React.FC = () => {
                         errors.description ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="What was this transaction for?"
+                      disabled={isLoading}
                     />
                     {errors.description && (
                       <p className="mt-1 text-sm text-red-500">{errors.description}</p>
@@ -477,6 +501,7 @@ const Header: React.FC = () => {
                       value={formData.client}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+                      disabled={isLoading}
                     >
                       <option value="">Select Client</option>
                       {clients.map((client) => (
@@ -498,6 +523,7 @@ const Header: React.FC = () => {
                       className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                         errors.category ? 'border-red-500' : 'border-gray-300'
                       }`}
+                      disabled={isLoading}
                     >
                       <option value="">Select Category</option>
                       {filteredCategories.map((category) => (
@@ -523,20 +549,28 @@ const Header: React.FC = () => {
                       className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                         errors.date ? 'border-red-500' : 'border-gray-300'
                       }`}
+                      disabled={isLoading}
                     />
                     {errors.date && (
                       <p className="mt-1 text-sm text-red-500">{errors.date}</p>
                     )}
                   </div>
 
-                  <Button 
-                    type="primary" 
-                    className="w-full mt-6"
+                  <button
+                    type="submit"
                     disabled={isLoading}
+                    className="relative overflow-hidden font-medium transition-all duration-200 flex items-center justify-center gap-2 rounded-lg shadow-sm hover:shadow-lg active:scale-95 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:shadow-sm px-4 py-2 text-sm md:text-base min-h-[44px] bg-gradient-to-r from-sky-500 to-purple-500 hover:from-sky-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-sky-500/30 before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity cursor-pointer hover:scale-105 w-full mt-6"
                   >
-                    <PlusCircle size={18} />
-                    {isLoading ? 'Adding...' : 'Add Transaction'}
-                  </Button>
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-lg">
+                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    <span className={`relative z-10 flex items-center gap-2 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                      <PlusCircle size={18} />
+                      {isLoading ? 'Adding...' : 'Add Transaction'}
+                    </span>
+                  </button>
                 </form>
               )}
             </div>
