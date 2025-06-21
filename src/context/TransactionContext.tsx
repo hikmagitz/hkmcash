@@ -30,6 +30,7 @@ interface TransactionContextType {
   deleteCategory: (id: string) => Promise<void>;
   addClient: (client: Omit<Client, 'id' | 'createdAt'>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
+  updateClient: (id: string, newName: string) => Promise<void>;
   hasReachedLimit: boolean;
   isLoading: boolean;
   enterpriseName: string;
@@ -444,6 +445,71 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
+  const updateClient = async (id: string, newName: string) => {
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      // Find the client to get the old name
+      const clientToUpdate = clients.find(client => client.id === id);
+      if (!clientToUpdate) {
+        throw new Error('Client not found');
+      }
+
+      const oldName = clientToUpdate.name;
+      const trimmedNewName = newName.trim();
+
+      if (!trimmedNewName) {
+        throw new Error('Client name cannot be empty');
+      }
+
+      if (isOfflineMode) {
+        // Update client in clients list
+        const updatedClients = clients.map(client =>
+          client.id === id ? { ...client, name: trimmedNewName, updated_at: new Date().toISOString() } : client
+        );
+        setClients(updatedClients);
+        saveToLocalStorage(getLocalStorageKey('clients'), updatedClients);
+
+        // Update all transactions that reference this client
+        const updatedTransactions = transactions.map(transaction =>
+          transaction.client === oldName ? { ...transaction, client: trimmedNewName } : transaction
+        );
+        setTransactions(updatedTransactions);
+        saveToLocalStorage(getLocalStorageKey('transactions'), updatedTransactions);
+      } else {
+        // Update client in database
+        const { error: clientError } = await supabase
+          .from('clients')
+          .update({ name: trimmedNewName })
+          .eq('id', id)
+          .eq('user_id', user.id);
+
+        if (clientError) throw clientError;
+
+        // Update all transactions that reference this client
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .update({ client: trimmedNewName })
+          .eq('client', oldName)
+          .eq('user_id', user.id);
+
+        if (transactionError) throw transactionError;
+
+        // Update local state
+        setClients(prev => prev.map(client =>
+          client.id === id ? { ...client, name: trimmedNewName } : client
+        ));
+
+        setTransactions(prev => prev.map(transaction =>
+          transaction.client === oldName ? { ...transaction, client: trimmedNewName } : transaction
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating client:', error);
+      throw error;
+    }
+  };
+
   return (
     <TransactionContext.Provider
       value={{
@@ -458,6 +524,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         deleteCategory,
         addClient,
         deleteClient,
+        updateClient,
         hasReachedLimit,
         isLoading,
         enterpriseName,

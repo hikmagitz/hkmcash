@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit, Save, X, Search, User, Building, Palette, Download, Upload, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Search, User, Building, Palette, Download, Upload, AlertTriangle, Check } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
@@ -17,6 +17,7 @@ const PersonalizationPage: React.FC = () => {
     deleteCategory, 
     addClient, 
     deleteClient,
+    updateClient,
     enterpriseName,
     setEnterpriseName,
     transactions
@@ -33,6 +34,8 @@ const PersonalizationPage: React.FC = () => {
   // Client state
   const [newClient, setNewClient] = useState('');
   const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [editingClient, setEditingClient] = useState<string | null>(null);
+  const [editClientName, setEditClientName] = useState('');
 
   // Enterprise state
   const [tempEnterpriseName, setTempEnterpriseName] = useState(enterpriseName);
@@ -94,8 +97,42 @@ const PersonalizationPage: React.FC = () => {
     }
   };
 
+  const handleEditClient = (client: any) => {
+    setEditingClient(client.id);
+    setEditClientName(client.name);
+  };
+
+  const handleSaveClient = async () => {
+    if (editingClient && editClientName.trim()) {
+      try {
+        await updateClient(editingClient, editClientName.trim());
+        setEditingClient(null);
+        setEditClientName('');
+      } catch (error) {
+        console.error('Error updating client:', error);
+        alert('Failed to update client. Please try again.');
+      }
+    }
+  };
+
+  const handleCancelEditClient = () => {
+    setEditingClient(null);
+    setEditClientName('');
+  };
+
   const handleDeleteClient = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this client?')) {
+    const client = clients.find(c => c.id === id);
+    const clientName = client?.name || 'this client';
+    
+    // Count transactions that use this client
+    const transactionCount = transactions.filter(t => t.client === clientName).length;
+    
+    let confirmMessage = `Are you sure you want to delete "${clientName}"?`;
+    if (transactionCount > 0) {
+      confirmMessage += `\n\nThis will also remove the client reference from ${transactionCount} transaction${transactionCount > 1 ? 's' : ''}.`;
+    }
+    
+    if (window.confirm(confirmMessage)) {
       try {
         await deleteClient(id);
       } catch (error) {
@@ -128,7 +165,7 @@ const PersonalizationPage: React.FC = () => {
       }
       return;
     }
-    exportToExcel(transactions, categories, enterpriseName);
+    exportToExcel(transactions, categories, clients, enterpriseName);
   };
 
   const handleExportJSON = async () => {
@@ -438,17 +475,46 @@ const PersonalizationPage: React.FC = () => {
                     key={client.id}
                     className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
+                    {editingClient === client.id ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                        <input
+                          type="text"
+                          value={editClientName}
+                          onChange={(e) => setEditClientName(e.target.value)}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                          onKeyPress={(e) => e.key === 'Enter' && handleSaveClient()}
+                          autoFocus
+                        />
+                        <Button type="success" onClick={handleSaveClient} size="sm">
+                          <Check size={14} />
+                        </Button>
+                        <Button type="secondary" onClick={handleCancelEditClient} size="sm">
+                          <X size={14} />
+                        </Button>
                       </div>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {client.name}
-                      </span>
-                    </div>
-                    <Button type="danger" onClick={() => handleDeleteClient(client.id)} size="sm">
-                      <Trash2 size={14} />
-                    </Button>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {client.name}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button type="secondary" onClick={() => handleEditClient(client)} size="sm">
+                            <Edit size={14} />
+                          </Button>
+                          <Button type="danger" onClick={() => handleDeleteClient(client.id)} size="sm">
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))
               )}
