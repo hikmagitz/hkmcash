@@ -10,6 +10,14 @@ const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+interface SavedAccount {
+  id: string;
+  email: string;
+  name?: string;
+  isPremium: boolean;
+  lastUsed: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -23,6 +31,10 @@ interface AuthContextType {
   isOfflineMode: boolean;
   connectionStatus: 'online' | 'offline' | 'checking';
   switchToOfflineMode: () => void;
+  savedAccounts: SavedAccount[];
+  switchAccount: (accountId: string) => Promise<void>;
+  removeAccount: (accountId: string) => void;
+  addAccount: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -41,6 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isPremium, setIsPremium] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
 
   // Demo users for offline mode
   const demoUsers = [
@@ -48,6 +61,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     { email: 'admin@hkmcash.com', password: 'admin123', firstName: 'Admin', lastName: 'User', isPremium: true },
     { email: 'user@test.com', password: 'test123', firstName: 'Test', lastName: 'User', isPremium: false },
   ];
+
+  // Load saved accounts from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('savedAccounts');
+      if (saved) {
+        setSavedAccounts(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading saved accounts:', error);
+    }
+  }, []);
+
+  // Save accounts to localStorage whenever savedAccounts changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('savedAccounts', JSON.stringify(savedAccounts));
+    } catch (error) {
+      console.error('Error saving accounts:', error);
+    }
+  }, [savedAccounts]);
 
   // Function to manually switch to offline mode
   const switchToOfflineMode = () => {
@@ -57,6 +91,84 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setIsPremium(false);
     localStorage.removeItem('offline_user');
+  };
+
+  // Add current account to saved accounts
+  const saveCurrentAccount = (user: User, isPremium: boolean) => {
+    if (!user?.email) return;
+
+    const accountData: SavedAccount = {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.firstName && user.user_metadata?.lastName 
+        ? `${user.user_metadata.firstName} ${user.user_metadata.lastName}`
+        : user.email.split('@')[0],
+      isPremium,
+      lastUsed: new Date().toISOString()
+    };
+
+    setSavedAccounts(prev => {
+      const filtered = prev.filter(acc => acc.id !== user.id);
+      return [accountData, ...filtered].slice(0, 5); // Keep max 5 accounts
+    });
+  };
+
+  // Switch to a different account
+  const switchAccount = async (accountId: string) => {
+    const account = savedAccounts.find(acc => acc.id === accountId);
+    if (!account) return;
+
+    try {
+      setLoading(true);
+      
+      if (isOfflineMode) {
+        // For offline mode, simulate switching
+        const mockUser = {
+          id: account.id,
+          email: account.email,
+          user_metadata: {
+            firstName: account.name?.split(' ')[0] || '',
+            lastName: account.name?.split(' ')[1] || ''
+          }
+        };
+        
+        localStorage.setItem('offline_user', JSON.stringify({
+          ...mockUser,
+          isPremium: account.isPremium
+        }));
+        
+        setUser(mockUser as any);
+        setIsPremium(account.isPremium);
+        
+        // Update last used
+        setSavedAccounts(prev => 
+          prev.map(acc => 
+            acc.id === accountId 
+              ? { ...acc, lastUsed: new Date().toISOString() }
+              : acc
+          )
+        );
+      } else {
+        // For online mode, you would implement actual account switching
+        // This might involve re-authenticating or using stored tokens
+        console.log('Online account switching not implemented yet');
+      }
+    } catch (error) {
+      console.error('Error switching account:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Remove an account from saved accounts
+  const removeAccount = (accountId: string) => {
+    setSavedAccounts(prev => prev.filter(acc => acc.id !== accountId));
+  };
+
+  // Add new account (redirect to sign in)
+  const addAccount = () => {
+    // Sign out current user to allow signing in with a different account
+    signOut();
   };
 
   // Check connection status
@@ -307,6 +419,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkPremiumStatus();
   }, [user, isOfflineMode]);
+
+  // Save account when user signs in successfully
+  useEffect(() => {
+    if (user && !loading) {
+      saveCurrentAccount(user, isPremium);
+    }
+  }, [user, isPremium, loading]);
 
   const handleAuthError = (error: AuthError): string => {
     console.error('🚨 Auth error details:', error);
@@ -638,7 +757,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isPremium,
     isOfflineMode,
     connectionStatus,
-    switchToOfflineMode
+    switchToOfflineMode,
+    savedAccounts,
+    switchAccount,
+    removeAccount,
+    addAccount
   };
 
   return (

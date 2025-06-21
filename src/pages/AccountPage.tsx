@@ -1,5 +1,5 @@
-import React from 'react';
-import { User, Settings, FileText, Download, Upload, Shield, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Settings, FileText, Download, Upload, Shield, Lock, Users, UserPlus, Trash2, Crown, ChevronRight } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -10,7 +10,8 @@ import { ChangePasswordForm, ForgotPasswordForm } from '../components/Auth/Passw
 const AccountPage: React.FC = () => {
   const intl = useIntl();
   const { transactions, categories, clients } = useTransactions();
-  const { user, isPremium, isOfflineMode } = useAuth();
+  const { user, isPremium, isOfflineMode, savedAccounts, switchAccount, removeAccount, addAccount } = useAuth();
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
   const handleExportData = () => {
     const data = {
@@ -69,6 +70,27 @@ const AccountPage: React.FC = () => {
     }
   };
 
+  const handleSwitchAccount = async (accountId: string) => {
+    try {
+      await switchAccount(accountId);
+      setShowAccountSwitcher(false);
+    } catch (error) {
+      console.error('Error switching account:', error);
+    }
+  };
+
+  const handleRemoveAccount = (accountId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (window.confirm('Are you sure you want to remove this account from the list?')) {
+      removeAccount(accountId);
+    }
+  };
+
+  const handleAddAccount = () => {
+    setShowAccountSwitcher(false);
+    addAccount();
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6">
@@ -79,6 +101,90 @@ const AccountPage: React.FC = () => {
           Manage your account security, preferences, and data
         </p>
       </div>
+
+      {/* Account Switcher Section */}
+      {savedAccounts.length > 0 && (
+        <div className="mb-8">
+          <Card>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                Account Switcher
+              </h2>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Switch between your saved accounts ({savedAccounts.length} accounts)
+                </p>
+                <Button
+                  type="secondary"
+                  onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
+                  className="text-sm"
+                >
+                  <Users size={16} />
+                  {showAccountSwitcher ? 'Hide Accounts' : 'Show Accounts'}
+                </Button>
+              </div>
+
+              {showAccountSwitcher && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    {savedAccounts.map((account) => (
+                      <div
+                        key={account.id}
+                        className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => handleSwitchAccount(account.id)}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                            <User className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                              {account.name}
+                              {account.isPremium && (
+                                <Crown size={16} className="text-yellow-500" />
+                              )}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {account.email}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">
+                              Last used: {new Date(account.lastUsed).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => handleRemoveAccount(account.id, e)}
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Remove account"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          <ChevronRight size={20} className="text-gray-400" />
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button
+                      onClick={handleAddAccount}
+                      className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-colors"
+                    >
+                      <UserPlus size={20} className="mr-2" />
+                      Add Another Account
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Password Management */}
@@ -118,8 +224,9 @@ const AccountPage: React.FC = () => {
                   Account Type
                 </span>
               </div>
-              <p className="text-lg font-bold text-gray-800 dark:text-white">
+              <p className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                 {isOfflineMode ? 'Demo Account' : isPremium ? 'Premium Account' : 'Free Account'}
+                {isPremium && <Crown size={18} className="text-yellow-500" />}
               </p>
             </div>
 
@@ -224,10 +331,10 @@ const AccountPage: React.FC = () => {
             </div>
             <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {transactions.filter(t => t.type === 'income').length}
+                {savedAccounts.length}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Income Records
+                Saved Accounts
               </div>
             </div>
           </div>
