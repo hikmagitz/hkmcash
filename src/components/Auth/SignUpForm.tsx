@@ -548,25 +548,24 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
         >
-          <button
-            type="submit"
+          <Button 
+            type="primary" 
+            className="w-full py-3 text-lg font-semibold bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 transform hover:scale-[1.02] transition-all duration-200"
             disabled={isLoading || !isFormValid()}
-            className={`w-full py-3 text-lg font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 min-h-[52px] relative overflow-hidden ${
-              isLoading || !isFormValid()
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
-                : 'bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-4 focus:ring-pink-500/30'
-            }`}
+            loading={isLoading}
           >
-            {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl">
-                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <Loader className="w-5 h-5 animate-spin mr-2" />
+                Creating Account...
+              </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <UserPlus className="w-5 h-5 mr-2" />
+                Create Account
               </div>
             )}
-            <span className={`relative z-10 flex items-center gap-2 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-              <UserPlus className="w-5 h-5" />
-              {isLoading ? 'Creating Account...' : 'Create Account'}
-            </span>
-          </button>
+          </Button>
         </motion.div>
       </form>
 
