@@ -227,15 +227,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         );
         
         console.log('✅ Switched to offline account:', account.email);
-      } else if (account.isLinked && account.refreshToken && supabase) {
+      } else if (account.isLinked && account.refreshToken && account.accessToken && supabase) {
         // Seamless switching for linked accounts using stored tokens
         console.log('🚀 Performing seamless account switch...');
         
         try {
           // Use the stored refresh token to get a new session
           const { data, error } = await supabase.auth.setSession({
-            access_token: account.accessToken!,
-            refresh_token: account.refreshToken!
+            access_token: account.accessToken,
+            refresh_token: account.refreshToken
           });
 
           if (error) {
@@ -269,6 +269,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } catch (tokenError) {
           console.warn('⚠️ Seamless switch failed, falling back to manual sign in:', tokenError);
+          
+          // Immediately clear authentication state to prevent cascading errors
+          setUser(null);
+          setIsPremium(false);
+          
           // Mark account as unlinked since tokens are invalid
           unlinkAccount(accountId);
         }
@@ -286,6 +291,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('❌ Error switching account:', error);
+      
+      // Ensure authentication state is cleared on any error
+      setUser(null);
+      setIsPremium(false);
+      
       throw error;
     } finally {
       setLoading(false);
