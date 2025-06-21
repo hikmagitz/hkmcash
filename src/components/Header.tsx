@@ -17,6 +17,8 @@ const Header: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const { signOut, isPremium, user } = useAuth();
   const { language, setLanguage } = useLanguage();
   const { addTransaction, categories, clients, hasReachedLimit } = useTransactions();
@@ -24,6 +26,7 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const profileRef = useRef<HTMLDivElement>(null);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -56,6 +59,10 @@ const Header: React.FC = () => {
       if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
         setIsClientDropdownOpen(false);
         setClientSearchTerm('');
+      }
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+        setCategorySearchTerm('');
       }
     };
 
@@ -209,10 +216,21 @@ const Header: React.FC = () => {
     client.name.toLowerCase().includes(clientSearchTerm.toLowerCase())
   );
 
+  // Filter categories based on search term
+  const searchFilteredCategories = filteredCategories.filter(category =>
+    category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
   const handleClientSelect = (clientName: string) => {
     setFormData({ ...formData, client: clientName });
     setIsClientDropdownOpen(false);
     setClientSearchTerm('');
+  };
+
+  const handleCategorySelect = (categoryName: string) => {
+    setFormData({ ...formData, category: categoryName });
+    setIsCategoryDropdownOpen(false);
+    setCategorySearchTerm('');
   };
 
   return (
@@ -584,22 +602,63 @@ const Header: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Category
                     </label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.category ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      disabled={isLoading}
-                    >
-                      <option value="">Select Category</option>
-                      {filteredCategories.map((category) => (
-                        <option key={category.id} value={category.name}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative" ref={categoryDropdownRef}>
+                      <div
+                        className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300 cursor-pointer flex items-center justify-between"
+                        onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                      >
+                        <span className={formData.category ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}>
+                          {formData.category || 'Select Category'}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                      
+                      {isCategoryDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {/* Search input */}
+                          <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              <input
+                                type="text"
+                                value={categorySearchTerm}
+                                onChange={(e) => setCategorySearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-600 dark:text-white text-sm"
+                                placeholder="Search categories..."
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Filtered categories */}
+                          {searchFilteredCategories.length === 0 && categorySearchTerm ? (
+                            <div className="px-4 py-2 text-gray-500 dark:text-gray-400 text-sm">
+                              No categories found matching "{categorySearchTerm}"
+                            </div>
+                          ) : (
+                            searchFilteredCategories.map((category) => (
+                              <div
+                                key={category.id}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-gray-900 dark:text-white flex items-center"
+                                onClick={() => handleCategorySelect(category.name)}
+                              >
+                                <div 
+                                  className="w-4 h-4 rounded-full mr-2"
+                                  style={{ backgroundColor: category.color }}
+                                />
+                                {category.name}
+                              </div>
+                            ))
+                          )}
+                          
+                          {filteredCategories.length === 0 && (
+                            <div className="px-4 py-2 text-gray-500 dark:text-gray-400 text-sm">
+                              No categories available for {formData.type}. Add categories in Settings.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     {errors.category && (
                       <p className="mt-1 text-sm text-red-500">{errors.category}</p>
                     )}
