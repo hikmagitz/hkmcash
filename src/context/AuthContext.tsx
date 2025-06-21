@@ -10,14 +10,6 @@ const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-interface SavedAccount {
-  id: string;
-  email: string;
-  name?: string;
-  isPremium: boolean;
-  lastUsed: string;
-}
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -31,10 +23,6 @@ interface AuthContextType {
   isOfflineMode: boolean;
   connectionStatus: 'online' | 'offline' | 'checking';
   switchToOfflineMode: () => void;
-  savedAccounts: SavedAccount[];
-  switchAccount: (accountId: string) => Promise<void>;
-  removeAccount: (accountId: string) => void;
-  addAccount: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -53,7 +41,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isPremium, setIsPremium] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'checking'>('checking');
-  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
 
   // Demo users for offline mode
   const demoUsers = [
@@ -61,107 +48,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     { email: 'admin@hkmcash.com', password: 'admin123', firstName: 'Admin', lastName: 'User', isPremium: true },
     { email: 'user@test.com', password: 'test123', firstName: 'Test', lastName: 'User', isPremium: false },
   ];
-
-  // Load saved accounts from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('savedAccounts');
-      if (saved) {
-        const accounts = JSON.parse(saved);
-        setSavedAccounts(accounts);
-        console.log('📱 Loaded saved accounts:', accounts.length);
-      }
-    } catch (error) {
-      console.error('Error loading saved accounts:', error);
-    }
-  }, []);
-
-  // Save accounts to localStorage whenever savedAccounts changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('savedAccounts', JSON.stringify(savedAccounts));
-      console.log('💾 Saved accounts to localStorage:', savedAccounts.length);
-    } catch (error) {
-      console.error('Error saving accounts:', error);
-    }
-  }, [savedAccounts]);
-
-  // Add current account to saved accounts
-  const saveCurrentAccount = async (user: User, isPremium: boolean) => {
-    if (!user?.email) return;
-
-    try {
-      const accountData: SavedAccount = {
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.firstName && user.user_metadata?.lastName 
-          ? `${user.user_metadata.firstName} ${user.user_metadata.lastName}`
-          : user.email.split('@')[0],
-        isPremium,
-        lastUsed: new Date().toISOString(),
-      };
-
-      setSavedAccounts(prev => {
-        const filtered = prev.filter(acc => acc.id !== user.id);
-        const updated = [accountData, ...filtered].slice(0, 10); // Keep max 10 accounts
-        console.log('💾 Saving current account:', accountData.email);
-        return updated;
-      });
-    } catch (error) {
-      console.error('Error saving current account:', error);
-    }
-  };
-
-  // Switch account - simply sign out and redirect to auth with email pre-filled
-  const switchAccount = async (accountId: string) => {
-    const account = savedAccounts.find(acc => acc.id === accountId);
-    if (!account) {
-      console.error('❌ Account not found:', accountId);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log('🔄 Switching to account:', account.email);
-      
-      // Update last used timestamp
-      setSavedAccounts(prev => 
-        prev.map(acc => 
-          acc.id === accountId 
-            ? { ...acc, lastUsed: new Date().toISOString() }
-            : acc
-        )
-      );
-      
-      // Store the target account email for auto-fill in sign-in form
-      localStorage.setItem('targetAccountEmail', account.email);
-      
-      // Sign out current user
-      await signOut();
-      
-      console.log('✅ Signed out, ready for account switch to:', account.email);
-    } catch (error) {
-      console.error('❌ Error switching account:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Remove an account from saved accounts
-  const removeAccount = (accountId: string) => {
-    setSavedAccounts(prev => {
-      const updated = prev.filter(acc => acc.id !== accountId);
-      console.log('🗑️ Removed account:', accountId);
-      return updated;
-    });
-  };
-
-  // Add new account (redirect to sign in)
-  const addAccount = () => {
-    console.log('➕ Adding new account, signing out current user...');
-    signOut();
-  };
 
   // Function to manually switch to offline mode
   const switchToOfflineMode = () => {
@@ -323,8 +209,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (session?.user) {
             console.log('✅ User signed in:', session.user.email);
             setUser(session.user);
-            // Save account for future switching
-            await saveCurrentAccount(session.user, false);
           }
           break;
         case 'SIGNED_OUT':
@@ -336,8 +220,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('🔄 Token refreshed');
           if (session?.user) {
             setUser(session.user);
-            // Update stored account
-            await saveCurrentAccount(session.user, isPremium);
           }
           break;
         case 'USER_UPDATED':
@@ -425,13 +307,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkPremiumStatus();
   }, [user, isOfflineMode]);
-
-  // Save account when user signs in successfully or premium status changes
-  useEffect(() => {
-    if (user && !loading) {
-      saveCurrentAccount(user, isPremium);
-    }
-  }, [user, isPremium, loading]);
 
   const handleAuthError = (error: AuthError): string => {
     console.error('🚨 Auth error details:', error);
@@ -763,11 +638,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isPremium,
     isOfflineMode,
     connectionStatus,
-    switchToOfflineMode,
-    savedAccounts,
-    switchAccount,
-    removeAccount,
-    addAccount
+    switchToOfflineMode
   };
 
   return (

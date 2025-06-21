@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown, X, PlusCircle, Users, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown, X, PlusCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTransactions } from '../context/TransactionContext';
@@ -15,8 +15,7 @@ const Header: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
-  const { signOut, isPremium, user, savedAccounts, switchAccount, removeAccount, addAccount } = useAuth();
+  const { signOut, isPremium, user } = useAuth();
   const { language, setLanguage } = useLanguage();
   const { addTransaction, categories, clients, hasReachedLimit } = useTransactions();
   const intl = useIntl();
@@ -50,7 +49,6 @@ const Header: React.FC = () => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
-        setShowAccountSwitcher(false);
       }
     };
 
@@ -94,29 +92,6 @@ const Header: React.FC = () => {
       return user.email.split('@')[0];
     }
     return 'User';
-  };
-
-  const handleSwitchAccount = async (accountId: string) => {
-    try {
-      await switchAccount(accountId);
-      setShowAccountSwitcher(false);
-      setIsProfileOpen(false);
-    } catch (error) {
-      console.error('Error switching account:', error);
-    }
-  };
-
-  const handleRemoveAccount = (accountId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (window.confirm('Are you sure you want to remove this account from the list?')) {
-      removeAccount(accountId);
-    }
-  };
-
-  const handleAddAccount = () => {
-    setShowAccountSwitcher(false);
-    setIsProfileOpen(false);
-    addAccount();
   };
 
   // Form handlers
@@ -303,64 +278,6 @@ const Header: React.FC = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                       </div>
                       
-                      {/* Account Switcher */}
-                      {savedAccounts.length > 0 && (
-                        <>
-                          <button
-                            onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center justify-between transition-colors"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <Users size={16} />
-                              <span>Switch Account</span>
-                            </div>
-                            <ChevronDown size={16} className={`transition-transform ${showAccountSwitcher ? 'rotate-180' : ''}`} />
-                          </button>
-                          
-                          {showAccountSwitcher && (
-                            <div className="border-t border-gray-200/50 dark:border-gray-700/50">
-                              {savedAccounts.map((account) => (
-                                <div
-                                  key={account.id}
-                                  className="flex items-center justify-between px-4 py-2 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
-                                >
-                                  <button
-                                    onClick={() => handleSwitchAccount(account.id)}
-                                    className="flex-1 text-left flex items-center space-x-2"
-                                  >
-                                    <User size={14} />
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-900 dark:text-white">
-                                        {account.name}
-                                      </p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {account.email}
-                                      </p>
-                                    </div>
-                                    {account.isPremium && (
-                                      <Crown size={12} className="text-yellow-500" />
-                                    )}
-                                  </button>
-                                  <button
-                                    onClick={(e) => handleRemoveAccount(account.id, e)}
-                                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              ))}
-                              <button
-                                onClick={handleAddAccount}
-                                className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 transition-colors"
-                              >
-                                <UserPlus size={16} />
-                                <span>Add Account</span>
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      
                       <button
                         onClick={handleLogout}
                         disabled={isLoggingOut}
@@ -456,70 +373,6 @@ const Header: React.FC = () => {
                           {isPremium ? 'Premium Member' : 'Free Account'}
                         </p>
                       </div>
-                      
-                      {/* Account Switcher */}
-                      {savedAccounts.length > 0 && (
-                        <>
-                          <button
-                            onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center justify-between transition-colors"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <Users size={16} />
-                              <span>Switch Account ({savedAccounts.length})</span>
-                            </div>
-                            <ChevronDown size={16} className={`transition-transform ${showAccountSwitcher ? 'rotate-180' : ''}`} />
-                          </button>
-                          
-                          {showAccountSwitcher && (
-                            <div className="border-t border-gray-200/50 dark:border-gray-700/50 max-h-64 overflow-y-auto">
-                              {savedAccounts.map((account) => (
-                                <div
-                                  key={account.id}
-                                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
-                                >
-                                  <button
-                                    onClick={() => handleSwitchAccount(account.id)}
-                                    className="flex-1 text-left flex items-center space-x-3"
-                                  >
-                                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                                      <User size={14} className="text-white" />
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                        {account.name}
-                                      </p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {account.email}
-                                      </p>
-                                      <p className="text-xs text-gray-400 dark:text-gray-500">
-                                        Last used: {new Date(account.lastUsed).toLocaleDateString()}
-                                      </p>
-                                    </div>
-                                    {account.isPremium && (
-                                      <Crown size={14} className="text-yellow-500" />
-                                    )}
-                                  </button>
-                                  <button
-                                    onClick={(e) => handleRemoveAccount(account.id, e)}
-                                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                    title="Remove account"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              ))}
-                              <button
-                                onClick={handleAddAccount}
-                                className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 flex items-center space-x-2 transition-colors border-t border-gray-200/50 dark:border-gray-700/50"
-                              >
-                                <UserPlus size={16} />
-                                <span>Add Another Account</span>
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
                       
                       <button
                         onClick={handleLogout}
