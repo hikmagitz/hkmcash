@@ -314,7 +314,7 @@ const Header: React.FC = () => {
                 <Button 
                   type="secondary"
                   onClick={() => navigate('/premium')}
-                  className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 hover:from-yellow-200 hover:to-orange-200 border-0"
+                  className="bg-gradient-to-r from-yellow-100 to-orange-100 hover:from-yellow-200 hover:to-orange-200 border-0 text-yellow-800"
                 >
                   <Crown size={18} />
                   {intl.formatMessage({ id: 'premium.upgrade' })}
