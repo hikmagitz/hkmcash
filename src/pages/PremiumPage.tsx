@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Check, ArrowLeft, Zap, FileText, Download, BarChart3, Shield, Star } from 'lucide-react';
+import { Crown, Check, ArrowLeft, Zap, FileText, Download, Shield, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIntl } from 'react-intl';
 import { useStripe } from '../hooks/useStripe';
@@ -50,24 +50,6 @@ const PremiumPage: React.FC = () => {
       title: 'Advanced Exports',
       description: 'Export your data to Excel, JSON, and other formats',
       highlight: true
-    },
-    {
-      icon: <BarChart3 className="w-6 h-6" />,
-      title: 'Advanced Analytics',
-      description: 'Get detailed insights and reports on your finances',
-      highlight: false
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: 'Priority Support',
-      description: '24/7 premium customer support via email and chat',
-      highlight: false
-    },
-    {
-      icon: <Star className="w-6 h-6" />,
-      title: 'Early Access',
-      description: 'Be the first to try new features and updates',
-      highlight: false
     }
   ];
 
@@ -110,7 +92,7 @@ const PremiumPage: React.FC = () => {
             className="w-full mb-4" 
             onClick={() => navigate('/dashboard')}
           >
-            <BarChart3 className="w-5 h-5 mr-2" />
+            <Check className="w-5 h-5 mr-2" />
             Go to Dashboard
           </Button>
 
@@ -150,37 +132,19 @@ const PremiumPage: React.FC = () => {
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className={`flex items-start text-left p-4 rounded-xl transition-all duration-200 ${
-                feature.highlight 
-                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200 dark:border-blue-800' 
-                  : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-              }`}
+              className="flex items-start text-left p-4 rounded-xl transition-all duration-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200 dark:border-blue-800"
             >
-              <div className={`p-2 rounded-lg mr-4 flex-shrink-0 ${
-                feature.highlight 
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-              }`}>
+              <div className="p-2 rounded-lg mr-4 flex-shrink-0 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
                 {feature.icon}
               </div>
               <div>
-                <h3 className={`font-semibold mb-1 ${
-                  feature.highlight 
-                    ? 'text-blue-900 dark:text-blue-200' 
-                    : 'text-gray-900 dark:text-white'
-                }`}>
+                <h3 className="font-semibold mb-1 text-blue-900 dark:text-blue-200">
                   {feature.title}
-                  {feature.highlight && (
-                    <span className="ml-2 px-2 py-1 text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-full">
-                      Popular
-                    </span>
-                  )}
+                  <span className="ml-2 px-2 py-1 text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-full">
+                    Popular
+                  </span>
                 </h3>
-                <p className={`text-sm ${
-                  feature.highlight 
-                    ? 'text-blue-700 dark:text-blue-300' 
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
                   {feature.description}
                 </p>
               </div>
