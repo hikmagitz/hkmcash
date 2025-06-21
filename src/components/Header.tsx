@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown, X, PlusCircle } from 'lucide-react';
+import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown, X, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTransactions } from '../context/TransactionContext';
@@ -15,12 +15,15 @@ const Header: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
   const { signOut, isPremium, user } = useAuth();
   const { language, setLanguage } = useLanguage();
   const { addTransaction, categories, clients, hasReachedLimit } = useTransactions();
   const intl = useIntl();
   const navigate = useNavigate();
   const profileRef = useRef<HTMLDivElement>(null);
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -44,11 +47,15 @@ const Header: React.FC = () => {
     }
   }, []);
 
-  // Close profile dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
+      }
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target as Node)) {
+        setIsClientDropdownOpen(false);
+        setClientSearchTerm('');
       }
     };
 
@@ -196,6 +203,17 @@ const Header: React.FC = () => {
   const filteredCategories = categories.filter(
     category => category.type === formData.type
   );
+
+  // Filter clients based on search term
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(clientSearchTerm.toLowerCase())
+  );
+
+  const handleClientSelect = (clientName: string) => {
+    setFormData({ ...formData, client: clientName });
+    setIsClientDropdownOpen(false);
+    setClientSearchTerm('');
+  };
 
   return (
     <>
@@ -498,20 +516,68 @@ const Header: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Client
                     </label>
-                    <select
-                      name="client"
-                      value={formData.client}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
-                      disabled={isLoading}
-                    >
-                      <option value="">Select Client</option>
-                      {clients.map((client) => (
-                        <option key={client.id} value={client.name}>
-                          {client.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative" ref={clientDropdownRef}>
+                      <div
+                        className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300 cursor-pointer flex items-center justify-between"
+                        onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                      >
+                        <span className={formData.client ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}>
+                          {formData.client || 'Select Client'}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isClientDropdownOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                      
+                      {isClientDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {/* Search input */}
+                          <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              <input
+                                type="text"
+                                value={clientSearchTerm}
+                                onChange={(e) => setClientSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-600 dark:text-white text-sm"
+                                placeholder="Search clients..."
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Clear selection option */}
+                          <div
+                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600"
+                            onClick={() => handleClientSelect('')}
+                          >
+                            <span className="italic">No Client</span>
+                          </div>
+                          
+                          {/* Filtered clients */}
+                          {filteredClients.length === 0 && clientSearchTerm ? (
+                            <div className="px-4 py-2 text-gray-500 dark:text-gray-400 text-sm">
+                              No clients found matching "{clientSearchTerm}"
+                            </div>
+                          ) : (
+                            filteredClients.map((client) => (
+                              <div
+                                key={client.id}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-gray-900 dark:text-white flex items-center"
+                                onClick={() => handleClientSelect(client.name)}
+                              >
+                                <User className="w-4 h-4 mr-2 text-gray-400" />
+                                {client.name}
+                              </div>
+                            ))
+                          )}
+                          
+                          {clients.length === 0 && (
+                            <div className="px-4 py-2 text-gray-500 dark:text-gray-400 text-sm">
+                              No clients available. Add clients in Settings.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>
