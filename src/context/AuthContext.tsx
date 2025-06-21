@@ -16,10 +16,6 @@ interface SavedAccount {
   name?: string;
   isPremium: boolean;
   lastUsed: string;
-  authData?: any; // Store auth tokens for quick switching
-  isLinked?: boolean; // Whether this account is linked for seamless switching
-  refreshToken?: string; // Store refresh token for seamless switching
-  accessToken?: string; // Store access token for seamless switching
 }
 
 interface AuthContextType {
@@ -39,8 +35,6 @@ interface AuthContextType {
   switchAccount: (accountId: string) => Promise<void>;
   removeAccount: (accountId: string) => void;
   addAccount: () => void;
-  linkAccount: (accountId: string) => Promise<void>;
-  unlinkAccount: (accountId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -92,18 +86,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [savedAccounts]);
 
-  // Add current account to saved accounts with auth tokens for seamless switching
-  const saveCurrentAccount = async (user: User, isPremium: boolean, session?: any) => {
+  // Add current account to saved accounts
+  const saveCurrentAccount = async (user: User, isPremium: boolean) => {
     if (!user?.email) return;
 
     try {
-      // Get current session for token storage
-      let currentSession = session;
-      if (!currentSession && supabase && !isOfflineMode) {
-        const { data } = await supabase.auth.getSession();
-        currentSession = data.session;
-      }
-
       const accountData: SavedAccount = {
         id: user.id,
         email: user.email,
@@ -112,20 +99,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           : user.email.split('@')[0],
         isPremium,
         lastUsed: new Date().toISOString(),
-        isLinked: !isOfflineMode && !!currentSession, // Mark as linked if we have session tokens
-        authData: isOfflineMode ? {
-          isOffline: true,
-          userData: user
-        } : null,
-        // Store tokens for seamless switching (only for online accounts)
-        refreshToken: !isOfflineMode && currentSession?.refresh_token ? currentSession.refresh_token : undefined,
-        accessToken: !isOfflineMode && currentSession?.access_token ? currentSession.access_token : undefined
       };
 
       setSavedAccounts(prev => {
         const filtered = prev.filter(acc => acc.id !== user.id);
         const updated = [accountData, ...filtered].slice(0, 10); // Keep max 10 accounts
-        console.log('💾 Saving current account with linking:', accountData.email, accountData.isLinked ? '🔗 Linked' : '🔓 Not Linked');
+        console.log('💾 Saving current account:', accountData.email);
         return updated;
       });
     } catch (error) {
@@ -133,58 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Link an account for seamless switching
-  const linkAccount = async (accountId: string) => {
-    if (isOfflineMode) {
-      console.log('❌ Cannot link accounts in offline mode');
-      return;
-    }
-
-    try {
-      const { data } = await supabase!.auth.getSession();
-      if (!data.session) {
-        throw new Error('No active session to link account');
-      }
-
-      setSavedAccounts(prev => 
-        prev.map(acc => 
-          acc.id === accountId 
-            ? { 
-                ...acc, 
-                isLinked: true,
-                refreshToken: data.session!.refresh_token,
-                accessToken: data.session!.access_token,
-                lastUsed: new Date().toISOString()
-              }
-            : acc
-        )
-      );
-
-      console.log('🔗 Account linked for seamless switching:', accountId);
-    } catch (error) {
-      console.error('❌ Error linking account:', error);
-      throw error;
-    }
-  };
-
-  // Unlink an account (remove stored tokens)
-  const unlinkAccount = (accountId: string) => {
-    setSavedAccounts(prev => 
-      prev.map(acc => 
-        acc.id === accountId 
-          ? { 
-              ...acc, 
-              isLinked: false,
-              refreshToken: undefined,
-              accessToken: undefined
-            }
-          : acc
-      )
-    );
-    console.log('🔓 Account unlinked:', accountId);
-  };
-
-  // Enhanced switch account with seamless switching for linked accounts
+  // Switch account - simply sign out and redirect to auth with email pre-filled
   const switchAccount = async (accountId: string) => {
     const account = savedAccounts.find(acc => acc.id === accountId);
     if (!account) {
@@ -194,108 +122,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       setLoading(true);
-      console.log('🔄 Switching to account:', account.email, account.isLinked ? '🔗 Seamless' : '🔓 Manual');
+      console.log('🔄 Switching to account:', account.email);
       
-      if (isOfflineMode || account.authData?.isOffline) {
-        // For offline mode accounts
-        const mockUser = {
-          id: account.id,
-          email: account.email,
-          user_metadata: {
-            firstName: account.name?.split(' ')[0] || '',
-            lastName: account.name?.split(' ')[1] || ''
-          }
-        };
-        
-        localStorage.setItem('offline_user', JSON.stringify({
-          ...mockUser,
-          isPremium: account.isPremium
-        }));
-        
-        setUser(mockUser as any);
-        setIsPremium(account.isPremium);
-        setIsOfflineMode(true);
-        setConnectionStatus('offline');
-        
-        // Update last used
-        setSavedAccounts(prev => 
-          prev.map(acc => 
-            acc.id === accountId 
-              ? { ...acc, lastUsed: new Date().toISOString() }
-              : acc
-          )
-        );
-        
-        console.log('✅ Switched to offline account:', account.email);
-      } else if (account.isLinked && account.refreshToken && account.accessToken && supabase) {
-        // Seamless switching for linked accounts using stored tokens
-        console.log('🚀 Performing seamless account switch...');
-        
-        try {
-          // Use the stored refresh token to get a new session
-          const { data, error } = await supabase.auth.setSession({
-            access_token: account.accessToken,
-            refresh_token: account.refreshToken
-          });
-
-          if (error) {
-            console.error('❌ Token refresh failed:', error);
-            // If token refresh fails, fall back to manual sign in
-            throw new Error('Token expired, manual sign in required');
-          }
-
-          if (data.user) {
-            console.log('✅ Seamless switch successful:', account.email);
-            setUser(data.user);
-            setIsPremium(account.isPremium);
-            setIsOfflineMode(false);
-            setConnectionStatus('online');
-            
-            // Update last used and refresh tokens
-            setSavedAccounts(prev => 
-              prev.map(acc => 
-                acc.id === accountId 
-                  ? { 
-                      ...acc, 
-                      lastUsed: new Date().toISOString(),
-                      refreshToken: data.session?.refresh_token || acc.refreshToken,
-                      accessToken: data.session?.access_token || acc.accessToken
-                    }
-                  : acc
-              )
-            );
-            
-            return; // Success, no need to continue
-          }
-        } catch (tokenError) {
-          console.warn('⚠️ Seamless switch failed, falling back to manual sign in:', tokenError);
-          
-          // Immediately clear authentication state to prevent cascading errors
-          setUser(null);
-          setIsPremium(false);
-          
-          // Mark account as unlinked since tokens are invalid
-          unlinkAccount(accountId);
-        }
-      }
+      // Update last used timestamp
+      setSavedAccounts(prev => 
+        prev.map(acc => 
+          acc.id === accountId 
+            ? { ...acc, lastUsed: new Date().toISOString() }
+            : acc
+        )
+      );
       
-      // For non-linked accounts or when seamless switching fails, sign out and redirect
-      if (!isOfflineMode) {
-        console.log('🔄 Switching to online account, signing out current user...');
-        await signOut();
-        
-        // Store the target account email for auto-fill
-        localStorage.setItem('targetAccountEmail', account.email);
-        
-        console.log('✅ Signed out, ready for new account sign in');
-      }
+      // Store the target account email for auto-fill in sign-in form
+      localStorage.setItem('targetAccountEmail', account.email);
+      
+      // Sign out current user
+      await signOut();
+      
+      console.log('✅ Signed out, ready for account switch to:', account.email);
     } catch (error) {
       console.error('❌ Error switching account:', error);
-      
-      // Ensure authentication state is cleared on any error
-      setUser(null);
-      setIsPremium(false);
-      
       throw error;
     } finally {
       setLoading(false);
@@ -477,8 +323,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (session?.user) {
             console.log('✅ User signed in:', session.user.email);
             setUser(session.user);
-            // Save account with session tokens for seamless switching
-            await saveCurrentAccount(session.user, false, session);
+            // Save account for future switching
+            await saveCurrentAccount(session.user, false);
           }
           break;
         case 'SIGNED_OUT':
@@ -490,8 +336,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('🔄 Token refreshed');
           if (session?.user) {
             setUser(session.user);
-            // Update stored tokens
-            await saveCurrentAccount(session.user, isPremium, session);
+            // Update stored account
+            await saveCurrentAccount(session.user, isPremium);
           }
           break;
         case 'USER_UPDATED':
@@ -921,9 +767,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     savedAccounts,
     switchAccount,
     removeAccount,
-    addAccount,
-    linkAccount,
-    unlinkAccount
+    addAccount
   };
 
   return (

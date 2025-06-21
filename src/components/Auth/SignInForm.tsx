@@ -66,6 +66,16 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
     },
   ];
 
+  // Check for target account email on component mount
+  useEffect(() => {
+    const targetEmail = localStorage.getItem('targetAccountEmail');
+    if (targetEmail) {
+      setFormData(prev => ({ ...prev, email: targetEmail }));
+      localStorage.removeItem('targetAccountEmail'); // Clean up
+      console.log('🎯 Pre-filled email for account switch:', targetEmail);
+    }
+  }, []);
+
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
