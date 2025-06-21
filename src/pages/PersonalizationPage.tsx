@@ -1,695 +1,274 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  Euro, 
-  Palette, 
-  Save, 
-  Edit3, 
-  Check, 
-  X, 
-  Plus, 
-  Trash2, 
-  Settings,
-  Sparkles,
-  Globe,
-  Briefcase,
-  Tag,
-  Users,
-  Shield,
-  Lock,
-  Download,
-  Upload,
-  FileSpreadsheet,
-  AlertTriangle,
-  Crown,
-  Database
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, Edit, Save, X, Search, Users, Palette, Building, Download, Upload, AlertTriangle } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import Card from '../components/UI/Card';
-import Button from '../components/UI/Button';
 import { useTransactions } from '../context/TransactionContext';
-import { SUPPORTED_CURRENCIES } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import { useStripe } from '../hooks/useStripe';
-import { createClient } from '@supabase/supabase-js';
-import * as XLSX from 'xlsx';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { exportToExcel, exportToJSON } from '../utils/exportUtils';
+import { STRIPE_PRODUCTS } from '../stripe-config';
+import Card from '../components/UI/Card';
+import Button from '../components/UI/Button';
 
 const PersonalizationPage: React.FC = () => {
   const intl = useIntl();
   const { 
     categories, 
+    clients, 
     addCategory, 
-    deleteCategory,
-    clients,
-    addClient,
+    deleteCategory, 
+    addClient, 
     deleteClient,
+    updateClient,
+    transactions,
     enterpriseName,
-    setEnterpriseName,
-    transactions
+    setEnterpriseName
   } = useTransactions();
-  const { isPremium, user } = useAuth();
+  const { isPremium } = useAuth();
   const { redirectToCheckout } = useStripe();
-
-  // Loading states
-  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
-
-  // Enterprise name state
-  const [tempEnterpriseName, setTempEnterpriseName] = useState('');
-  const [saveSuccess, setSaveSuccess] = useState(false);
-
-  // Currency state
-  const [selectedCurrency, setSelectedCurrency] = useState('EUR');
-  const [tempCurrency, setTempCurrency] = useState('EUR');
-  const [currencySaveSuccess, setCurrencySaveSuccess] = useState(false);
 
   // Category state
   const [newCategory, setNewCategory] = useState({
     name: '',
-    type: 'expense',
-    color: '#6366F1',
+    type: 'expense' as 'income' | 'expense',
+    color: '#3B82F6'
   });
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editCategoryData, setEditCategoryData] = useState({
-    name: '',
-    color: '#6366F1'
-  });
-  const [showEditColorPicker, setShowEditColorPicker] = useState(false);
 
   // Client state
   const [newClient, setNewClient] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
   const [editingClient, setEditingClient] = useState<string | null>(null);
-  const [editClientName, setEditClientName] = useState('');
+  const [editingClientName, setEditingClientName] = useState('');
 
-  // Initialize states
-  useEffect(() => {
-    setTempEnterpriseName(enterpriseName);
-    const savedCurrency = localStorage.getItem('preferredCurrency') || 'EUR';
-    setSelectedCurrency(savedCurrency);
-    setTempCurrency(savedCurrency);
-  }, [enterpriseName]);
+  // Enterprise name state
+  const [tempEnterpriseName, setTempEnterpriseName] = useState(enterpriseName);
+  const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
 
-  const getCurrentCurrencyInfo = () => {
-    return SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency) || SUPPORTED_CURRENCIES[0];
-  };
+  // Loading states
+  const [isLoading, setIsLoading] = useState(false);
 
-  const setLoading = (key: string, value: boolean) => {
-    setIsLoading(prev => ({ ...prev, [key]: value }));
-  };
+  // Filter clients based on search
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(clientSearch.toLowerCase())
+  );
 
-  // Enterprise functions
-  const handleSaveEnterpriseName = async () => {
-    setLoading('saveEnterprise', true);
-    setSaveSuccess(false);
-    
-    try {
-      await setEnterpriseName(tempEnterpriseName.trim());
-      setSaveSuccess(true);
-      
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Error saving enterprise name:', error);
-      alert('Failed to save company name. Please try again.');
-    } finally {
-      setLoading('saveEnterprise', false);
-    }
-  };
-
-  // Currency functions
-  const handleSaveCurrency = async () => {
-    setLoading('saveCurrency', true);
-    setCurrencySaveSuccess(false);
-    
-    try {
-      setSelectedCurrency(tempCurrency);
-      localStorage.setItem('preferredCurrency', tempCurrency);
-      setCurrencySaveSuccess(true);
-      
-      setTimeout(() => {
-        setCurrencySaveSuccess(false);
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      console.error('Error saving currency:', error);
-      alert('Failed to save currency. Please try again.');
-    } finally {
-      setLoading('saveCurrency', false);
-    }
-  };
-
-  // Category functions
   const handleAddCategory = async () => {
-    if (!newCategory.name.trim()) return;
-    
-    setLoading('addCategory', true);
-    try {
-      await addCategory({
-        name: newCategory.name.trim(),
-        type: newCategory.type as 'income' | 'expense',
-        color: newCategory.color,
-      });
-      
-      setNewCategory({
-        name: '',
-        type: 'expense',
-        color: '#6366F1',
-      });
-    } catch (error) {
-      console.error('Error adding category:', error);
-      alert('Failed to add category. Please try again.');
-    } finally {
-      setLoading('addCategory', false);
+    if (newCategory.name.trim()) {
+      try {
+        await addCategory(newCategory);
+        setNewCategory({ name: '', type: 'expense', color: '#3B82F6' });
+      } catch (error) {
+        console.error('Error adding category:', error);
+      }
     }
-  };
-
-  const handleStartEditCategory = (category: any) => {
-    setEditingCategory(category.id);
-    setEditCategoryData({
-      name: category.name,
-      color: category.color
-    });
-  };
-
-  const handleSaveCategory = async (categoryId: string, type: 'income' | 'expense') => {
-    if (!editCategoryData.name.trim()) return;
-
-    setLoading(`saveCategory-${categoryId}`, true);
-    try {
-      await deleteCategory(categoryId);
-      await addCategory({
-        name: editCategoryData.name.trim(),
-        type: type,
-        color: editCategoryData.color,
-      });
-      
-      setEditingCategory(null);
-      setEditCategoryData({ name: '', color: '#6366F1' });
-    } catch (error) {
-      console.error('Error updating category:', error);
-      alert('Failed to update category. Please try again.');
-    } finally {
-      setLoading(`saveCategory-${categoryId}`, false);
-    }
-  };
-
-  const handleCancelEditCategory = () => {
-    setEditingCategory(null);
-    setEditCategoryData({ name: '', color: '#6366F1' });
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
-    
-    setLoading(`deleteCategory-${id}`, true);
-    try {
-      await deleteCategory(id);
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      alert('Failed to delete category. Please try again.');
-    } finally {
-      setLoading(`deleteCategory-${id}`, false);
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      try {
+        await deleteCategory(id);
+      } catch (error) {
+        console.error('Error deleting category:', error);
+      }
     }
   };
 
-  // Client functions
   const handleAddClient = async () => {
-    if (!newClient.trim()) return;
-    
-    setLoading('addClient', true);
-    try {
-      await addClient({ name: newClient.trim() });
-      setNewClient('');
-    } catch (error) {
-      console.error('Error adding client:', error);
-      alert('Failed to add client. Please try again.');
-    } finally {
-      setLoading('addClient', false);
+    if (newClient.trim()) {
+      try {
+        await addClient({ name: newClient.trim() });
+        setNewClient('');
+      } catch (error) {
+        console.error('Error adding client:', error);
+      }
     }
-  };
-
-  const handleStartEditClient = (client: any) => {
-    setEditingClient(client.id);
-    setEditClientName(client.name);
-  };
-
-  const handleSaveClient = async (clientId: string) => {
-    if (!editClientName.trim()) return;
-
-    setLoading(`saveClient-${clientId}`, true);
-    try {
-      await deleteClient(clientId);
-      await addClient({ name: editClientName.trim() });
-      
-      setEditingClient(null);
-      setEditClientName('');
-    } catch (error) {
-      console.error('Error updating client:', error);
-      alert('Failed to update client. Please try again.');
-    } finally {
-      setLoading(`saveClient-${clientId}`, false);
-    }
-  };
-
-  const handleCancelEditClient = () => {
-    setEditingClient(null);
-    setEditClientName('');
   };
 
   const handleDeleteClient = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this client?')) return;
-    
-    setLoading(`deleteClient-${id}`, true);
-    try {
-      await deleteClient(id);
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      alert('Failed to delete client. Please try again.');
-    } finally {
-      setLoading(`deleteClient-${id}`, false);
+    if (window.confirm('Are you sure you want to delete this client?')) {
+      try {
+        await deleteClient(id);
+      } catch (error) {
+        console.error('Error deleting client:', error);
+      }
     }
   };
 
-  // Data management functions
-  const handleExportData = async () => {
-    if (!isPremium) {
-      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        setLoading('upgradeRedirect', true);
-        await redirectToCheckout('premium_access');
-        setLoading('upgradeRedirect', false);
+  const handleEditClient = (client: any) => {
+    setEditingClient(client.id);
+    setEditingClientName(client.name);
+  };
+
+  const handleSaveClient = async () => {
+    if (editingClient && editingClientName.trim()) {
+      try {
+        await updateClient(editingClient, editingClientName.trim());
+        setEditingClient(null);
+        setEditingClientName('');
+      } catch (error) {
+        console.error('Error updating client:', error);
       }
-      return;
-    }
-
-    setLoading('exportData', true);
-    try {
-      const { data: transactions, error: transactionsError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user?.id);
-
-      if (transactionsError) throw transactionsError;
-
-      const data = {
-        transactions,
-        categories,
-        enterpriseName,
-      };
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${enterpriseName || 'HikmaCash'}_export_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      alert(intl.formatMessage({ id: 'common.error' }));
-    } finally {
-      setLoading('exportData', false);
     }
   };
 
-  const handleImportData = async (file: File) => {
-    if (!isPremium) {
-      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        setLoading('upgradeRedirect', true);
-        await redirectToCheckout('premium_access');
-        setLoading('upgradeRedirect', false);
-      }
-      return;
-    }
+  const handleCancelEdit = () => {
+    setEditingClient(null);
+    setEditingClientName('');
+  };
 
-    setLoading('importData', true);
+  const handleSaveEnterpriseName = async () => {
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string);
-          
-          if (data.transactions && Array.isArray(data.transactions)) {
-            const { error: deleteError } = await supabase
-              .from('transactions')
-              .delete()
-              .eq('user_id', user?.id);
-
-            if (deleteError) throw deleteError;
-
-            const { error: insertError } = await supabase
-              .from('transactions')
-              .insert(
-                data.transactions.map((t: any) => ({
-                  ...t,
-                  user_id: user?.id
-                }))
-              );
-
-            if (insertError) throw insertError;
-          }
-
-          if (data.categories && Array.isArray(data.categories)) {
-            const { error: deleteCatError } = await supabase
-              .from('categories')
-              .delete()
-              .eq('user_id', user?.id);
-
-            if (deleteCatError) throw deleteCatError;
-
-            const { error: insertCatError } = await supabase
-              .from('categories')
-              .insert(
-                data.categories.map((c: any) => ({
-                  ...c,
-                  user_id: user?.id
-                }))
-              );
-
-            if (insertCatError) throw insertCatError;
-          }
-
-          if (data.enterpriseName) {
-            await setEnterpriseName(data.enterpriseName);
-          }
-
-          window.location.reload();
-        } catch (error) {
-          console.error('Error importing data:', error);
-          alert(intl.formatMessage({ id: 'common.error' }));
-        } finally {
-          setLoading('importData', false);
-        }
-      };
-      reader.readAsText(file);
+      await setEnterpriseName(tempEnterpriseName);
+      setIsEditingEnterprise(false);
     } catch (error) {
-      console.error('Error reading file:', error);
-      alert(intl.formatMessage({ id: 'common.error' }));
-      setLoading('importData', false);
+      console.error('Error updating enterprise name:', error);
     }
   };
 
   const handleExportExcel = async () => {
     if (!isPremium) {
-      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-        setLoading('upgradeRedirect', true);
-        await redirectToCheckout('premium_access');
-        setLoading('upgradeRedirect', false);
+      if (window.confirm('Excel export is a premium feature. Would you like to upgrade to premium?')) {
+        setIsLoading(true);
+        try {
+          await redirectToCheckout('premium_access');
+        } catch (error) {
+          console.error('Error redirecting to checkout:', error);
+          alert('Failed to redirect to checkout. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
       }
       return;
     }
-
-    setLoading('exportExcel', true);
-    try {
-      const transactionData = transactions.map(t => ({
-        Date: new Date(t.date).toLocaleDateString(intl.locale),
-        Type: intl.formatMessage({ id: `transaction.${t.type}` }),
-        Category: t.category,
-        Client: t.client || 'N/A',
-        Description: t.description,
-        Amount: t.amount,
-      }));
-
-      const wb = XLSX.utils.book_new();
-      
-      if (enterpriseName) {
-        const infoSheet = XLSX.utils.aoa_to_sheet([
-          ['Enterprise Name', enterpriseName],
-          ['Export Date', new Date().toLocaleDateString()],
-          [],
-        ]);
-        XLSX.utils.book_append_sheet(wb, infoSheet, 'Info');
-      }
-
-      const ws = XLSX.utils.json_to_sheet(transactionData);
-      const colWidths = [
-        { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 12 },
-      ];
-      ws['!cols'] = colWidths;
-
-      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-      XLSX.writeFile(wb, `${enterpriseName || 'HikmaCash'}_${new Date().toISOString().split('T')[0]}.xlsx`);
-    } catch (error) {
-      console.error('Error exporting Excel:', error);
-      alert('Failed to export Excel file. Please try again.');
-    } finally {
-      setLoading('exportExcel', false);
-    }
+    exportToExcel(transactions, enterpriseName);
   };
 
-  const handleClearData = async () => {
-    if (!window.confirm(intl.formatMessage({ id: 'settings.clearDataConfirm' }))) return;
-    
-    setLoading('clearData', true);
-    try {
-      if (user) {
-        const { error: transError } = await supabase
-          .from('transactions')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (transError) throw transError;
-
-        const { error: catError } = await supabase
-          .from('categories')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (catError) throw catError;
-
-        const { error: clientError } = await supabase
-          .from('clients')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (clientError) throw clientError;
-
-        await setEnterpriseName('');
+  const handleExportJSON = async () => {
+    if (!isPremium) {
+      if (window.confirm('JSON export is a premium feature. Would you like to upgrade to premium?')) {
+        setIsLoading(true);
+        try {
+          await redirectToCheckout('premium_access');
+        } catch (error) {
+          console.error('Error redirecting to checkout:', error);
+          alert('Failed to redirect to checkout. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
       }
-      
-      window.location.reload();
-    } catch (error) {
-      console.error('Error clearing data:', error);
-      alert(intl.formatMessage({ id: 'common.error' }));
-    } finally {
-      setLoading('clearData', false);
+      return;
     }
+    exportToJSON(transactions, categories, clients, enterpriseName);
   };
 
-  const colorOptions = [
-    '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', 
-    '#14B8A6', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6',
-    '#A855F7', '#D946EF', '#EC4899', '#F43F5E', '#6B7280'
-  ];
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        
+        if (data.transactions) {
+          localStorage.setItem('transactions', JSON.stringify(data.transactions));
+        }
+        if (data.categories) {
+          localStorage.setItem('categories', JSON.stringify(data.categories));
+        }
+        if (data.clients) {
+          localStorage.setItem('clients', JSON.stringify(data.clients));
+        }
+        
+        alert('Data imported successfully! Please refresh the page to see the changes.');
+      } catch (error) {
+        alert('Error importing data. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const clearAllData = () => {
+    if (window.confirm('Are you sure you want to clear all data? This action cannot be undone!')) {
+      localStorage.removeItem('transactions');
+      localStorage.removeItem('categories');
+      localStorage.removeItem('clients');
+      localStorage.removeItem('enterpriseName');
+      alert('All data has been cleared! Please refresh the page.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900 dark:to-purple-900">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110">
-                  <Settings className="w-8 h-8 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center animate-pulse shadow-lg">
-                  <Sparkles className="w-2.5 h-2.5 text-white" />
-                </div>
-              </div>
-              
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Personnalisation
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Configurez tous vos paramètres personnels en un seul endroit
-                </p>
-              </div>
-            </div>
-            
-            <div className="hidden md:flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-green-600" />
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              </div>
-              <span className="text-sm font-semibold text-green-700 dark:text-green-300">
-                Sécurisé & Synchronisé
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 rounded-lg group-hover:scale-110 transition-transform">
-                <Building2 className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Entreprise</p>
-                <p className="text-xs text-blue-500 dark:text-blue-300 truncate">
-                  {enterpriseName || 'Non défini'}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-500 rounded-lg group-hover:scale-110 transition-transform">
-                <Palette className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Catégories</p>
-                <p className="text-xs text-purple-500 dark:text-purple-300">{categories.length} total</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500 rounded-lg group-hover:scale-110 transition-transform">
-                <Users className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Clients</p>
-                <p className="text-xs text-orange-500 dark:text-orange-300">{clients.length} total</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800 hover:shadow-lg transition-all cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500 rounded-lg group-hover:scale-110 transition-transform">
-                <Euro className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">Devise</p>
-                <p className="text-xs text-green-500 dark:text-green-300">{getCurrentCurrencyInfo().code}</p>
-              </div>
-            </div>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
+            {intl.formatMessage({ id: 'nav.settings' })}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Customize your experience and manage your data
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-          
-          {/* Company Information */}
-          <Card className="group hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg group-hover:shadow-xl transition-all hover:scale-110">
-                  <Building2 className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Informations Entreprise</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Nom et devise</p>
-                </div>
+          {/* Enterprise Settings */}
+          <Card className="hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                <Building className="w-6 h-6 text-white" />
               </div>
-              
-              {/* Enterprise Name */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-3">
-                  <Building2 className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                    Nom d'entreprise
-                  </span>
-                </div>
-                
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                  {intl.formatMessage({ id: 'settings.enterpriseName' })}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {intl.formatMessage({ id: 'settings.enterpriseName.description' })}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {isEditingEnterprise ? (
                 <div className="space-y-3">
                   <input
                     type="text"
-                    placeholder="Nom de l'entreprise"
                     value={tempEnterpriseName}
                     onChange={(e) => setTempEnterpriseName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSaveEnterpriseName()}
-                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-blue-400"
+                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all"
+                    placeholder="Enter enterprise name"
                   />
-                  
-                  <Button 
-                    type="primary" 
-                    onClick={handleSaveEnterpriseName}
-                    disabled={!tempEnterpriseName.trim()}
-                    loading={isLoading.saveEnterprise}
-                    className="w-full"
-                  >
-                    <Save size={16} />
-                    Sauvegarder
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="success" onClick={handleSaveEnterpriseName} className="flex-1">
+                      <Save size={16} />
+                      Save
+                    </Button>
+                    <Button 
+                      type="secondary" 
+                      onClick={() => {
+                        setIsEditingEnterprise(false);
+                        setTempEnterpriseName(enterpriseName);
+                      }}
+                      className="flex-1"
+                    >
+                      <X size={16} />
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Currency */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-3">
-                  <Euro className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                    Devise préférée
-                  </span>
-                </div>
-                
+              ) : (
                 <div className="space-y-3">
-                  <select
-                    value={tempCurrency}
-                    onChange={(e) => setTempCurrency(e.target.value)}
-                    className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-green-400"
-                  >
-                    {SUPPORTED_CURRENCIES.map((currency) => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.symbol} {currency.name} ({currency.code})
-                      </option>
-                    ))}
-                  </select>
-                  
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+                    <p className="font-medium text-blue-900 dark:text-blue-200">
+                      {enterpriseName || 'No enterprise name set'}
+                    </p>
+                  </div>
                   <Button 
                     type="primary" 
-                    onClick={handleSaveCurrency}
-                    loading={isLoading.saveCurrency}
+                    onClick={() => setIsEditingEnterprise(true)}
                     className="w-full"
                   >
-                    <Save size={16} />
-                    Sauvegarder
+                    <Edit size={16} />
+                    Edit Name
                   </Button>
-                </div>
-              </div>
-
-              {/* Success Messages */}
-              {saveSuccess && (
-                <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl animate-slide-up">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1 bg-green-500 rounded-full">
-                      <Check size={12} className="text-white" />
-                    </div>
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                      Nom d'entreprise sauvegardé !
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {currencySaveSuccess && (
-                <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl animate-slide-up">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1 bg-green-500 rounded-full">
-                      <Check size={12} className="text-white" />
-                    </div>
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                      Devise sauvegardée ! Rechargement...
-                    </p>
-                  </div>
                 </div>
               )}
             </div>
@@ -698,307 +277,77 @@ const PersonalizationPage: React.FC = () => {
           {/* Categories Management */}
           <Card className="hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-shadow hover:scale-110">
-                <Palette className="w-5 h-5 text-white" />
+              <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                <Palette className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Catégories</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{categories.length} configurées</p>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                  {intl.formatMessage({ id: 'settings.categories' })}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {categories.length} configured
+                </p>
               </div>
             </div>
-            
-            {/* Add Category Form */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800">
-              <div className="flex items-center gap-2 mb-3">
-                <Tag className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
-                  Nouvelle catégorie
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Nom de la catégorie"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                  className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-purple-400"
-                />
-                
-                <div className="flex gap-2">
-                  <select
-                    value={newCategory.type}
-                    onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-purple-400"
-                  >
-                    <option value="expense">💸 Dépense</option>
-                    <option value="income">💰 Revenu</option>
-                  </select>
-                  
-                  <div className="relative">
-                    <button 
-                      className="w-10 h-10 rounded-lg border-2 border-purple-300 dark:border-purple-500 focus:outline-none hover:scale-110 transition-all shadow-md hover:shadow-lg"
-                      style={{ backgroundColor: newCategory.color }}
-                      onClick={() => setShowColorPicker(!showColorPicker)}
-                    ></button>
-                    
-                    {showColorPicker && (
-                      <div className="absolute right-0 mt-2 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-20 border border-gray-200 dark:border-gray-700 w-64">
-                        <div className="grid grid-cols-5 gap-2">
-                          {colorOptions.map((color) => (
-                            <button
-                              key={color}
-                              className="w-10 h-10 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:scale-110 transition-all shadow-md hover:shadow-lg"
-                              style={{ backgroundColor: color }}
-                              onClick={() => {
-                                setNewCategory({ ...newCategory, color });
-                                setShowColorPicker(false);
-                              }}
-                            ></button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-2 border-green-200 dark:border-green-800">
+                <h3 className="font-semibold text-green-800 dark:text-green-200 mb-3">
+                  {intl.formatMessage({ id: 'settings.addCategory' })}
+                </h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder={intl.formatMessage({ id: 'settings.categoryName' })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={newCategory.type}
+                      onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value as 'income' | 'expense' })}
+                      className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    >
+                      <option value="expense">{intl.formatMessage({ id: 'transaction.expense' })}</option>
+                      <option value="income">{intl.formatMessage({ id: 'transaction.income' })}</option>
+                    </select>
+                    <input
+                      type="color"
+                      value={newCategory.color}
+                      onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                      className="w-full h-10 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    />
                   </div>
-                  
-                  <Button 
-                    type="primary" 
-                    onClick={handleAddCategory}
-                    disabled={!newCategory.name.trim()}
-                    loading={isLoading.addCategory}
-                    className="!px-3"
-                  >
-                    <Plus size={18} />
+                  <Button type="success" onClick={handleAddCategory} className="w-full">
+                    <Plus size={16} />
+                    {intl.formatMessage({ id: 'action.add' })}
                   </Button>
                 </div>
               </div>
-            </div>
-            
-            {/* Categories List */}
-            <div className="space-y-4 max-h-80 overflow-y-auto">
-              {/* Income Categories */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <h4 className="text-sm font-bold text-gray-800 dark:text-white">
-                    Revenus ({categories.filter(c => c.type === 'income').length})
-                  </h4>
-                </div>
-                <div className="space-y-2">
-                  {categories
-                    .filter((category) => category.type === 'income')
-                    .map((category) => (
+
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {categories.map((category) => (
+                  <div key={category.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center gap-3">
                       <div 
-                        key={category.id} 
-                        className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all group hover:shadow-md"
-                      >
-                        {editingCategory === category.id ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <div className="relative">
-                              <button 
-                                className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
-                                style={{ backgroundColor: editCategoryData.color }}
-                                onClick={() => setShowEditColorPicker(!showEditColorPicker)}
-                              ></button>
-                              {showEditColorPicker && (
-                                <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
-                                  <div className="grid grid-cols-5 gap-1">
-                                    {colorOptions.map((color) => (
-                                      <button
-                                        key={color}
-                                        className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
-                                        style={{ backgroundColor: color }}
-                                        onClick={() => {
-                                          setEditCategoryData({ ...editCategoryData, color });
-                                          setShowEditColorPicker(false);
-                                        }}
-                                      ></button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            <input
-                              type="text"
-                              value={editCategoryData.name}
-                              onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSaveCategory(category.id, 'income')}
-                              className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                              autoFocus
-                            />
-                            <div className="flex gap-1">
-                              <Button 
-                                type="success" 
-                                size="sm"
-                                onClick={() => handleSaveCategory(category.id, 'income')}
-                                loading={isLoading[`saveCategory-${category.id}`]}
-                                className="!p-1"
-                              >
-                                <Check size={12} />
-                              </Button>
-                              <Button 
-                                type="secondary" 
-                                size="sm"
-                                onClick={handleCancelEditCategory}
-                                className="!p-1"
-                              >
-                                <X size={12} />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex items-center gap-3">
-                              <div 
-                                className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
-                                style={{ backgroundColor: category.color }}
-                              ></div>
-                              <span className="font-medium text-gray-800 dark:text-gray-200">
-                                {category.name}
-                              </span>
-                            </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button 
-                                type="secondary" 
-                                size="sm"
-                                onClick={() => handleStartEditCategory(category)}
-                                className="!p-1.5"
-                              >
-                                <Edit3 size={12} />
-                              </Button>
-                              <Button 
-                                type="danger" 
-                                size="sm"
-                                onClick={() => handleDeleteCategory(category.id)}
-                                loading={isLoading[`deleteCategory-${category.id}`]}
-                                className="!p-1.5"
-                              >
-                                <Trash2 size={12} />
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  {categories.filter(c => c.type === 'income').length === 0 && (
-                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                      <p className="text-sm">Aucune catégorie de revenu</p>
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <span className="font-medium text-gray-800 dark:text-white">{category.name}</span>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        category.type === 'income' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      }`}>
+                        {intl.formatMessage({ id: `transaction.${category.type}` })}
+                      </span>
                     </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Expense Categories */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                  <h4 className="text-sm font-bold text-gray-800 dark:text-white">
-                    Dépenses ({categories.filter(c => c.type === 'expense').length})
-                  </h4>
-                </div>
-                <div className="space-y-2">
-                  {categories
-                    .filter((category) => category.type === 'expense')
-                    .map((category) => (
-                      <div 
-                        key={category.id} 
-                        className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all group hover:shadow-md"
-                      >
-                        {editingCategory === category.id ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <div className="relative">
-                              <button 
-                                className="w-6 h-6 rounded-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
-                                style={{ backgroundColor: editCategoryData.color }}
-                                onClick={() => setShowEditColorPicker(!showEditColorPicker)}
-                              ></button>
-                              {showEditColorPicker && (
-                                <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700">
-                                  <div className="grid grid-cols-5 gap-1">
-                                    {colorOptions.map((color) => (
-                                      <button
-                                        key={color}
-                                        className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform"
-                                        style={{ backgroundColor: color }}
-                                        onClick={() => {
-                                          setEditCategoryData({ ...editCategoryData, color });
-                                          setShowEditColorPicker(false);
-                                        }}
-                                      ></button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            <input
-                              type="text"
-                              value={editCategoryData.name}
-                              onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSaveCategory(category.id, 'expense')}
-                              className="flex-1 px-2 py-1 text-sm border border-red-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                              autoFocus
-                            />
-                            <div className="flex gap-1">
-                              <Button 
-                                type="success" 
-                                size="sm"
-                                onClick={() => handleSaveCategory(category.id, 'expense')}
-                                loading={isLoading[`saveCategory-${category.id}`]}
-                                className="!p-1"
-                              >
-                                <Check size={12} />
-                              </Button>
-                              <Button 
-                                type="secondary" 
-                                size="sm"
-                                onClick={handleCancelEditCategory}
-                                className="!p-1"
-                              >
-                                <X size={12} />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex items-center gap-3">
-                              <div 
-                                className="w-4 h-4 rounded-full shadow-md hover:scale-110 transition-transform"
-                                style={{ backgroundColor: category.color }}
-                              ></div>
-                              <span className="font-medium text-gray-800 dark:text-gray-200">
-                                {category.name}
-                              </span>
-                            </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button 
-                                type="secondary" 
-                                size="sm"
-                                onClick={() => handleStartEditCategory(category)}
-                                className="!p-1.5"
-                              >
-                                <Edit3 size={12} />
-                              </Button>
-                              <Button 
-                                type="danger" 
-                                size="sm"
-                                onClick={() => handleDeleteCategory(category.id)}
-                                loading={isLoading[`deleteCategory-${category.id}`]}
-                                className="!p-1.5"
-                              >
-                                <Trash2 size={12} />
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  {categories.filter(c => c.type === 'expense').length === 0 && (
-                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                      <p className="text-sm">Aucune catégorie de dépense</p>
-                    </div>
-                  )}
-                </div>
+                    <Button type="danger" onClick={() => handleDeleteCategory(category.id)} size="sm">
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
               </div>
             </div>
           </Card>
@@ -1006,263 +355,201 @@ const PersonalizationPage: React.FC = () => {
           {/* Clients Management */}
           <Card className="hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-110">
-                <Users className="w-5 h-5 text-white" />
+              <div className="p-3 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl shadow-lg">
+                <Users className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Clients</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{clients.length} configurés</p>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                  Clients
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {clients.length} configured
+                </p>
               </div>
             </div>
 
-            {/* Add Client Form */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800 hover:shadow-md transition-all">
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-orange-600" />
-                <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
-                  Nouveau client
-                </span>
+            <div className="space-y-4">
+              {/* Add New Client */}
+              <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border-2 border-orange-200 dark:border-orange-800">
+                <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-3">
+                  New Client
+                </h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newClient}
+                    onChange={(e) => setNewClient(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="Client name"
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddClient()}
+                  />
+                  <Button type="primary" onClick={handleAddClient}>
+                    <Plus size={16} />
+                  </Button>
+                </div>
               </div>
-              
-              <div className="flex gap-2">
+
+              {/* Search Clients */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="Nom du client"
-                  value={newClient}
-                  onChange={(e) => setNewClient(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddClient()}
-                  className="flex-1 px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white transition-all hover:border-orange-400"
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="Search clients..."
                 />
-                <Button 
-                  type="primary" 
-                  onClick={handleAddClient}
-                  disabled={!newClient.trim()}
-                  loading={isLoading.addClient}
-                  className="!px-3"
-                >
-                  <Plus size={18} />
-                </Button>
               </div>
-            </div>
-            
-            {/* Clients List */}
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {clients.map((client) => (
-                <div 
-                  key={client.id} 
-                  className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all group hover:shadow-md"
-                >
-                  {editingClient === client.id ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <input
-                        type="text"
-                        value={editClientName}
-                        onChange={(e) => setEditClientName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSaveClient(client.id)}
-                        className="flex-1 px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                        autoFocus
-                      />
-                      <div className="flex gap-1">
-                        <Button 
-                          type="success" 
-                          size="sm"
-                          onClick={() => handleSaveClient(client.id)}
-                          loading={isLoading[`saveClient-${client.id}`]}
-                          className="!p-1"
-                        >
-                          <Check size={12} />
-                        </Button>
-                        <Button 
-                          type="secondary" 
-                          size="sm"
-                          onClick={handleCancelEditClient}
-                          className="!p-1"
-                        >
-                          <X size={12} />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <div className="p-1 bg-orange-500 rounded-lg">
-                          <Users className="w-3 h-3 text-white" />
-                        </div>
-                        <span className="font-medium text-gray-800 dark:text-gray-200">
-                          {client.name}
-                        </span>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button 
-                          type="secondary" 
-                          size="sm"
-                          onClick={() => handleStartEditClient(client)}
-                          className="!p-1.5"
-                        >
-                          <Edit3 size={12} />
-                        </Button>
-                        <Button 
-                          type="danger" 
-                          size="sm"
-                          onClick={() => handleDeleteClient(client.id)}
-                          loading={isLoading[`deleteClient-${client.id}`]}
-                          className="!p-1.5"
-                        >
-                          <Trash2 size={12} />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-              {clients.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
-                    <Users className="w-6 h-6 text-orange-400" />
+
+              {/* Clients List */}
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {filteredClients.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    {clientSearch ? 'No clients found matching your search' : 'No clients added yet'}
                   </div>
-                  <p className="text-sm font-medium mb-1">Aucun client</p>
-                  <p className="text-xs">Ajoutez des clients pour les sélectionner rapidement</p>
-                </div>
-              )}
+                ) : (
+                  filteredClients.map((client) => (
+                    <div key={client.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                      {editingClient === client.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="text"
+                            value={editingClientName}
+                            onChange={(e) => setEditingClientName(e.target.value)}
+                            className="flex-1 px-2 py-1 border border-orange-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                            onKeyPress={(e) => e.key === 'Enter' && handleSaveClient()}
+                            autoFocus
+                          />
+                          <Button type="success" onClick={handleSaveClient} size="sm">
+                            <Save size={14} />
+                          </Button>
+                          <Button type="secondary" onClick={handleCancelEdit} size="sm">
+                            <X size={14} />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                              <Users className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="font-medium text-gray-800 dark:text-white">{client.name}</span>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button type="secondary" onClick={() => handleEditClient(client)} size="sm">
+                              <Edit size={14} />
+                            </Button>
+                            <Button type="danger" onClick={() => handleDeleteClient(client.id)} size="sm">
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </Card>
-          
-          {/* Data Management Card */}
-          <Card className="hover:shadow-xl transition-all duration-300 lg:col-span-2 xl:col-span-3">
+
+          {/* Data Management */}
+          <Card className="lg:col-span-2 xl:col-span-3 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-110">
-                <Database className="w-5 h-5 text-white" />
+              <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl shadow-lg">
+                <Download className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Gestion des Données</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Export, Import & Sauvegarde</p>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                  {intl.formatMessage({ id: 'settings.dataManagement' })}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Export, import, and manage your financial data
+                </p>
               </div>
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Button 
-                type="primary" 
-                className="w-full justify-center hover:scale-105 transition-transform"
-                onClick={handleExportData}
-                loading={isLoading.exportData}
+                type="success" 
+                onClick={handleExportExcel}
+                disabled={isLoading}
+                className="flex flex-col items-center p-6 h-auto"
               >
-                {isPremium ? (
-                  <>
-                    <Download size={16} />
-                    JSON
-                  </>
-                ) : (
-                  <>
-                    <Crown size={16} />
-                    Premium
-                  </>
-                )}
+                <Download className="w-8 h-8 mb-2" />
+                <span className="font-semibold">Export Excel</span>
+                <span className="text-xs opacity-75">
+                  {isPremium ? 'Available' : 'Premium Feature'}
+                </span>
               </Button>
 
               <Button 
                 type="primary" 
-                className="w-full justify-center hover:scale-105 transition-transform"
-                onClick={handleExportExcel}
-                loading={isLoading.exportExcel}
+                onClick={handleExportJSON}
+                disabled={isLoading}
+                className="flex flex-col items-center p-6 h-auto"
               >
-                {isPremium ? (
-                  <>
-                    <FileSpreadsheet size={16} />
-                    Excel
-                  </>
-                ) : (
-                  <>
-                    <Crown size={16} />
-                    Premium
-                  </>
-                )}
+                <Download className="w-8 h-8 mb-2" />
+                <span className="font-semibold">Export JSON</span>
+                <span className="text-xs opacity-75">
+                  {isPremium ? 'Available' : 'Premium Feature'}
+                </span>
               </Button>
-              
-              <label className="block">
+
+              <div>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportData}
+                  className="hidden"
+                  id="import-file"
+                />
                 <Button 
                   type="secondary" 
-                  className="w-full justify-center hover:scale-105 transition-transform"
-                  onClick={() => {
-                    if (!isPremium) {
-                      if (window.confirm(intl.formatMessage({ id: 'premium.upgradePrompt' }))) {
-                        redirectToCheckout('premium_access');
-                      }
-                      return;
-                    }
-                    document.getElementById('file-input')?.click();
-                  }}
-                  loading={isLoading.importData}
+                  onClick={() => document.getElementById('import-file')?.click()}
+                  className="w-full flex flex-col items-center p-6 h-auto"
                 >
-                  {isPremium ? (
-                    <>
-                      <Upload size={16} />
-                      Import
-                    </>
-                  ) : (
-                    <>
-                      <Crown size={16} />
-                      Premium
-                    </>
-                  )}
+                  <Upload className="w-8 h-8 mb-2" />
+                  <span className="font-semibold">Import Data</span>
+                  <span className="text-xs opacity-75">JSON Format</span>
                 </Button>
-                <input 
-                  id="file-input"
-                  type="file" 
-                  accept=".json" 
-                  className="hidden" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleImportData(file);
-                    }
-                  }}
-                />
-              </label>
+              </div>
 
               <Button 
                 type="danger" 
-                className="w-full justify-center hover:scale-105 transition-transform"
-                onClick={handleClearData}
-                loading={isLoading.clearData}
+                onClick={clearAllData}
+                className="flex flex-col items-center p-6 h-auto"
               >
-                <AlertTriangle size={16} />
-                Supprimer
+                <AlertTriangle className="w-8 h-8 mb-2" />
+                <span className="font-semibold">Clear All</span>
+                <span className="text-xs opacity-75">Permanent Action</span>
               </Button>
             </div>
-            
+
             {!isPremium && (
-              <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl hover:shadow-md transition-all">
-                <div className="flex items-center gap-2 mb-3">
-                  <Crown size={18} className="text-yellow-600 animate-pulse" />
-                  <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                    Fonctionnalités Premium
-                  </p>
+              <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border-2 border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                      Upgrade to {STRIPE_PRODUCTS.premium_access.name}
+                    </h3>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
+                      Get access to advanced export features, unlimited transactions, and PDF receipts.
+                    </p>
+                    <Button 
+                      type="primary"
+                      onClick={() => window.open('/premium', '_blank')}
+                      className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                    >
+                      Upgrade Now - €{STRIPE_PRODUCTS.premium_access.price}/month
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
-                  Débloquez l'export/import de données avec Premium
-                </p>
-                <Button
-                  type="primary"
-                  onClick={() => redirectToCheckout('premium_access')}
-                  loading={isLoading.upgradeRedirect}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 hover:scale-105 transition-all"
-                >
-                  <Crown size={16} />
-                  Passer à Premium
-                </Button>
               </div>
             )}
           </Card>
-        </div>
-
-        {/* Bottom Info */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all cursor-pointer">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Tous les changements sont automatiquement sauvegardés dans le cloud
-            </span>
-          </div>
         </div>
       </div>
     </div>

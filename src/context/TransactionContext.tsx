@@ -30,6 +30,7 @@ interface TransactionContextType {
   deleteCategory: (id: string) => Promise<void>;
   addClient: (client: Omit<Client, 'id' | 'createdAt'>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
+  updateClient: (id: string, newName: string) => Promise<void>;
   hasReachedLimit: boolean;
   isLoading: boolean;
   enterpriseName: string;
@@ -444,6 +445,63 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
+  const updateClient = async (id: string, newName: string) => {
+    if (!user) throw new Error('User must be authenticated');
+
+    try {
+      const oldClient = clients.find(client => client.id === id);
+      if (!oldClient) throw new Error('Client not found');
+
+      const oldName = oldClient.name;
+
+      if (isOfflineMode) {
+        // Update client name
+        const updatedClients = clients.map(client =>
+          client.id === id ? { ...client, name: newName, updated_at: new Date().toISOString() } : client
+        );
+        setClients(updatedClients);
+        saveToLocalStorage(getLocalStorageKey('clients'), updatedClients);
+
+        // Update all transactions that reference this client
+        const updatedTransactions = transactions.map(transaction =>
+          transaction.client === oldName ? { ...transaction, client: newName } : transaction
+        );
+        setTransactions(updatedTransactions);
+        saveToLocalStorage(getLocalStorageKey('transactions'), updatedTransactions);
+      } else {
+        // Update client in database
+        const { error: clientError } = await supabase
+          .from('clients')
+          .update({ name: newName })
+          .eq('id', id)
+          .eq('user_id', user.id);
+
+        if (clientError) throw clientError;
+
+        // Update all transactions that reference this client
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .update({ client: newName })
+          .eq('client', oldName)
+          .eq('user_id', user.id);
+
+        if (transactionError) throw transactionError;
+
+        // Update local state
+        setClients(prev => prev.map(client =>
+          client.id === id ? { ...client, name: newName } : client
+        ));
+
+        setTransactions(prev => prev.map(transaction =>
+          transaction.client === oldName ? { ...transaction, client: newName } : transaction
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating client:', error);
+      throw error;
+    }
+  };
+
   return (
     <TransactionContext.Provider
       value={{
@@ -458,6 +516,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         deleteCategory,
         addClient,
         deleteClient,
+        updateClient,
         hasReachedLimit,
         isLoading,
         enterpriseName,
