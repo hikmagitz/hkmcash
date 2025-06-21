@@ -12,8 +12,7 @@ import {
   User,
   Shield,
   Zap,
-  WifiOff,
-  Building
+  WifiOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AuthMode } from './AuthContainer';
@@ -28,7 +27,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    companyName: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -351,29 +349,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchMode }) => {
             </div>
           </motion.div>
         </div>
-
-        {/* Company Name Field */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.45 }}
-        >
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Company Name <span className="text-gray-400 font-normal">(Optional)</span>
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={formData.companyName}
-              onChange={(e) => handleInputChange('companyName', e.target.value)}
-              className="w-full px-4 py-3 pl-11 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-pink-500/20 focus:border-pink-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all duration-200"
-              placeholder="Your company name"
-              disabled={isLoading}
-              autoComplete="organization"
-            />
-            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          </div>
-        </motion.div>
 
         {/* Email Field */}
         <motion.div

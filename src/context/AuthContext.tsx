@@ -138,20 +138,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return true;
   };
 
-  // Helper function to clear invalid session
-  const clearInvalidSession = async () => {
-    console.log('🧹 Clearing invalid session...');
-    try {
-      if (supabase) {
-        await supabase.auth.signOut();
-      }
-    } catch (error) {
-      console.log('Error during session cleanup:', error);
-    }
-    setUser(null);
-    setIsPremium(false);
-  };
-
   // Initialize auth state
   useEffect(() => {
     let mounted = true;
@@ -181,14 +167,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) {
           console.error('❌ Session error:', error.message);
           console.error('Full error:', error);
-          
-          // Check for invalid refresh token error
-          if (error.message.includes('Invalid Refresh Token') || 
-              error.message.includes('Refresh Token Not Found') ||
-              error.message.includes('refresh_token_not_found')) {
-            console.log('🔄 Invalid refresh token detected, clearing session...');
-            await clearInvalidSession();
-          }
         } else if (session?.user && mounted) {
           console.log('✅ Found existing session for:', session.user.email);
           setUser(session.user);
@@ -197,8 +175,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error('❌ Auth initialization error:', error);
-        // If there's any error during initialization, clear the session to be safe
-        await clearInvalidSession();
       } finally {
         if (mounted) {
           setLoading(false);
@@ -343,10 +319,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         if (error.message.includes('network')) {
           return 'Network error. Please check your connection and try again.';
-        }
-        if (error.message.includes('Invalid Refresh Token') || 
-            error.message.includes('Refresh Token Not Found')) {
-          return 'Your session has expired. Please sign in again.';
         }
         return error.message || 'An unexpected error occurred. Please try again.';
     }
