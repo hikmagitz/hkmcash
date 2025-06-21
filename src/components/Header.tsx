@@ -246,7 +246,7 @@ const Header: React.FC = () => {
                 <Button 
                   type="secondary"
                   onClick={() => navigate('/premium')}
-                  className="flex-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-900 hover:from-yellow-200 hover:to-orange-200 border-0 font-semibold"
+                  className="flex-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-gray-900 hover:from-yellow-200 hover:to-orange-200 border-0 font-bold"
                 >
                   <Crown size={16} />
                   {intl.formatMessage({ id: 'premium.upgrade' })}
@@ -336,7 +336,7 @@ const Header: React.FC = () => {
                 <Button 
                   type="secondary"
                   onClick={() => navigate('/premium')}
-                  className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-900 hover:from-yellow-200 hover:to-orange-200 border-0 font-semibold"
+                  className="bg-gradient-to-r from-yellow-100 to-orange-100 text-gray-900 hover:from-yellow-200 hover:to-orange-200 border-0 font-bold"
                 >
                   <Crown size={18} />
                   {intl.formatMessage({ id: 'premium.upgrade' })}
