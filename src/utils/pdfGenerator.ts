@@ -1,6 +1,16 @@
 import { jsPDF } from 'jspdf';
 import { Transaction } from '../types';
-import { formatCurrency, formatDate } from './helpers';
+import { formatDate } from './helpers';
+
+// Format amount without currency symbol and with proper number formatting
+const formatAmountForReceipt = (amount: number): string => {
+  // If the amount is a whole number, don't show decimals
+  if (amount % 1 === 0) {
+    return amount.toString();
+  }
+  // Otherwise, show up to 2 decimal places but remove trailing zeros
+  return amount.toFixed(2).replace(/\.?0+$/, '');
+};
 
 export const generateTransactionReceipt = (transaction: Transaction, enterpriseName: string) => {
   // Create new document
@@ -11,16 +21,17 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
   });
 
   // Use the provided enterprise name or fallback to a default
-  const companyName = enterpriseName?.trim() || 'HKM Cash';
+  const companyName = enterpriseName?.trim() || 'Your Company';
 
   // Set fonts
   doc.setFont('helvetica');
 
   // Colors
-  const primaryColor = [0, 128, 128];  // Teal
-  const textColor = [51, 51, 51];      // Dark gray
-  const secondaryColor = [128, 128, 128]; // Medium gray
-  const accentColor = transaction.type === 'income' ? [16, 185, 129] : [239, 68, 68]; // Green or Red
+  const primaryColor = [41, 128, 185];     // Professional blue
+  const textColor = [44, 62, 80];          // Dark blue-gray
+  const secondaryColor = [149, 165, 166];  // Light gray
+  const accentColor = transaction.type === 'income' ? [39, 174, 96] : [231, 76, 60]; // Green or Red
+  const lightBg = [236, 240, 241];         // Very light gray
 
   // Page dimensions
   const pageWidth = doc.internal.pageSize.width;
@@ -28,104 +39,176 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
   const margin = 20;
   const contentWidth = pageWidth - (margin * 2);
 
-  // Add watermark
-  doc.setFillColor(245, 245, 245);
+  // Header with company branding
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 50, 'F');
+  
+  // Company name in header
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.text(companyName, margin, 30);
+  
+  // Subtitle
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Transaction Receipt', margin, 40);
+
+  // Receipt number and date in header
+  doc.setFontSize(10);
+  doc.text(`Receipt #: ${transaction.id.substring(0, 8).toUpperCase()}`, pageWidth - margin, 25, { align: 'right' });
+  doc.text(`Date: ${formatDate(transaction.date)}`, pageWidth - margin, 35, { align: 'right' });
+
+  // Main content area
+  let yPos = 70;
+
+  // Transaction type badge
+  const badgeText = transaction.type === 'income' ? 'INCOME' : 'EXPENSE';
+  const badgeWidth = doc.getTextWidth(badgeText) + 12;
+  doc.setFillColor(...accentColor);
+  doc.roundedRect(margin, yPos, badgeWidth, 10, 3, 3, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(badgeText, margin + 6, yPos + 7);
+
+  yPos += 25;
+
+  // Amount section - prominently displayed
+  doc.setFillColor(...lightBg);
+  doc.roundedRect(margin, yPos, contentWidth, 25, 5, 5, 'F');
+  
+  doc.setTextColor(...textColor);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AMOUNT', margin + 10, yPos + 10);
+  
+  // Format amount as requested (like "15000")
+  const formattedAmount = formatAmountForReceipt(transaction.amount);
+  doc.setFontSize(24);
+  doc.setTextColor(...accentColor);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formattedAmount, margin + 10, yPos + 20);
+
+  yPos += 40;
+
+  // Transaction details in a clean table format
+  const details = [
+    { label: 'Description', value: transaction.description },
+    { label: 'Category', value: transaction.category },
+    { label: 'Client', value: transaction.client || 'N/A' },
+    { label: 'Transaction Date', value: formatDate(transaction.date) },
+    { label: 'Transaction ID', value: transaction.id },
+  ];
+
+  // Table header
+  doc.setFillColor(...primaryColor);
+  doc.rect(margin, yPos, contentWidth, 12, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TRANSACTION DETAILS', margin + 5, yPos + 8);
+
+  yPos += 12;
+
+  // Table rows
+  details.forEach((detail, index) => {
+    const rowHeight = 12;
+    
+    // Alternating row colors
+    if (index % 2 === 0) {
+      doc.setFillColor(...lightBg);
+      doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
+    }
+
+    // Label
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...textColor);
+    doc.setFontSize(10);
+    doc.text(detail.label + ':', margin + 5, yPos + 8);
+
+    // Value
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...secondaryColor);
+    
+    // Handle long text by wrapping
+    const maxWidth = contentWidth - 70;
+    const splitText = doc.splitTextToSize(detail.value, maxWidth);
+    doc.text(splitText, margin + 60, yPos + 8);
+
+    yPos += rowHeight;
+  });
+
+  // Company information section
+  yPos += 20;
+  doc.setDrawColor(...secondaryColor);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  
+  yPos += 15;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(...primaryColor);
-  doc.setFontSize(120);
-  doc.setGState(new doc.GState({ opacity: 0.05 }));
+  doc.text('ISSUED BY', margin, yPos);
+  
+  yPos += 10;
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...textColor);
+  doc.text(companyName, margin, yPos);
+  
+  yPos += 8;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...secondaryColor);
+  doc.text('Professional Financial Management', margin, yPos);
+
+  // QR Code placeholder (for future verification)
+  const qrSize = 25;
+  const qrX = pageWidth - margin - qrSize;
+  const qrY = yPos - 20;
+  
+  doc.setDrawColor(...secondaryColor);
+  doc.setLineWidth(1);
+  doc.rect(qrX, qrY, qrSize, qrSize);
+  
+  // QR code content
+  doc.setFontSize(8);
+  doc.setTextColor(...secondaryColor);
+  doc.text('QR', qrX + qrSize/2, qrY + qrSize/2, { align: 'center' });
+  doc.text('Verification', qrX + qrSize/2, qrY + qrSize + 5, { align: 'center' });
+
+  // Footer
+  const footerY = pageHeight - 30;
+  doc.setDrawColor(...secondaryColor);
+  doc.setLineWidth(0.5);
+  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+
+  doc.setFontSize(9);
+  doc.setTextColor(...secondaryColor);
+  doc.setFont('helvetica', 'normal');
+  
+  // Footer text
+  const footerText = `Generated by ${companyName} on ${new Date().toLocaleString()}`;
+  const footerText2 = 'This is an electronically generated receipt. No signature required.';
+  const footerText3 = 'For questions regarding this transaction, please contact our support team.';
+  
+  doc.text(footerText, margin, footerY);
+  doc.text(footerText2, margin, footerY + 8);
+  doc.text(footerText3, margin, footerY + 16);
+
+  // Watermark
+  doc.setGState(new doc.GState({ opacity: 0.03 }));
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(80);
+  doc.setFont('helvetica', 'bold');
   doc.text(companyName, pageWidth / 2, pageHeight / 2, {
     align: 'center',
     angle: 45,
   });
   doc.setGState(new doc.GState({ opacity: 1 }));
 
-  // Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 40, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text(companyName, margin, 25);
-
-  // Receipt title
-  doc.setTextColor(...textColor);
-  doc.setFontSize(28);
-  doc.text('Transaction Receipt', margin, 60);
-
-  // Transaction status badge
-  const badgeText = transaction.type === 'income' ? 'INCOME' : 'EXPENSE';
-  const badgeWidth = doc.getTextWidth(badgeText) + 10;
-  doc.setFillColor(...accentColor);
-  doc.roundedRect(margin, 70, badgeWidth, 8, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
-  doc.text(badgeText, margin + 5, 75);
-
-  // Main content
-  doc.setTextColor(...textColor);
-  doc.setFontSize(12);
-  
-  const details = [
-    { label: 'Date', value: formatDate(transaction.date) },
-    { label: 'Category', value: transaction.category },
-    { label: 'Client', value: transaction.client || 'N/A' },
-    { label: 'Description', value: transaction.description },
-    { label: 'Amount', value: formatCurrency(transaction.amount), highlight: true },
-    { label: 'Transaction ID', value: transaction.id },
-  ];
-
-  let yPos = 90;
-  details.forEach(({ label, value, highlight }, index) => {
-    // Draw alternating background
-    if (index % 2 === 0) {
-      doc.setFillColor(250, 250, 250);
-      doc.rect(margin, yPos - 5, contentWidth, 12, 'F');
-    }
-
-    // Label
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...textColor);
-    doc.text(label + ':', margin, yPos);
-
-    // Value
-    doc.setFont('helvetica', 'normal');
-    if (highlight) {
-      doc.setTextColor(...accentColor);
-      doc.setFont('helvetica', 'bold');
-    } else {
-      doc.setTextColor(...textColor);
-    }
-    doc.text(value, margin + 50, yPos);
-
-    yPos += 15;
-  });
-
-  // Add QR code placeholder
-  doc.setDrawColor(...secondaryColor);
-  doc.setLineWidth(0.5);
-  doc.rect(margin, yPos + 10, 30, 30);
-  doc.setFontSize(8);
-  doc.setTextColor(...secondaryColor);
-  doc.text('Scan for verification', margin, yPos + 45);
-
-  // Footer
-  const footerY = pageHeight - 20;
-  doc.setDrawColor(...secondaryColor);
-  doc.setLineWidth(0.5);
-  doc.line(margin, footerY - 10, pageWidth - margin, footerY - 10);
-
-  doc.setFontSize(9);
-  doc.setTextColor(...secondaryColor);
-  
-  // Footer text
-  const footerText = `Generated by ${companyName} on ${new Date().toLocaleString()}`;
-  const footerText2 = 'This is an electronically generated receipt. No signature is required.';
-  
-  doc.text(footerText, margin, footerY);
-  doc.text(footerText2, pageWidth - margin, footerY, { align: 'right' });
-
-  // Save the PDF
-  const fileName = `${companyName.replace(/[^a-zA-Z0-9]/g, '-')}-Receipt-${transaction.id}.pdf`;
+  // Save the PDF with company name
+  const fileName = `${companyName.replace(/[^a-zA-Z0-9]/g, '-')}-Receipt-${transaction.id.substring(0, 8)}.pdf`;
   doc.save(fileName);
 };
