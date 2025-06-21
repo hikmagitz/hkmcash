@@ -529,14 +529,21 @@ const Header: React.FC = () => {
                     )}
                   </div>
 
-                  <Button 
-                    type="primary" 
-                    className="w-full mt-6"
+                  <button
+                    type="submit"
                     disabled={isLoading}
+                    className="relative overflow-hidden font-medium transition-all duration-200 flex items-center justify-center gap-2 rounded-lg shadow-sm hover:shadow-lg active:scale-95 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:shadow-sm px-4 py-2 text-sm md:text-base min-h-[44px] bg-gradient-to-r from-sky-500 to-purple-500 hover:from-sky-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-sky-500/30 before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity cursor-pointer hover:scale-105 w-full mt-6"
                   >
-                    <PlusCircle size={18} />
-                    {isLoading ? 'Adding...' : 'Add Transaction'}
-                  </Button>
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-lg">
+                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    <span className={`relative z-10 flex items-center gap-2 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                      <PlusCircle size={18} />
+                      {isLoading ? 'Adding...' : 'Add Transaction'}
+                    </span>
+                  </button>
                 </form>
               )}
             </div>
