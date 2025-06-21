@@ -167,6 +167,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) {
           console.error('❌ Session error:', error.message);
           console.error('Full error:', error);
+          
+          // If there's an invalid refresh token error, sign out to clear stale auth data
+          if (error.message.includes('refresh_token_not_found') || 
+              error.message.includes('Invalid Refresh Token') ||
+              error.message.includes('refresh token')) {
+            console.log('🔄 Clearing invalid refresh token by signing out...');
+            try {
+              await supabase!.auth.signOut();
+              console.log('✅ Successfully cleared invalid auth state');
+            } catch (signOutError) {
+              console.error('❌ Error during cleanup sign out:', signOutError);
+            }
+          }
         } else if (session?.user && mounted) {
           console.log('✅ Found existing session for:', session.user.email);
           setUser(session.user);
