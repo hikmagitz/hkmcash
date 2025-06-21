@@ -527,4 +527,3 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     </TransactionContext.Provider>
   );
 };
-}
