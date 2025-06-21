@@ -16,7 +16,7 @@ interface TransactionListProps {
 }
 
 const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: propTransactions }) => {
-  const { transactions: contextTransactions, deleteTransaction, categories } = useTransactions();
+  const { transactions: contextTransactions, deleteTransaction, categories, enterpriseName } = useTransactions();
   const { isPremium } = useAuth();
   const { redirectToCheckout } = useStripe();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -57,7 +57,8 @@ const TransactionList: React.FC<TransactionListProps> = ({ limit, transactions: 
       }
       return;
     }
-    const enterpriseName = localStorage.getItem('enterpriseName') || '';
+    
+    // Always pass the current enterprise name to ensure the PDF uses the latest value
     generateTransactionReceipt(transaction, enterpriseName);
   };
 
