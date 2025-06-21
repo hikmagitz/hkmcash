@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Settings, FileText, Download, Upload, Shield, Lock, Users, UserPlus, Trash2, Crown, ChevronRight } from 'lucide-react';
+import { User, Settings, FileText, Download, Upload, Shield, Lock, Users, UserPlus, Trash2, Crown, ChevronRight, Link, Unlink } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -10,7 +10,7 @@ import { ChangePasswordForm, ForgotPasswordForm } from '../components/Auth/Passw
 const AccountPage: React.FC = () => {
   const intl = useIntl();
   const { transactions, categories, clients } = useTransactions();
-  const { user, isPremium, isOfflineMode, savedAccounts, switchAccount, removeAccount, addAccount } = useAuth();
+  const { user, isPremium, isOfflineMode, savedAccounts, switchAccount, removeAccount, addAccount, linkAccount, unlinkAccount } = useAuth();
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
   const handleExportData = () => {
@@ -86,6 +86,23 @@ const AccountPage: React.FC = () => {
     }
   };
 
+  const handleLinkAccount = async (accountId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await linkAccount(accountId);
+    } catch (error) {
+      console.error('Error linking account:', error);
+      alert('Failed to link account. Please make sure you are signed in.');
+    }
+  };
+
+  const handleUnlinkAccount = (accountId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (window.confirm('Are you sure you want to unlink this account? You will need to sign in manually next time.')) {
+      unlinkAccount(accountId);
+    }
+  };
+
   const handleAddAccount = () => {
     setShowAccountSwitcher(false);
     addAccount();
@@ -117,9 +134,14 @@ const AccountPage: React.FC = () => {
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Switch between your saved accounts ({savedAccounts.length} accounts)
-                </p>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Switch between your saved accounts ({savedAccounts.length} accounts)
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    🔗 Linked accounts allow seamless switching without re-authentication
+                  </p>
+                </div>
                 <Button
                   type="secondary"
                   onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
@@ -149,16 +171,42 @@ const AccountPage: React.FC = () => {
                               {account.isPremium && (
                                 <Crown size={16} className="text-yellow-500" />
                               )}
+                              {account.isLinked && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                  <Link size={10} className="mr-1" />
+                                  Linked
+                                </span>
+                              )}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               {account.email}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-500">
                               Last used: {new Date(account.lastUsed).toLocaleDateString()}
+                              {account.isLinked && (
+                                <span className="ml-2 text-green-600 dark:text-green-400">• Seamless switching enabled</span>
+                              )}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          {account.isLinked ? (
+                            <button
+                              onClick={(e) => handleUnlinkAccount(account.id, e)}
+                              className="p-2 text-orange-400 hover:text-orange-600 transition-colors"
+                              title="Unlink account (will require manual sign in)"
+                            >
+                              <Unlink size={16} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => handleLinkAccount(account.id, e)}
+                              className="p-2 text-green-400 hover:text-green-600 transition-colors"
+                              title="Link account for seamless switching"
+                            >
+                              <Link size={16} />
+                            </button>
+                          )}
                           <button
                             onClick={(e) => handleRemoveAccount(account.id, e)}
                             className="p-2 text-gray-400 hover:text-red-500 transition-colors"
@@ -178,6 +226,19 @@ const AccountPage: React.FC = () => {
                       <UserPlus size={20} className="mr-2" />
                       Add Another Account
                     </button>
+                  </div>
+                  
+                  {/* Linking Instructions */}
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                      🔗 Account Linking
+                    </h4>
+                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                      <p>• <strong>Linked accounts:</strong> Switch instantly without re-entering credentials</p>
+                      <p>• <strong>Unlinked accounts:</strong> Require manual sign-in when switching</p>
+                      <p>• <strong>To link:</strong> Sign in to the account first, then click the link button</p>
+                      <p>• <strong>Security:</strong> Tokens are stored locally and encrypted</p>
+                    </div>
                   </div>
                 </div>
               )}

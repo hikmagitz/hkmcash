@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown, X, PlusCircle, Users, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, Moon, Sun, LogOut, Languages, Crown, User, ChevronDown, X, PlusCircle, Users, UserPlus, Trash2, Link, Unlink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTransactions } from '../context/TransactionContext';
@@ -16,7 +16,7 @@ const Header: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
-  const { signOut, isPremium, user, savedAccounts, switchAccount, removeAccount, addAccount } = useAuth();
+  const { signOut, isPremium, user, savedAccounts, switchAccount, removeAccount, addAccount, linkAccount, unlinkAccount } = useAuth();
   const { language, setLanguage } = useLanguage();
   const { addTransaction, categories, clients, hasReachedLimit } = useTransactions();
   const intl = useIntl();
@@ -89,6 +89,13 @@ const Header: React.FC = () => {
     }
   };
 
+  const getDisplayName = () => {
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
   const handleSwitchAccount = async (accountId: string) => {
     try {
       await switchAccount(accountId);
@@ -106,17 +113,27 @@ const Header: React.FC = () => {
     }
   };
 
+  const handleLinkAccount = async (accountId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await linkAccount(accountId);
+    } catch (error) {
+      console.error('Error linking account:', error);
+      alert('Failed to link account. Please make sure you are signed in.');
+    }
+  };
+
+  const handleUnlinkAccount = (accountId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (window.confirm('Are you sure you want to unlink this account? You will need to sign in manually next time.')) {
+      unlinkAccount(accountId);
+    }
+  };
+
   const handleAddAccount = () => {
     setShowAccountSwitcher(false);
     setIsProfileOpen(false);
     addAccount();
-  };
-
-  const getDisplayName = () => {
-    if (user?.email) {
-      return user.email.split('@')[0];
-    }
-    return 'User';
   };
 
   // Form handlers
@@ -330,8 +347,9 @@ const Header: React.FC = () => {
                                   >
                                     <User size={14} />
                                     <div>
-                                      <p className="text-xs font-medium text-gray-900 dark:text-white">
+                                      <p className="text-xs font-medium text-gray-900 dark:text-white flex items-center gap-1">
                                         {account.name}
+                                        {account.isLinked && <Link size={10} className="text-green-500" />}
                                       </p>
                                       <p className="text-xs text-gray-500 dark:text-gray-400">
                                         {account.email}
@@ -341,12 +359,31 @@ const Header: React.FC = () => {
                                       <Crown size={12} className="text-yellow-500" />
                                     )}
                                   </button>
-                                  <button
-                                    onClick={(e) => handleRemoveAccount(account.id, e)}
-                                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
+                                  <div className="flex items-center space-x-1">
+                                    {account.isLinked ? (
+                                      <button
+                                        onClick={(e) => handleUnlinkAccount(account.id, e)}
+                                        className="p-1 text-orange-400 hover:text-orange-600 transition-colors"
+                                        title="Unlink account"
+                                      >
+                                        <Unlink size={12} />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => handleLinkAccount(account.id, e)}
+                                        className="p-1 text-green-400 hover:text-green-600 transition-colors"
+                                        title="Link account for seamless switching"
+                                      >
+                                        <Link size={12} />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={(e) => handleRemoveAccount(account.id, e)}
+                                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                               <button
@@ -447,7 +484,7 @@ const Header: React.FC = () => {
                 </button>
                 
                 {isProfileOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-72 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
+                  <div className="absolute right-0 top-full mt-1 w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-gray-700/50 z-50">
                     <div className="py-1">
                       <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">Account</p>
@@ -472,11 +509,11 @@ const Header: React.FC = () => {
                           </button>
                           
                           {showAccountSwitcher && (
-                            <div className="border-t border-gray-200/50 dark:border-gray-700/50 max-h-48 overflow-y-auto">
+                            <div className="border-t border-gray-200/50 dark:border-gray-700/50 max-h-64 overflow-y-auto">
                               {savedAccounts.map((account) => (
                                 <div
                                   key={account.id}
-                                  className="flex items-center justify-between px-4 py-2 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
+                                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors"
                                 >
                                   <button
                                     onClick={() => handleSwitchAccount(account.id)}
@@ -486,8 +523,14 @@ const Header: React.FC = () => {
                                       <User size={14} className="text-white" />
                                     </div>
                                     <div>
-                                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                                         {account.name}
+                                        {account.isLinked && (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            <Link size={10} className="mr-1" />
+                                            Linked
+                                          </span>
+                                        )}
                                       </p>
                                       <p className="text-xs text-gray-500 dark:text-gray-400">
                                         {account.email}
@@ -500,13 +543,32 @@ const Header: React.FC = () => {
                                       <Crown size={14} className="text-yellow-500" />
                                     )}
                                   </button>
-                                  <button
-                                    onClick={(e) => handleRemoveAccount(account.id, e)}
-                                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                    title="Remove account"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  <div className="flex items-center space-x-1">
+                                    {account.isLinked ? (
+                                      <button
+                                        onClick={(e) => handleUnlinkAccount(account.id, e)}
+                                        className="p-1 text-orange-400 hover:text-orange-600 transition-colors"
+                                        title="Unlink account (will require manual sign in)"
+                                      >
+                                        <Unlink size={14} />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => handleLinkAccount(account.id, e)}
+                                        className="p-1 text-green-400 hover:text-green-600 transition-colors"
+                                        title="Link account for seamless switching"
+                                      >
+                                        <Link size={14} />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={(e) => handleRemoveAccount(account.id, e)}
+                                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                      title="Remove account"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                               <button
