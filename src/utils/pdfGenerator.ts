@@ -10,63 +10,74 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
     format: 'a4',
   });
 
-  // Use company name from settings, fallback to default
-  const companyName = enterpriseName && enterpriseName.trim() ? enterpriseName.trim() : 'Nom d\'entreprise';
-
-  // Set fonts and colors
+  // Set fonts
   doc.setFont('helvetica');
+
+  // Colors
   const primaryColor = [0, 128, 128];  // Teal
   const textColor = [51, 51, 51];      // Dark gray
+  const secondaryColor = [128, 128, 128]; // Medium gray
+  const accentColor = transaction.type === 'income' ? [16, 185, 129] : [239, 68, 68]; // Green or Red
 
   // Page dimensions
   const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
   const margin = 20;
+  const contentWidth = pageWidth - (margin * 2);
 
-  // Header with company name
+  // Add watermark
+  doc.setFillColor(245, 245, 245);
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(120);
+  doc.setGState(new doc.GState({ opacity: 0.05 }));
+  doc.text(enterpriseName || 'HKM Cash', pageWidth / 2, pageHeight / 2, {
+    align: 'center',
+    angle: 45,
+  });
+  doc.setGState(new doc.GState({ opacity: 1 }));
+
+  // Header
   doc.setFillColor(...primaryColor);
   doc.rect(0, 0, pageWidth, 40, 'F');
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text(companyName, margin, 25);
+  doc.text(enterpriseName || 'HKM Cash', margin, 25);
 
   // Receipt title
   doc.setTextColor(...textColor);
   doc.setFontSize(28);
-  doc.text('Reçu de Transaction', margin, 60);
+  doc.text('Transaction Receipt', margin, 60);
 
-  // Amount section - prominently displayed
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Montant:', margin, 90);
+  // Transaction status badge
+  const badgeText = transaction.type === 'income' ? 'INCOME' : 'EXPENSE';
+  const badgeWidth = doc.getTextWidth(badgeText) + 10;
+  doc.setFillColor(...accentColor);
+  doc.roundedRect(margin, 70, badgeWidth, 8, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.text(badgeText, margin + 5, 75);
 
-  // Format amount without "/" - just the number with currency
-  const amountText = `${transaction.amount.toFixed(2)} €`;
-  doc.setFontSize(32);
-  doc.setTextColor(0, 128, 0); // Green color for amount
-  doc.text(amountText, margin, 110);
-
-  // Transaction details
+  // Main content
   doc.setTextColor(...textColor);
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
   
   const details = [
     { label: 'Date', value: formatDate(transaction.date) },
-    { label: 'Catégorie', value: transaction.category },
+    { label: 'Category', value: transaction.category },
     { label: 'Client', value: transaction.client || 'N/A' },
     { label: 'Description', value: transaction.description },
-    { label: 'Type', value: transaction.type === 'income' ? 'Revenus' : 'Dépenses' },
-    { label: 'ID Transaction', value: transaction.id.substring(0, 8) },
+    { label: 'Amount', value: formatCurrency(transaction.amount), highlight: true },
+    { label: 'Transaction ID', value: transaction.id },
   ];
 
-  let yPos = 140;
-  details.forEach(({ label, value }, index) => {
+  let yPos = 90;
+  details.forEach(({ label, value, highlight }, index) => {
     // Draw alternating background
     if (index % 2 === 0) {
       doc.setFillColor(250, 250, 250);
-      doc.rect(margin, yPos - 5, pageWidth - (margin * 2), 12, 'F');
+      doc.rect(margin, yPos - 5, contentWidth, 12, 'F');
     }
 
     // Label
@@ -76,21 +87,42 @@ export const generateTransactionReceipt = (transaction: Transaction, enterpriseN
 
     // Value
     doc.setFont('helvetica', 'normal');
+    if (highlight) {
+      doc.setTextColor(...accentColor);
+      doc.setFont('helvetica', 'bold');
+    } else {
+      doc.setTextColor(...textColor);
+    }
     doc.text(value, margin + 50, yPos);
 
     yPos += 15;
   });
 
-  // Footer
-  const footerY = 280;
-  doc.setFontSize(9);
-  doc.setTextColor(128, 128, 128);
-  
-  const footerText = `Généré par ${companyName} le ${new Date().toLocaleString('fr-FR')}`;
-  doc.text(footerText, margin, footerY);
+  // Add QR code placeholder
+  doc.setDrawColor(...secondaryColor);
+  doc.setLineWidth(0.5);
+  doc.rect(margin, yPos + 10, 30, 30);
+  doc.setFontSize(8);
+  doc.setTextColor(...secondaryColor);
+  doc.text('Scan for verification', margin, yPos + 45);
 
-  // Save the PDF with company name in filename
-  const sanitizedCompanyName = companyName.replace(/[^a-zA-Z0-9]/g, '');
-  const fileName = `${sanitizedCompanyName}-Recu-${transaction.id.substring(0, 8)}.pdf`;
+  // Footer
+  const footerY = pageHeight - 20;
+  doc.setDrawColor(...secondaryColor);
+  doc.setLineWidth(0.5);
+  doc.line(margin, footerY - 10, pageWidth - margin, footerY - 10);
+
+  doc.setFontSize(9);
+  doc.setTextColor(...secondaryColor);
+  
+  // Footer text
+  const footerText = `Generated by ${enterpriseName || 'HKM Cash'} on ${new Date().toLocaleString()}`;
+  const footerText2 = 'This is an electronically generated receipt. No signature is required.';
+  
+  doc.text(footerText, margin, footerY);
+  doc.text(footerText2, pageWidth - margin, footerY, { align: 'right' });
+
+  // Save the PDF
+  const fileName = `${enterpriseName || 'HikmaCash'}-Receipt-${transaction.id}.pdf`;
   doc.save(fileName);
 };
