@@ -94,7 +94,7 @@ const AccountPage: React.FC = () => {
               <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-              Account Informations
+              Account Information
             </h2>
           </div>
           
