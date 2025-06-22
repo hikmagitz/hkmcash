@@ -512,15 +512,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               </button>
             </div>
 
-            {/* Debug info for development */}
-            {import.meta.env.DEV && (
-              <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-                <p>Debug: hasChanges={hasChanges.toString()}, isFormValid={isFormValid.toString()}</p>
-                <p>Type: {formData.type}, Category: {formData.category}</p>
-                <p>Available categories: {filteredCategories.length}</p>
-              </div>
-            )}
-
             {/* Keyboard shortcut hint */}
             <div className="text-center">
               <p className="text-xs text-gray-500 dark:text-gray-400">
