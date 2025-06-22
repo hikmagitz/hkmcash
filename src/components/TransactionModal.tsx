@@ -95,7 +95,35 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const handleTypeChange = (type: 'income' | 'expense') => {
-    setFormData(prev => ({ ...prev, type, category: '' }));
+    setFormData(prev => {
+      const newFormData = { ...prev, type };
+      
+      // If changing type and current category doesn't exist for new type, 
+      // try to find a suitable category or clear it
+      const categoriesForNewType = categories.filter(cat => cat.type === type);
+      const currentCategoryExists = categoriesForNewType.some(cat => cat.name === prev.category);
+      
+      if (!currentCategoryExists) {
+        // Try to find a similar category name in the new type
+        const similarCategory = categoriesForNewType.find(cat => 
+          cat.name.toLowerCase().includes(prev.category.toLowerCase()) ||
+          prev.category.toLowerCase().includes(cat.name.toLowerCase())
+        );
+        
+        if (similarCategory) {
+          newFormData.category = similarCategory.name;
+        } else if (categoriesForNewType.length > 0) {
+          // If no similar category found, select the first available category
+          newFormData.category = categoriesForNewType[0].name;
+        } else {
+          // If no categories available for this type, clear the category
+          newFormData.category = '';
+        }
+      }
+      
+      return newFormData;
+    });
+    
     // Clear category error when type changes
     if (errors.category) {
       setErrors(prev => ({ ...prev, category: '' }));
@@ -121,6 +149,14 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     // Category validation
     if (!formData.category) {
       newErrors.category = 'Please select a category';
+    } else {
+      // Check if the selected category exists for the current type
+      const categoryExists = categories.some(cat => 
+        cat.name === formData.category && cat.type === formData.type
+      );
+      if (!categoryExists) {
+        newErrors.category = `Category "${formData.category}" is not available for ${formData.type} transactions`;
+      }
     }
     
     // Date validation
@@ -256,12 +292,15 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     category => category.type === formData.type
   );
 
+  // Enhanced form validation for button state
   const isFormValid = formData.amount && 
                      formData.description.trim() && 
                      formData.category && 
                      formData.date &&
                      !isNaN(parseFloat(formData.amount)) &&
-                     parseFloat(formData.amount) > 0;
+                     parseFloat(formData.amount) > 0 &&
+                     formData.description.trim().length >= 3 &&
+                     categories.some(cat => cat.name === formData.category && cat.type === formData.type);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 backdrop-blur-sm">
@@ -291,10 +330,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             <div className="grid grid-cols-2 gap-4 mb-4">
               <button
                 type="button"
-                className={`py-2 rounded-md transition-all ${
+                className={`py-2 rounded-md transition-all font-medium ${
                   formData.type === 'expense'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    ? 'bg-red-500 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
                 onClick={() => handleTypeChange('expense')}
                 disabled={isLoading}
@@ -303,10 +342,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               </button>
               <button
                 type="button"
-                className={`py-2 rounded-md transition-all ${
+                className={`py-2 rounded-md transition-all font-medium ${
                   formData.type === 'income'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    ? 'bg-green-500 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
                 onClick={() => handleTypeChange('income')}
                 disabled={isLoading}
@@ -388,7 +427,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Category *
+                Category * 
+                <span className="text-xs text-gray-500 ml-1">
+                  ({formData.type} categories)
+                </span>
               </label>
               <select
                 name="category"
@@ -409,6 +451,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               </select>
               {errors.category && (
                 <p className="mt-1 text-sm text-red-500">{errors.category}</p>
+              )}
+              {filteredCategories.length === 0 && (
+                <p className="mt-1 text-sm text-orange-600 dark:text-orange-400">
+                  No categories available for {formData.type} transactions. Please add categories in Settings.
+                </p>
               )}
             </div>
 
@@ -464,6 +511,15 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 </span>
               </button>
             </div>
+
+            {/* Debug info for development */}
+            {import.meta.env.DEV && (
+              <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+                <p>Debug: hasChanges={hasChanges.toString()}, isFormValid={isFormValid.toString()}</p>
+                <p>Type: {formData.type}, Category: {formData.category}</p>
+                <p>Available categories: {filteredCategories.length}</p>
+              </div>
+            )}
 
             {/* Keyboard shortcut hint */}
             <div className="text-center">
