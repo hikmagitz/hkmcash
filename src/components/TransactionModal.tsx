@@ -17,7 +17,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   transactionId,
   mode = 'add',
 }) => {
-  const { transactions, updateTransaction } = useTransactions();
+  const { transactions, updateTransaction, categories, clients } = useTransactions();
   const [transaction, setTransaction] = useState(
     transactions.find((t) => t.id === transactionId) || null
   );
@@ -28,9 +28,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     category: '',
     type: 'expense',
     date: new Date().toISOString().slice(0, 10),
+    client: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (mode === 'edit' && transactionId) {
@@ -43,6 +45,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           category: foundTransaction.category,
           type: foundTransaction.type,
           date: foundTransaction.date,
+          client: foundTransaction.client || '',
         });
       }
     }
@@ -100,20 +103,40 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevent double submission
+    if (isLoading) return;
+    
+    console.log('🔄 Save changes form submission started');
+    console.log('Form data:', formData);
+    
     if (validateForm() && transaction) {
-      updateTransaction({
-        ...transaction,
-        amount: Number(formData.amount),
-        description: formData.description,
-        category: formData.category,
-        type: formData.type as 'income' | 'expense',
-        date: formData.date,
-      });
-      
-      onClose();
+      try {
+        setIsLoading(true);
+        console.log('✅ Form validation passed, updating transaction...');
+        
+        await updateTransaction({
+          ...transaction,
+          amount: Number(formData.amount),
+          description: formData.description,
+          category: formData.category,
+          type: formData.type as 'income' | 'expense',
+          date: formData.date,
+          client: formData.client || undefined,
+        });
+        
+        console.log('✅ Transaction updated successfully');
+        onClose();
+      } catch (error) {
+        console.error('❌ Error updating transaction:', error);
+        setErrors({ general: 'Failed to update transaction. Please try again.' });
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      console.log('❌ Form validation failed:', errors);
     }
   };
 
@@ -130,7 +153,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   }
 
   // Edit mode
-  const { categories } = useTransactions();
   const filteredCategories = categories.filter(
     category => category.type === formData.type
   );
@@ -149,6 +171,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             </button>
           </div>
           
+          {errors.general && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-300">{errors.general}</p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <button
@@ -159,6 +187,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                     : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                 }`}
                 onClick={() => handleTypeChange('expense')}
+                disabled={isLoading}
               >
                 Expense
               </button>
@@ -170,6 +199,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                     : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                 }`}
                 onClick={() => handleTypeChange('income')}
+                disabled={isLoading}
               >
                 Income
               </button>
@@ -193,6 +223,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                     errors.amount ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="0.00"
+                  disabled={isLoading}
                 />
               </div>
               {errors.amount && (
@@ -213,10 +244,31 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="What was this transaction for?"
+                disabled={isLoading}
               />
               {errors.description && (
                 <p className="mt-1 text-sm text-red-500">{errors.description}</p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Client
+              </label>
+              <select
+                name="client"
+                value={formData.client}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white border-gray-300"
+                disabled={isLoading}
+              >
+                <option value="">Select Client</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.name}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -230,6 +282,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                   errors.category ? 'border-red-500' : 'border-gray-300'
                 }`}
+                disabled={isLoading}
               >
                 <option value="">Select Category</option>
                 {filteredCategories.map((category) => (
@@ -255,19 +308,28 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                   errors.date ? 'border-red-500' : 'border-gray-300'
                 }`}
+                disabled={isLoading}
               />
               {errors.date && (
                 <p className="mt-1 text-sm text-red-500">{errors.date}</p>
               )}
             </div>
 
-            <Button 
-              type="primary" 
-              className="w-full mt-6"
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="relative overflow-hidden font-medium transition-all duration-200 flex items-center justify-center gap-2 rounded-lg shadow-sm hover:shadow-lg active:scale-95 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:shadow-sm px-4 py-2 text-sm md:text-base min-h-[44px] bg-gradient-to-r from-sky-500 to-purple-500 hover:from-sky-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-sky-500/30 before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity cursor-pointer hover:scale-105 w-full mt-6"
             >
-              <Save size={18} />
-              Save Changes
-            </Button>
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-lg">
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              <span className={`relative z-10 flex items-center gap-2 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                <Save size={18} />
+                {isLoading ? 'Saving Changes...' : 'Save Changes'}
+              </span>
+            </button>
           </form>
         </div>
       </div>
