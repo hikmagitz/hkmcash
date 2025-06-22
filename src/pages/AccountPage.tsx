@@ -6,6 +6,7 @@ import Button from '../components/UI/Button';
 import { useTransactions } from '../context/TransactionContext';
 import { useAuth } from '../context/AuthContext';
 import { ChangePasswordForm, ForgotPasswordForm } from '../components/Auth/PasswordManagement';
+import SubscriptionManagement from '../components/Account/SubscriptionManagement';
 
 const AccountPage: React.FC = () => {
   const intl = useIntl();
@@ -86,6 +87,11 @@ const AccountPage: React.FC = () => {
         <ForgotPasswordForm />
       </div>
 
+      {/* Subscription Management - Full width */}
+      <div className="mb-8">
+        <SubscriptionManagement />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Account Information */}
         <Card>
@@ -111,7 +117,7 @@ const AccountPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 rounded-xl border-l-4 border-green-500">
+            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-l-4 border-green-500">
               <div className="flex items-center gap-2 mb-2">
                 <Shield className="w-4 h-4 text-green-600" />
                 <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">
